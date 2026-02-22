@@ -166,7 +166,9 @@ After all writing is done:
 
 3. **Consistency check**: Ensure terminology, project name, and conventions are consistent across all docs.
 
-4. **Final summary**: Report what was created, updated, and verified. List any remaining items the user deferred.
+4. **Commit**: If any files were created or modified, commit all documentation changes with a descriptive message summarising what was added or updated.
+
+5. **Final summary**: Report what was created, updated, and verified. List any remaining items the user deferred.
 
 ## Guidelines
 
