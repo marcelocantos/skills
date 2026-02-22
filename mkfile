@@ -37,10 +37,10 @@ skill_files = $[shell find $skills_src -mindepth 2 -name '*.md' | sed "s|$skills
     with open('README.md', 'w') as f:
         f.write('\n'.join(lines))
     PYEOF
-    if git diff --quiet && [ -z "$$(git ls-files --others --exclude-standard)" ]; then
+    if git diff --quiet README.md $skill_files 2>/dev/null && [ -z "$$(git ls-files --others --exclude-standard -- $skill_files)" ]; then
         echo "No changes to publish."
     else
-        git add -A
+        git add README.md $skill_files
         git diff --cached --stat
         git commit -m "Update skills from ~/.claude/skills"
         git push
