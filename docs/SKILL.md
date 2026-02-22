@@ -171,7 +171,7 @@ After all writing is done:
 
 ## Document types to consider
 
-During the audit and recommendations phases, consider the full range of document types below. Not every project needs all of these — recommend only what's appropriate for the project's audiences and maturity. Scale documentation to the size of the project: a small library might only need a good README and API reference, while a large multi-component system may warrant the full set. Don't overwhelm a tiny project with a documentation suite larger than the codebase itself.
+During the audit and recommendations phases, consider the full range of document types below. Not every project needs all of these — recommend only what's appropriate for the project's audiences and maturity. Scale documentation to the size of the project: a small library might only need a good README and API reference, while a large multi-component system may warrant the full set. Don't overwhelm a tiny project with a documentation suite substantially larger than the codebase itself.
 
 ### Guides (task-oriented, walk the reader through doing something)
 
