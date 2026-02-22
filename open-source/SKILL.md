@@ -140,7 +140,10 @@ Ask if the user wants to create an initial release. If yes:
              test: 'system bin/"<project>", "--version"'
              update_readme_table: true
      ```
-   - **Required setup**: A Personal Access Token with `repo` scope stored as `HOMEBREW_TAP_TOKEN` in the source repo's Settings > Secrets. The token needs access to both the source repo and `marcelocantos/homebrew-tap`.
+   - **Required setup — `HOMEBREW_TAP_TOKEN` secret**: Each source repo that publishes to the tap needs its own PAT and secret. Create a separate token per repo:
+     1. Create a **fine-grained** PAT at https://github.com/settings/personal-access-tokens/new — name it after the source repo (e.g., `<repo>-homebrew-tap`), select **only** the tap repo (`<owner>/homebrew-tap`) under "Repository access", and grant **Contents → Read and write** permission.
+     2. Add the PAT as a secret named `HOMEBREW_TAP_TOKEN` at `https://github.com/<owner>/<repo>/settings/secrets/actions/new`.
+     3. Provide these two URLs to the user so they can complete the setup manually (secrets cannot be created via CLI or API without the token value).
    - Binary tarballs must follow the naming convention `<project>-<version>-<os>-<arch>.tar.gz`. homebrew-releaser auto-detects these from the release assets and computes SHA256 checksums.
    - Show the workflow to the user for review. Commit to `master` and push before creating the release.
 

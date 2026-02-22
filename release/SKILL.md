@@ -115,7 +115,10 @@ Draft release notes from git history.
    ```
 
    Key setup requirements:
-   - A **Personal Access Token** with `repo` scope (for both the source repo and the tap repo) must be stored as the secret `HOMEBREW_TAP_TOKEN` in the source repo's Settings > Secrets.
+   - **`HOMEBREW_TAP_TOKEN` secret**: Each source repo that publishes to the tap needs its own PAT and secret. Create a separate token per repo:
+     1. Create a **fine-grained** PAT at https://github.com/settings/personal-access-tokens/new — name it after the source repo (e.g., `<repo>-homebrew-tap`), select **only** the tap repo (`<owner>/homebrew-tap`) under "Repository access", and grant **Contents → Read and write** permission.
+     2. Add the PAT as a secret named `HOMEBREW_TAP_TOKEN` at `https://github.com/<owner>/<repo>/settings/secrets/actions/new`.
+     3. Provide these URLs to the user so they can complete the setup (secrets cannot be created via API without the token value).
    - The `homebrew-tap` repo must exist at `marcelocantos/homebrew-tap` with a `Formula/` directory.
    - Binary tarballs must follow the naming convention `<project>-<version>-<os>-<arch>.tar.gz` where `<version>` has **no `v` prefix** (e.g., `myapp-1.2.0-darwin-arm64.tar.gz`). homebrew-releaser strips the `v` from the tag when searching for assets.
    - The `install` and `test` fields must match the project's actual binary name and CLI interface.
