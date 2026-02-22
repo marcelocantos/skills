@@ -74,29 +74,25 @@ For each category, determine: **exists?** / **accurate?** / **complete?** / **st
    - How to run tests
    - Where to find things in the codebase
 
-6. **Changelog** (CHANGELOG.md)
-   - Does it exist? Is it maintained?
-   - Does it follow a consistent format (e.g., Keep a Changelog)?
-
-7. **Inline code documentation**
+6. **Inline code documentation**
    - Are complex algorithms or non-obvious logic explained?
    - Are public functions/methods documented at the declaration site?
    - Is there excessive boilerplate documentation that adds noise without value?
    - Are there stale comments that describe code that has since changed?
 
-8. **Ops / deployment documentation**
+7. **Ops / deployment documentation**
    - How to deploy, configure, and run in production
    - Monitoring, logging, health checks
    - Backup/restore procedures
    - Only relevant if the project is a service or has operational concerns
 
-9. **Testing documentation**
+8. **Testing documentation**
    - How to run the test suite
    - Test strategy (what's tested, what isn't, and why)
    - How to add new tests
    - How to update golden files / snapshots if applicable
 
-10. **CLAUDE.md** (Claude Code integration)
+9. **CLAUDE.md** (Claude Code integration)
     - Does it accurately describe the project for AI-assisted development?
     - Are build commands, architecture, key files, and conventions covered?
     - Is it current with the actual codebase?
@@ -207,7 +203,6 @@ During the audit and recommendations phases, consider the full range of document
 ### Project-level documents
 
 - **README.md** — Project overview, quickstart, license
-- **CHANGELOG.md** — Release history in a consistent format
 - **CLAUDE.md** — Claude Code integration: build commands, architecture, conventions, key files
 
 ### In-code documentation
