@@ -196,6 +196,14 @@ During the audit and recommendations phases, consider the full range of document
 - **Design decisions / ADRs** — Key choices, alternatives considered, rationale (Architecture Decision Records)
 - **Research reports** — Investigations, benchmarks, spikes, feasibility analyses, trade-off evaluations. Typically written before or during implementation to inform decisions. Belong in `docs/research/` or similar.
 
+### Agentic coding guide (library projects)
+
+- **agents-guide.md** — A highly condensed reference tailored for agentic coding tools (Claude Code, Cursor, Copilot, etc.). Distils the essential information from all other docs into a single file that an agent can ingest quickly: what the library does, how to include it, key API surface, common patterns, and gotchas. Should be concise enough to fit comfortably in a context window.
+
+  **Placement**: For single- or two-file libraries distributed as `dist/something.h` (and optionally `dist/something.cpp`), co-locate `agents-guide.md` alongside those files in `dist/` so that consumers who vendor just the dist files get the agent guide with them. For larger libraries, place it in the project root or `docs/`.
+
+  **Installation instructions**: When the project has an agents-guide.md, the README's installation section should mention it — e.g., "If you use an agentic coding tool, include `agents-guide.md` in your project context for API reference."
+
 ### Project-level documents
 
 - **README.md** — Project overview, quickstart, license
