@@ -62,18 +62,9 @@ Apply fixes for issues identified in the audit.
 
 ### Phase 3: Documentation
 
-Create or update documentation files. For each, draft content based on the codebase and ask the user to review before writing.
+Delegate to the `/docs` skill for comprehensive documentation audit and writing. This ensures the same thorough process is used whether open-sourcing or improving docs on an existing project.
 
-1. **README.md**: Generate based on the project's structure, build system, and any existing docs. Include:
-   - Project name and one-line description (ask the user)
-   - What it does / why it exists
-   - Build instructions (derive from Makefile, CMakeLists.txt, or similar)
-   - Usage examples
-   - License badge and notice
-
-2. **CONTRIBUTING.md** (ask if wanted): Standard contribution guide — how to build, test, submit PRs, code style expectations.
-
-3. **CHANGELOG.md** (ask if wanted): Initial entry based on current state, or just a template for future use.
+Invoke `/docs` and follow its full workflow (discovery, audit, recommendations, execution, verification). The `/docs` skill will handle README, CONTRIBUTING, CHANGELOG, architecture docs, API docs, inline comments, and everything else appropriate for the project.
 
 ### Phase 4: Publish
 
