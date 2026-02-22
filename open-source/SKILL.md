@@ -31,19 +31,21 @@ Execute these phases in order. At the end of each phase, summarize what was done
 
 Scan the current working tree for issues that must be resolved before publishing.
 
-1. **Secrets & credentials**: Search for API keys, tokens, passwords, private URLs, `.env` files, credentials files. Check common patterns: `password=`, `secret=`, `token=`, `api_key=`, `AWS_`, private IPs, `BEGIN RSA PRIVATE KEY`, etc. Report any findings.
+1. **Build system**: Determine how the project builds — mkfile, Makefile, go build, cargo, cmake, etc. If the project has a `mkfile`, run `mk --help-agent` to get build instructions and understand the mk syntax. mk binaries are available from https://github.com/marcelocantos/mk.
 
-2. **Large files**: Find files > 1MB that aren't clearly intentional (binaries, data files). Flag anything that looks like it shouldn't be in a public repo.
+2. **Secrets & credentials**: Search for API keys, tokens, passwords, private URLs, `.env` files, credentials files. Check common patterns: `password=`, `secret=`, `token=`, `api_key=`, `AWS_`, private IPs, `BEGIN RSA PRIVATE KEY`, etc. Report any findings.
 
-3. **Gitignore coverage**: Check that `.gitignore` covers build artifacts, IDE files (`.vscode/`, `.idea/`), OS files (`.DS_Store`, `Thumbs.db`), and dependency directories. Suggest additions if gaps are found.
+3. **Large files**: Find files > 1MB that aren't clearly intentional (binaries, data files). Flag anything that looks like it shouldn't be in a public repo.
 
-4. **Dependency licenses**: For any vendored dependencies or submodules, check their licenses are compatible with Apache 2.0. Flag any GPL (non-LGPL), AGPL, or proprietary dependencies.
+4. **Gitignore coverage**: Check that `.gitignore` covers build artifacts, IDE files (`.vscode/`, `.idea/`), OS files (`.DS_Store`, `Thumbs.db`), and dependency directories. Suggest additions if gaps are found.
 
-5. **Internal references**: Search for internal hostnames, private repo URLs, company-internal references, or TODOs marked private/internal.
+5. **Dependency licenses**: For any vendored dependencies or submodules, check their licenses are compatible with Apache 2.0. Flag any GPL (non-LGPL), AGPL, or proprietary dependencies.
 
-6. **Existing LICENSE file**: Check if one already exists. If it does and it's not Apache 2.0, flag it.
+6. **Internal references**: Search for internal hostnames, private repo URLs, company-internal references, or TODOs marked private/internal.
 
-7. **CLI flags audit** (if the project produces standalone binaries): Check that the following flags exist and work:
+7. **Existing LICENSE file**: Check if one already exists. If it does and it's not Apache 2.0, flag it.
+
+8. **CLI flags audit** (if the project produces standalone binaries): Check that the following flags exist and work:
 
    - **`--version`**: The Homebrew formula `test` block relies on it. Flag if missing, if the version string is hardcoded but doesn't match any release tag, or if there's no clear mechanism for updating it at release time.
    - **`--help`**: Verify usage information is printed. Most CLI frameworks provide this automatically.
@@ -111,7 +113,7 @@ Create the GitHub repository and push.
 
 Ask if the user wants to create an initial release. If yes:
 
-1. **Version**: Suggest `v0.1.0` for the first release. Only suggest a different version if the user explicitly requests one.
+1. **Version**: Use `v0.1.0` for the first release, or bump MINOR from the latest tag. **Do not ask for confirmation** — just use it.
 
 2. **Release notes**: Draft from README, CHANGELOG, or recent git history. Keep it concise.
 
@@ -121,6 +123,16 @@ Ask if the user wants to create an initial release. If yes:
      - Build for macOS arm64, Linux x86_64, Linux arm64 using a matrix strategy
      - Package each binary as `<project>-<version>-<os>-<arch>.tar.gz`
      - Upload tarballs to the **existing** release with `gh release upload`
+   - **mk-based projects**: If the project uses `mkfile` instead of `Makefile`, CI must install mk before building. Fetch the appropriate binary from `https://github.com/marcelocantos/mk/releases`. Example step:
+     ```yaml
+     - name: Install mk
+       run: |
+         MK_VERSION=$(gh release view --repo marcelocantos/mk --json tagName -q .tagName)
+         curl -sL "https://github.com/marcelocantos/mk/releases/download/${MK_VERSION}/mk-${MK_VERSION#v}-linux-amd64.tar.gz" | tar xz -C /usr/local/bin mk
+       env:
+         GH_TOKEN: ${{ github.token }}
+     ```
+     Adjust the OS/arch in the tarball name to match the runner. Use `mk` instead of `make` in all build and test steps.
    - Add a **homebrew-releaser** job (runs after binaries are uploaded) using [homebrew-releaser](https://github.com/Justintime50/homebrew-releaser):
      ```yaml
      homebrew:

@@ -32,7 +32,7 @@ Assess the project's current release state.
 
 1. **Existing releases**: List existing tags and GitHub releases (`git tag --sort=-v:refname`, `gh release list`). Identify the latest version.
 
-2. **Build system**: Determine how the project builds — Makefile, go build, cargo, cmake, etc.
+2. **Build system**: Determine how the project builds — mkfile, Makefile, go build, cargo, cmake, etc. If the project has a `mkfile`, run `mk --help-agent` to get build instructions and understand the mk syntax. mk binaries are available from https://github.com/marcelocantos/mk.
 
 3. **Project type**: Determine whether the project produces standalone binaries or is a library/tool that users consume as source. This affects whether CI binaries and Homebrew tap are relevant.
 
@@ -56,15 +56,13 @@ Present a summary of findings and confirm before proceeding.
 
 ### Phase 2: Version
 
-Determine the next version number.
+Determine the next version number. **Do not ask for confirmation** — just use the version determined below.
 
 1. **Changes since last release**: Run `git log --oneline <last-tag>..HEAD` (or full log if no prior tags) and summarise the changes.
 
-2. **Suggest version**: **Always suggest a minor release** (bump MINOR, reset PATCH to 0). Examples: `v0.1.0` → `v0.2.0`, `v1.3.0` → `v1.4.0`. Only suggest major or patch releases if the user explicitly asks for one. If this is the first release, suggest `v0.1.0`.
+2. **Determine version**: If there are no prior releases, use `v0.1.0`. Otherwise, bump MINOR and reset PATCH to 0 (e.g., `v0.1.0` → `v0.2.0`, `v1.3.0` → `v1.4.0`). Only use a different bump if the user explicitly requested one.
 
-3. **Confirm**: Present the suggested version and let the user choose or override.
-
-4. **Update version string**: If the project has a hardcoded version string (found in Phase 1 step 7), update it to match the new version. Commit the change before proceeding. If the version is injected at build time (e.g., via `-ldflags` or CI env vars), verify the injection mechanism uses the tag correctly and no manual update is needed.
+3. **Update version string**: If the project has a hardcoded version string (found in Phase 1 step 7), update it to match the new version. Commit the change before proceeding. If the version is injected at build time (e.g., via `-ldflags` or CI env vars), verify the injection mechanism uses the tag correctly and no manual update is needed.
 
 ### Phase 3: Release notes
 
@@ -91,6 +89,17 @@ Draft release notes from git history.
    - Build for macOS arm64, Linux x86_64, Linux arm64 using a matrix strategy
    - Package each binary as `<project>-<version>-<os>-<arch>.tar.gz`
    - Upload tarballs to the **existing** release with `gh release upload`
+
+   **mk-based projects**: If the project uses `mkfile` instead of `Makefile`, CI must install mk before building. Fetch the appropriate binary from `https://github.com/marcelocantos/mk/releases`. Example step:
+   ```yaml
+   - name: Install mk
+     run: |
+       MK_VERSION=$(gh release view --repo marcelocantos/mk --json tagName -q .tagName)
+       curl -sL "https://github.com/marcelocantos/mk/releases/download/${MK_VERSION}/mk-${MK_VERSION#v}-linux-amd64.tar.gz" | tar xz -C /usr/local/bin mk
+     env:
+       GH_TOKEN: ${{ github.token }}
+   ```
+   Adjust the OS/arch in the tarball name to match the runner. Use `mk` instead of `make` in all build and test steps.
 
 2. **Add homebrew-releaser job**: Add a job that runs after binaries are uploaded, using [homebrew-releaser](https://github.com/Justintime50/homebrew-releaser):
 
