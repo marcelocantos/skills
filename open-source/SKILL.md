@@ -49,7 +49,7 @@ Scan the current working tree for issues that must be resolved before publishing
 
    - **`--version`**: The Homebrew formula `test` block relies on it. Flag if missing, if the version string is hardcoded but doesn't match any release tag, or if there's no clear mechanism for updating it at release time.
    - **`--help`**: Verify usage information is printed. Most CLI frameworks provide this automatically.
-   - **`--help-agent`**: Should emit the project's agent guide (e.g., `agents-guide.md`) for use by coding agents. For Go programs this should use `go:embed`. Flag if missing.
+   - **`--help-agent`**: Should emit the project's agent guide (e.g., `agents-guide.md`) for use by coding agents, prefixed with the `--help` usage text (flags and descriptions) so agents get both CLI reference and domain guide in one call. For Go programs this should use `go:embed`. Flag if missing or if the usage prefix is absent.
 
 Present all findings as a checklist. Ask the user to confirm which issues to fix before proceeding.
 
@@ -73,14 +73,14 @@ Apply fixes for issues identified in the audit.
 
    - **`--version`**: Prefer build-time injection from the git tag (e.g., `-ldflags -X main.version=$VERSION` for Go, `-DVERSION=` for C/C++) so the version stays in sync with releases automatically. If build-time injection isn't practical, add a hardcoded version constant and note that it must be updated each release.
    - **`--help`**: If the project doesn't use a CLI framework that provides this automatically, add basic usage output.
-   - **`--help-agent`**: Add a flag that prints the project's agent guide to stdout. For Go programs, embed the markdown file with `go:embed`:
+   - **`--help-agent`**: Add a flag that prints the `--help` usage text followed by the project's agent guide to stdout. For Go programs, embed the markdown file with `go:embed`:
      ```go
      import _ "embed"
 
      //go:embed agents-guide.md
      var agentGuide string
      ```
-     Then print `agentGuide` when `--help-agent` is passed. For other languages, use the equivalent embedding mechanism or bundle the content as a string constant. Ensure the embedded file path is correct relative to the package containing the `//go:embed` directive.
+     Then capture `flag.PrintDefaults()` into a `bytes.Buffer` (via `flag.CommandLine.SetOutput`) and print the buffer followed by `agentGuide`. This gives agents both the CLI flags reference and the domain guide in one call. For other languages, use the equivalent embedding mechanism or bundle the content as a string constant. Ensure the embedded file path is correct relative to the package containing the `//go:embed` directive.
 
 6. **Clean up flagged items**: Address any other audit findings the user confirmed.
 

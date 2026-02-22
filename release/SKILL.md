@@ -46,7 +46,7 @@ Assess the project's current release state.
 
    - **`--version`**: Search the codebase for how the version string is set — hardcoded strings, constants, build-time injection (e.g., `-ldflags -X`, `#define VERSION`). Report whether it exists, where the string is defined, whether it matches the latest tag, and how it gets updated. The Homebrew formula `test` block relies on this.
    - **`--help`**: Verify the binary prints usage information. Most CLI frameworks provide this automatically.
-   - **`--help-agent`**: Check whether the binary can emit its agent guide (e.g., `agents-guide.md` or `AGENTS-<PROJECT>.md`) for use by coding agents. For Go programs this should use `go:embed` to bundle the file at compile time. For other languages, equivalent embedding or a bundled string constant.
+   - **`--help-agent`**: Check whether the binary can emit its agent guide (e.g., `agents-guide.md` or `AGENTS-<PROJECT>.md`) for use by coding agents. The output should be prefixed with the `--help` usage text (flags and descriptions) so agents get both CLI reference and domain guide in one call. For Go programs, embed the guide with `go:embed` and capture `flag.PrintDefaults()` into a buffer to prepend it. For other languages, equivalent embedding or a bundled string constant.
 
    Flag any that are missing.
 
