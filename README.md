@@ -4,11 +4,11 @@ Claude Code skills for use with `~/.claude/skills/`.
 
 ## Available Skills
 
-- **[`/where`](where/SKILL.md)** — One-liner summary of where the current work stands in a session.
-- **[`/open-source`](open-source/SKILL.md)** — End-to-end workflow for open-sourcing a project: audit for secrets and license issues, add LICENSE and documentation, create the GitHub repo, publish, and cut releases with binaries.
-- **[`/docs`](docs/SKILL.md)** — Documentation sherpa that audits existing docs for accuracy and completeness, identifies gaps across all doc types (README, architecture, API, contributing, inline comments, etc.), produces a prioritised plan, then drafts and writes every approved document.
+- **[`/docs`](docs/SKILL.md)** — End-to-end documentation sherpa — audit, plan, and write all project documentation.
+- **[`/open-source`](open-source/SKILL.md)** — Open-source a project — audit, fix, document, publish, and release.
+- **[`/republish-skills`](republish-skills/SKILL.md)** — Sync ~/.claude/skills/ to the marcelocantos/skills GitHub repo.
+- **[`/where`](where/SKILL.md)** — Give a concise one-liner summary of where the current work stands.
 
 ## License
 
 Apache-2.0
-
