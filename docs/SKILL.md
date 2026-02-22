@@ -68,11 +68,10 @@ For each category, determine: **exists?** / **accurate?** / **complete?** / **st
    - Configuration reference (env vars, config files, CLI flags)
    - Troubleshooting / FAQ
 
-5. **Contributor documentation** (CONTRIBUTING.md or equivalent)
+5. **Development guide**
    - How to set up a dev environment
    - Code style and conventions
    - How to run tests
-   - PR/review process
    - Where to find things in the codebase
 
 6. **Changelog** (CHANGELOG.md)
@@ -169,6 +168,52 @@ After all writing is done:
 4. **Commit**: If any files were created or modified, commit all documentation changes with a descriptive message summarising what was added or updated.
 
 5. **Final summary**: Report what was created, updated, and verified. List any remaining items the user deferred.
+
+## Document types to consider
+
+During the audit and recommendations phases, consider the full range of document types below. Not every project needs all of these — recommend only what's appropriate for the project's audiences and maturity.
+
+### Guides (task-oriented, walk the reader through doing something)
+
+- **Getting started guide** — From zero to running: install, configure, first use
+- **Tutorial** — Step-by-step walkthrough of a realistic use case, end to end
+- **How-to guide** — Focused recipe for a specific task (e.g., "How to add a new endpoint")
+- **Migration guide** — How to upgrade between versions or from a predecessor system
+- **Development guide** — How to set up a dev environment, build, test, and contribute
+- **Deployment guide** — How to deploy, configure, and run in production
+
+### References (information-oriented, looked up rather than read through)
+
+- **API reference** — Public interfaces, function signatures, parameters, return values, error conditions
+- **Configuration reference** — Every env var, config file option, and CLI flag with defaults and valid values
+- **CLI reference** — Commands, subcommands, flags, and examples
+- **Data model / schema reference** — Database tables, wire protocol structs, file formats
+- **Glossary** — Domain-specific terms the reader might not know
+
+### Explanations (understanding-oriented, the "why" behind decisions)
+
+- **Architecture overview** — Major components, how they interact, data flow
+- **Design decisions / ADRs** — Key choices, alternatives considered, rationale (Architecture Decision Records)
+- **Research reports** — Investigations, benchmarks, spikes, feasibility analyses, trade-off evaluations. Typically written before or during implementation to inform decisions. Belong in `docs/research/` or similar.
+
+### Project-level documents
+
+- **README.md** — Project overview, quickstart, license
+- **CHANGELOG.md** — Release history in a consistent format
+- **CLAUDE.md** — Claude Code integration: build commands, architecture, conventions, key files
+
+### In-code documentation
+
+- **Inline comments** — Explain *why*, not *what*. Complex algorithms, non-obvious invariants, gotchas.
+- **Doc comments** — Public API declarations: what, parameters, return values, side effects, examples
+
+### Explicitly excluded
+
+Do **not** recommend or create:
+- CONTRIBUTING.md, CONTRIBUTORS file, or similar
+- Codes of conduct
+- Issue or PR templates
+- Community guidelines or governance documents
 
 ## Guidelines
 
