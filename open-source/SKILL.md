@@ -15,6 +15,9 @@ End-to-end skill for taking a private project public. Covers audit, fixes, docum
 - **Git history**: Always keep full history (never squash)
 - **Default branch**: `master`
 - **Release platforms**: macOS arm64 + Linux x86_64 + Linux arm64
+- **Homebrew tap**: `marcelocantos/homebrew-tap` — uses [homebrew-releaser](https://github.com/Justintime50/homebrew-releaser) GitHub Action for automated formula generation and publishing
+- **Versioning**: **Always suggest minor releases** (bump MINOR, reset PATCH to 0) unless the user explicitly requests otherwise. First release: `v0.1.0`.
+- **Tag ownership**: The release tag is created **once** by `gh release create` locally. CI workflows must **never** create tags or releases — they only build artifacts and upload them to the existing release.
 
 ## Invocation
 
@@ -40,6 +43,12 @@ Scan the current working tree for issues that must be resolved before publishing
 
 6. **Existing LICENSE file**: Check if one already exists. If it does and it's not Apache 2.0, flag it.
 
+7. **CLI flags audit** (if the project produces standalone binaries): Check that the following flags exist and work:
+
+   - **`--version`**: The Homebrew formula `test` block relies on it. Flag if missing, if the version string is hardcoded but doesn't match any release tag, or if there's no clear mechanism for updating it at release time.
+   - **`--help`**: Verify usage information is printed. Most CLI frameworks provide this automatically.
+   - **`--help-agent`**: Should emit the project's agent guide (e.g., `agents-guide.md`) for use by coding agents. For Go programs this should use `go:embed`. Flag if missing.
+
 Present all findings as a checklist. Ask the user to confirm which issues to fix before proceeding.
 
 ### Phase 2: Fixes
@@ -58,7 +67,20 @@ Apply fixes for issues identified in the audit.
    // SPDX-License-Identifier: Apache-2.0
    ```
 
-5. **Clean up flagged items**: Address any other audit findings the user confirmed.
+5. **Fix CLI flags**: Address any missing flags found in the audit:
+
+   - **`--version`**: Prefer build-time injection from the git tag (e.g., `-ldflags -X main.version=$VERSION` for Go, `-DVERSION=` for C/C++) so the version stays in sync with releases automatically. If build-time injection isn't practical, add a hardcoded version constant and note that it must be updated each release.
+   - **`--help`**: If the project doesn't use a CLI framework that provides this automatically, add basic usage output.
+   - **`--help-agent`**: Add a flag that prints the project's agent guide to stdout. For Go programs, embed the markdown file with `go:embed`:
+     ```go
+     import _ "embed"
+
+     //go:embed agents-guide.md
+     var agentGuide string
+     ```
+     Then print `agentGuide` when `--help-agent` is passed. For other languages, use the equivalent embedding mechanism or bundle the content as a string constant. Ensure the embedded file path is correct relative to the package containing the `//go:embed` directive.
+
+6. **Clean up flagged items**: Address any other audit findings the user confirmed.
 
 ### Phase 3: Documentation
 
@@ -89,18 +111,47 @@ Create the GitHub repository and push.
 
 Ask if the user wants to create an initial release. If yes:
 
-1. **Tag**: Ask for version (suggest `v0.1.0` for first public release, or `v1.0.0` if the project is mature).
+1. **Version**: Suggest `v0.1.0` for the first release. Only suggest a different version if the user explicitly requests one.
 
 2. **Release notes**: Draft from README, CHANGELOG, or recent git history. Keep it concise.
 
-3. **Binaries** (ask if applicable — skip for libraries/tools that aren't standalone executables):
-   - **Always use CI** — never build release binaries locally. Create a `.github/workflows/release.yml` that triggers on tag push and:
-     - Runs tests
-     - Builds for macOS arm64, Linux x86_64, Linux arm64
-     - Packages each binary as `<project>-<version>-<os>-<arch>.tar.gz`
-     - Creates a GitHub release with `gh release create` and attaches the tarballs
+3. **CI workflow** (ask if applicable — skip for libraries/tools that aren't standalone executables):
+   - **Always use CI** — never build release binaries locally. Create a `.github/workflows/release.yml` that triggers on `release` events (`types: [published]`). The workflow must **only build and upload artifacts** — it must **never create tags, releases, or draft releases** (the release already exists, created by `gh release create` in step 4). The workflow should:
+     - Run tests
+     - Build for macOS arm64, Linux x86_64, Linux arm64 using a matrix strategy
+     - Package each binary as `<project>-<version>-<os>-<arch>.tar.gz`
+     - Upload tarballs to the **existing** release with `gh release upload`
+   - Add a **homebrew-releaser** job (runs after binaries are uploaded) using [homebrew-releaser](https://github.com/Justintime50/homebrew-releaser):
+     ```yaml
+     homebrew:
+       needs: build
+       runs-on: ubuntu-latest
+       steps:
+         - uses: Justintime50/homebrew-releaser@v3
+           with:
+             homebrew_owner: marcelocantos
+             homebrew_tap: homebrew-tap
+             github_token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+             formula_folder: Formula
+             install: 'bin.install "<project>" => "<project>"'
+             target_darwin_arm64: true
+             target_linux_amd64: true
+             target_linux_arm64: true
+             test: 'system bin/"<project>", "--version"'
+             update_readme_table: true
+     ```
+   - **Required setup**: A Personal Access Token with `repo` scope stored as `HOMEBREW_TAP_TOKEN` in the source repo's Settings > Secrets. The token needs access to both the source repo and `marcelocantos/homebrew-tap`.
+   - Binary tarballs must follow the naming convention `<project>-<version>-<os>-<arch>.tar.gz`. homebrew-releaser auto-detects these from the release assets and computes SHA256 checksums.
+   - Show the workflow to the user for review. Commit to `master` and push before creating the release.
 
-4. **Create the release**: Push a version tag (`git tag <tag> && git push origin <tag>`). The CI workflow handles everything else.
+4. **Update version string**: If the project has a hardcoded version constant, update it to match the release version and commit before creating the release. If the version is injected at build time, verify the CI workflow passes the tag to the build.
+
+5. **Create the release**: Use `gh release create` to tag and release in one step. The CI workflow builds binaries, uploads them, and homebrew-releaser automatically generates and pushes the formula to the tap.
+
+6. **Verify**: Wait for CI, then confirm:
+   - Binaries are attached to the release
+   - Homebrew formula was pushed to `marcelocantos/homebrew-tap`
+   - Report the install command: `brew install marcelocantos/tap/<project>`
 
 ## Error handling
 
