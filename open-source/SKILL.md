@@ -94,17 +94,13 @@ Ask if the user wants to create an initial release. If yes:
 2. **Release notes**: Draft from README, CHANGELOG, or recent git history. Keep it concise.
 
 3. **Binaries** (ask if applicable — skip for libraries/tools that aren't standalone executables):
-   - Determine the build command from the Makefile/build system
-   - Build for: macOS arm64, Linux x86_64, Linux arm64
-   - For cross-compilation, suggest using Docker or CI. If CI doesn't exist, offer to create a GitHub Actions workflow for release builds.
-   - Package each binary as `<project>-<version>-<os>-<arch>.tar.gz`
+   - **Always use CI** — never build release binaries locally. Create a `.github/workflows/release.yml` that triggers on tag push and:
+     - Runs tests
+     - Builds for macOS arm64, Linux x86_64, Linux arm64
+     - Packages each binary as `<project>-<version>-<os>-<arch>.tar.gz`
+     - Creates a GitHub release with `gh release create` and attaches the tarballs
 
-4. **Create the release**:
-   ```bash
-   gh release create <tag> --title "<tag>" --notes-file <notes-file> <assets...>
-   ```
-
-5. **CI for future releases** (ask if wanted): Offer to create a `.github/workflows/release.yml` that builds and uploads binaries on tag push.
+4. **Create the release**: Push a version tag (`git tag <tag> && git push origin <tag>`). The CI workflow handles everything else.
 
 ## Error handling
 
