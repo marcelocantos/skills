@@ -32,7 +32,7 @@ Assess the project's current release state.
 
 1. **Existing releases**: List existing tags and GitHub releases (`git tag --sort=-v:refname`, `gh release list`). Identify the latest version.
 
-2. **Build system**: Determine how the project builds — mkfile, Makefile, go build, cargo, cmake, etc. If the project has a `mkfile`, run `mk --help-agent` to get build instructions and understand the mk syntax. mk binaries are available from https://github.com/marcelocantos/mk.
+2. **Build system**: Determine how the project builds — mkfile, Makefile, go build, cargo, cmake, etc. If the project has a `mkfile`, run `mk --help-agent` to get build instructions and understand the mk syntax. mk binaries are available from https://github.com/marcelocantos/mk. Check for a distribution generation target (e.g., `make dist`, `mk dist`) that produces release artifacts (amalgamated headers, bundled files, etc.) that are checked into the repo. Note the target name for Phase 5.
 
 3. **Project type**: Determine whether the project produces standalone binaries or is a library/tool that users consume as source. This affects whether CI binaries and Homebrew tap are relevant.
 
@@ -144,25 +144,27 @@ Draft release notes from git history.
 
 Create the GitHub release and let CI handle the rest.
 
-1. **Create the release**: Use `gh release create` which both tags and creates the release:
+1. **Regenerate distribution files**: If Phase 1 identified a dist generation target (e.g., `make dist`), run it now. If it produces any changes, commit them (e.g., "Regenerate dist for \<version\>") and push before tagging. This ensures the release tag includes up-to-date distribution artifacts.
+
+2. **Create the release**: Use `gh release create` which both tags and creates the release:
    ```bash
    gh release create <version> --title "<version>" --notes-file <notes-file>
    ```
    This triggers the `release.yml` workflow, which builds binaries, uploads them, and (if configured) runs homebrew-releaser to update the tap formula automatically.
 
-2. **Monitor CI**: Wait for the release workflow to complete:
+3. **Monitor CI**: Wait for the release workflow to complete:
    ```bash
    gh run list --workflow=release.yml --limit=1
    gh run watch <run-id>
    ```
    If it fails, help diagnose — do not delete the release or tag without asking.
 
-3. **Verify**: Confirm:
+4. **Verify**: Confirm:
    - The release appears on GitHub with correct notes and artifacts
    - Binary tarballs are attached for each platform
    - The Homebrew formula was updated in `marcelocantos/homebrew-tap` (check the tap repo's recent commits)
 
-4. **Report**: Print:
+5. **Report**: Print:
    - Release URL
    - Homebrew install command (if tap was set up): `brew install marcelocantos/tap/<project>`
 
