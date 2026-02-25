@@ -11,3 +11,5 @@ Syncs the contents of `~/.claude/skills/` to the `marcelocantos/skills` GitHub r
 ## Workflow
 
 Run `mk` (**NOT `make`**) in `~/work/github.com/marcelocantos/skills/`. It handles syncing, README generation, diffing, committing, and pushing.
+
+After completion, print the repo URL: https://github.com/marcelocantos/skills
