@@ -94,6 +94,8 @@ For pre-1.0 projects, create or update a `STABILITY.md` file in the repo root. T
 
 **Post-1.0 maintenance**: `STABILITY.md` survives into the post-1.0 era. The stability commitment and gap sections can be removed (they've served their purpose), but the **interaction surface catalogue must be maintained** on every release. It becomes the authoritative baseline for the Phase 1.6 breaking change audit. After a successful audit, update the catalogue with any additive changes and commit it as part of the release.
 
+**1.0 readiness check**: After updating `STABILITY.md`, assess whether the project is ready to release 1.0. If there are no remaining gaps, no "Fluid" items in the surface catalogue, and documentation is complete, recommend to the user that the next release be v1.0.0. This is not automatic — the user decides — but the skill should proactively flag when the checklist is clear.
+
 Commit and push the `STABILITY.md` changes before proceeding to Phase 2.
 
 ### Phase 1.6: Breaking change audit (post-1.0 projects only)
