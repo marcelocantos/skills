@@ -54,6 +54,20 @@ This typically cuts audit wall-clock time by 3-4x compared to sequential executi
 
 ## Workflow
 
+### Pre-flight: Working tree check
+
+Before anything else, check `git status` and `git describe --tags --always`. If there are uncommitted changes (modified or untracked files beyond `.claude/`, `.mk/`, and other build artifacts):
+
+1. **Warn** the user that the audit will reflect uncommitted state, which may not match any tagged version.
+2. **Offer options**: Stash (`git stash`), Commit (stage and commit with a user-provided message), Abort (stop the audit), or Proceed anyway (audit the working tree as-is, noting the dirty state in the report).
+
+Record the codebase version for the report header:
+- **Commit**: short SHA from `git rev-parse --short HEAD`
+- **Tag**: latest version tag from `git describe --tags --always`, or "untagged" if none
+- **Dirty state**: if the working tree is dirty after the user's choice, note what is uncommitted (e.g., "3 modified files, 1 untracked") so the report is honest about what it audited
+
+This information goes at the top of the audit report document, immediately after the title.
+
 ### Phase 0: Orientation
 
 Before diving into checks, understand the project.
