@@ -54,6 +54,40 @@ Assess the project's current release state.
 
 Present a summary of findings and confirm before proceeding.
 
+### Phase 1.5: Stability tracking (pre-1.0 projects only)
+
+**Skip this phase** if the project is already at v1.0.0 or later.
+
+For pre-1.0 projects, create or update a `STABILITY.md` file in the repo root. This document tracks the project's readiness for a 1.0 release — the point at which backwards compatibility becomes a binding commitment.
+
+**Key framing**: Once 1.0 ships, breaking changes require a major version bump. The purpose of this document is to ensure the project reaches 1.0 with an interaction surface (API, CLI, configuration, file formats, etc.) that is unlikely to need breaking changes in the foreseeable future.
+
+**Document structure**:
+
+1. **Stability commitment** — A brief statement that 1.0 represents a backwards-compatibility contract. After 1.0, breaking changes to the public API, CLI interface, configuration format, or wire/file formats require a major version bump. The pre-1.0 period exists to get these right.
+
+2. **Interaction surface audit** — For each public-facing surface (API functions/types, CLI flags, config files, output formats, etc.), assess its stability:
+   - **Stable**: Unlikely to change. Design is settled and well-tested.
+   - **Needs review**: Functional but may benefit from refinement before locking in.
+   - **Fluid**: Actively evolving or known to need rework. Would be costly to freeze now.
+
+   Be specific — name the functions, types, flags, or formats. Don't just say "the API is fluid"; say which parts and why.
+
+3. **Gaps and prerequisites** — Concrete items that must be addressed before 1.0:
+   - Missing features that users will expect from a stable release
+   - Documentation gaps (undocumented public API, missing examples)
+   - Known design issues that would require breaking changes to fix later
+   - Dependency or packaging concerns (licensing, attribution, install targets)
+   - Test coverage gaps in critical paths
+
+4. **Out of scope for 1.0** — Features or changes explicitly deferred to post-1.0. This prevents scope creep and sets expectations.
+
+**When creating** the document for the first time, perform a thorough audit of the codebase (read the public headers/API, CLI entry points, documentation, and tests) to populate each section. Present the draft to the user for review.
+
+**When updating** an existing `STABILITY.md`, review each section against the current release's changes. Move completed items out, add newly discovered gaps, and update stability assessments. If items have moved from "Fluid" to "Stable", note that. Present the diff to the user.
+
+Commit and push the `STABILITY.md` changes before proceeding to Phase 2.
+
 ### Phase 2: Version
 
 Determine the next version number. **Do not ask for confirmation** — just use the version determined below.
