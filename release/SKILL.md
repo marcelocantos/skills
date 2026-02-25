@@ -88,6 +88,38 @@ For pre-1.0 projects, create or update a `STABILITY.md` file in the repo root. T
 
 Commit and push the `STABILITY.md` changes before proceeding to Phase 2.
 
+### Phase 1.6: Breaking change audit (post-1.0 projects only)
+
+**Skip this phase** if the project is pre-1.0 (below v1.0.0).
+
+For post-1.0 projects, audit all changes since the last release for backwards-incompatible changes. This is a **hard gate** — if breaking changes are found, the release **must not proceed**.
+
+**What constitutes a breaking change:**
+- Removing or renaming public API functions, types, methods, or fields
+- Changing function signatures (parameter types, return types, parameter order)
+- Changing the semantic behaviour of existing functions in ways that break callers
+- Removing or renaming CLI flags/subcommands
+- Changing configuration file format in non-additive ways
+- Changing wire/file/output formats that existing consumers depend on
+- Removing or narrowing enum variants, error types, or other extensible constructs
+- Tightening input validation that previously accepted valid input
+
+**Audit procedure:**
+
+1. **Diff the public surface**: Compare the public API (headers, exported symbols, CLI flags, config schemas) between the last tag and HEAD. Use `git diff <last-tag>..HEAD` focused on public headers, CLI entry points, and documentation.
+
+2. **Classify each change** as additive (new functions, new optional fields, new CLI flags) or breaking (anything listed above). Additive changes are fine for a minor release.
+
+3. **If no breaking changes found**: Report the audit results and proceed to Phase 2.
+
+4. **If breaking changes found**: **Stop the release.** Report each breaking change with specific file:line references. Explain that post-1.0 breaking changes are not permitted as a minor or patch release.
+
+   **The project's stance on breaking changes is absolute**: there is no "v2.0" of the same product. If a project genuinely needs to break backwards compatibility, the correct path is to **fork the project into a new product**. For example, `foo` would become `foo2` — a new repository (or a hard fork of the existing one) starting at `v0.1.0` with its own pre-1.0 stabilisation cycle. The original `foo` continues to exist at its last stable version for existing users.
+
+   This policy exists because major version bumps within the same product create ecosystem fragmentation, dependency hell, and migration burdens. A clean fork makes the break explicit and lets both versions coexist without conflict.
+
+   Present this recommendation to the user and stop. Do not proceed with the release.
+
 ### Phase 2: Version
 
 Determine the next version number. **Do not ask for confirmation** — just use the version determined below.
