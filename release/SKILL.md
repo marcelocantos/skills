@@ -66,12 +66,18 @@ For pre-1.0 projects, create or update a `STABILITY.md` file in the repo root. T
 
 1. **Stability commitment** — A brief statement that 1.0 represents a backwards-compatibility contract. After 1.0, breaking changes to the public API, CLI interface, configuration format, or wire/file formats require a major version bump. The pre-1.0 period exists to get these right.
 
-2. **Interaction surface audit** — For each public-facing surface (API functions/types, CLI flags, config files, output formats, etc.), assess its stability:
+2. **Interaction surface catalogue** — An exhaustive, diffable snapshot of every public-facing surface. This serves two purposes: pre-1.0, it tracks what needs to stabilise; post-1.0, it becomes the canonical baseline for the Phase 1.6 breaking change audit.
+
+   For each surface category (API functions/types, CLI flags/subcommands, config file schemas, wire/file/output formats, etc.), list every public item concretely — function signatures, type definitions, flag names with their types and defaults, format schemas. This is not a prose description; it is a structured catalogue that can be mechanically diffed between releases.
+
+   Pre-1.0, annotate each item with a stability assessment:
    - **Stable**: Unlikely to change. Design is settled and well-tested.
    - **Needs review**: Functional but may benefit from refinement before locking in.
    - **Fluid**: Actively evolving or known to need rework. Would be costly to freeze now.
 
    Be specific — name the functions, types, flags, or formats. Don't just say "the API is fluid"; say which parts and why.
+
+   Post-1.0, drop the stability annotations (everything is implicitly stable — that's what 1.0 means) and maintain the catalogue purely as a surface snapshot. On each release, update it to reflect additions. Removals or signature changes should not appear — they would be caught by the Phase 1.6 audit.
 
 3. **Gaps and prerequisites** — Concrete items that must be addressed before 1.0:
    - Missing features that users will expect from a stable release
@@ -84,7 +90,9 @@ For pre-1.0 projects, create or update a `STABILITY.md` file in the repo root. T
 
 **When creating** the document for the first time, perform a thorough audit of the codebase (read the public headers/API, CLI entry points, documentation, and tests) to populate each section. Present the draft to the user for review.
 
-**When updating** an existing `STABILITY.md`, review each section against the current release's changes. Move completed items out, add newly discovered gaps, and update stability assessments. If items have moved from "Fluid" to "Stable", note that. Present the diff to the user.
+**When updating** an existing `STABILITY.md` (pre-1.0), review each section against the current release's changes. Move completed items out, add newly discovered gaps, and update stability assessments. If items have moved from "Fluid" to "Stable", note that. Update the surface catalogue to match the current codebase. Present the diff to the user.
+
+**Post-1.0 maintenance**: `STABILITY.md` survives into the post-1.0 era. The stability commitment and gap sections can be removed (they've served their purpose), but the **interaction surface catalogue must be maintained** on every release. It becomes the authoritative baseline for the Phase 1.6 breaking change audit. After a successful audit, update the catalogue with any additive changes and commit it as part of the release.
 
 Commit and push the `STABILITY.md` changes before proceeding to Phase 2.
 
@@ -106,13 +114,13 @@ For post-1.0 projects, audit all changes since the last release for backwards-in
 
 **Audit procedure:**
 
-1. **Diff the public surface**: Compare the public API (headers, exported symbols, CLI flags, config schemas) between the last tag and HEAD. Use `git diff <last-tag>..HEAD` focused on public headers, CLI entry points, and documentation.
+1. **Diff the surface catalogue**: Read `STABILITY.md`'s interaction surface catalogue (the canonical baseline from the last release). Compare it against the current codebase — public headers, exported symbols, CLI entry points, config schemas. Use `git diff <last-tag>..HEAD` on the relevant files to identify changes. Every item in the catalogue must still exist with the same signature and semantics.
 
-2. **Classify each change** as additive (new functions, new optional fields, new CLI flags) or breaking (anything listed above). Additive changes are fine for a minor release.
+2. **Classify each change** as additive (new functions, new optional fields, new CLI flags) or breaking (anything listed above). Additive changes are fine for a minor release. Update the `STABILITY.md` catalogue to include additions.
 
-3. **If no breaking changes found**: Report the audit results and proceed to Phase 2.
+3. **If no breaking changes found**: Report the audit results, commit the updated `STABILITY.md` catalogue, and proceed to Phase 2.
 
-4. **If breaking changes found**: **Stop the release.** Report each breaking change with specific file:line references. Explain that post-1.0 breaking changes are not permitted as a minor or patch release.
+4. **If breaking changes found**: **Stop the release.** Report each breaking change with specific file:line references, showing what changed relative to the `STABILITY.md` catalogue. Explain that post-1.0 breaking changes are not permitted as a minor or patch release.
 
    **The project's stance on breaking changes is absolute**: there is no "v2.0" of the same product. If a project genuinely needs to break backwards compatibility, the correct path is to **fork the project into a new product**. For example, `foo` would become `foo2` — a new repository (or a hard fork of the existing one) starting at `v0.1.0` with its own pre-1.0 stabilisation cycle. The original `foo` continues to exist at its last stable version for existing users.
 
