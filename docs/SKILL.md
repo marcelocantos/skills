@@ -230,3 +230,7 @@ Do **not** recommend or create:
 - Respect existing doc structure. If the project already has a `docs/` convention, follow it.
 - Inline comments should explain *why*, not *what*. Don't recommend adding comments that restate the code.
 - If a CLAUDE.md exists, treat it as the canonical architecture reference. Recommend improvements to it rather than creating a separate architecture doc that would drift.
+
+## Skill improvement
+
+After each documentation run, reflect on whether any reusable insights were gained — new document categories worth auditing, better quality checks, patterns for structuring docs in specific project types, or improvements to the workflow phases. If so, propose the specific changes to this skill file to the user. Only integrate them with user consent.

@@ -174,3 +174,7 @@ Ask if the user wants to create an initial release. If yes:
 - If the repo name is already taken, ask for an alternative.
 - Never force-push or rewrite history.
 - Never proceed past a phase without user confirmation.
+
+## Skill improvement
+
+After each open-sourcing run, reflect on whether any reusable insights were gained — new audit checks that would have caught problems earlier, better patterns for documentation or licensing, workflow improvements, or edge cases in CI setup. If so, propose the specific changes to this skill file to the user. Only integrate them with user consent.
