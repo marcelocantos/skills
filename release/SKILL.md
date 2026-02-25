@@ -50,7 +50,14 @@ Assess the project's current release state.
 
    Flag any that are missing.
 
-8. **Working tree**: Verify the working tree is clean and up to date with the remote. If there are uncommitted changes or unpushed commits, flag them before proceeding.
+8. **Third-party licence attribution**: Scan the project for vendored or bundled third-party code — check `vendor/`, `third_party/`, `extern/`, or similar directories, and any headers/sources copied into the project. For each dependency found:
+   - Identify its licence (MIT, BSD, Apache 2.0, etc.)
+   - Check whether the project includes proper attribution (a NOTICES, THIRD_PARTY, or equivalent file listing each dependency with its licence text or a reference to it)
+   - Flag any missing attributions. These must be resolved before release — distributing code without required attribution is a licence violation.
+
+   This check applies to all dependency types: vendored submodules, copied header-only libraries, embedded source files, and generated/bundled code.
+
+9. **Working tree**: Verify the working tree is clean and up to date with the remote. If there are uncommitted changes or unpushed commits, flag them before proceeding.
 
 Present a summary of findings and confirm before proceeding.
 
@@ -255,3 +262,7 @@ Create the GitHub release and let CI handle the rest.
 - If CI workflow fails after tagging, help diagnose — do not delete the tag without asking.
 - Never force-push or rewrite history.
 - Never proceed past a phase without user confirmation.
+
+## Skill improvement
+
+After each release, reflect on whether any reusable insights were gained during the process — new edge cases encountered, better patterns discovered, additional checks that would have caught problems earlier, or workflow improvements that would benefit future releases across any project. If so, propose the specific changes to this skill file to the user. Only integrate them with user consent. This keeps the release skill evolving from real-world usage rather than hypothetical planning.
