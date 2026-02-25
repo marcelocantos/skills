@@ -28,7 +28,29 @@ Present findings as a numbered checklist grouped by category. For each finding, 
 - What the problem is and why it matters
 - Suggested fix or approach
 
-After presenting the full report, ask the user which findings they want to address. The audit is read-only — it does not modify any files.
+After presenting the full report, write it to `docs/audit-YYYY-MM-DD.md` (using today's date). The document should include a to-do checklist of actionable findings at the top, followed by the full detailed findings. Offer to commit and push the file. Then ask the user which findings they want to address.
+
+## Execution strategy
+
+The audit has many independent phases. To complete it efficiently, use a team.
+
+1. **Phase 0 (Orientation)** runs first — the lead agent does this itself to understand the project. This context informs which phases are relevant and what to tell teammates.
+
+2. **Spawn a team** with audit-specialist teammates. Assign each teammate a subset of phases (e.g., "Code quality", "Security + Legal", "Testing + Performance", "Build/CI + Deps + Docs + Agent-friendliness + Portability"). The exact grouping depends on project size — for small projects 2-3 teammates suffice; for large projects use 4-5.
+
+3. Each teammate receives the orientation summary and its assigned phases. Teammates work in parallel, producing findings in the standard format (severity, file:line, problem, fix). Teammates should be spawned with `subagent_type: "general-purpose"` since they need full tool access for builds, tests, and deep code exploration.
+
+4. **Review gate**: Once all audit teammates have reported, the lead sends the collected findings to a **reviewer** teammate. The reviewer's job is adversarial — it challenges the findings, not the codebase. Specifically it should:
+   - **Filter false positives**: Read the actual code at each file:line reference and verify the finding is real. Drop findings that misread context (e.g., a "hardcoded secret" that's a test fixture, a "missing error check" where the error is handled by the caller).
+   - **Challenge severity**: Downgrade inflated ratings. A "High" that's mitigated by project context (e.g., internal-only library, no user input) should become Medium or Low. Upgrade under-rated findings if warranted.
+   - **Spot contradictions**: Flag when findings from different phases contradict each other (e.g., one phase praises test coverage while another flags untested critical paths).
+   - **Cut noise**: Remove findings that are technically correct but not actionable or useful — things the maintainer already knows and has consciously accepted, obvious trade-offs restated as problems, or findings so minor they waste the reader's attention.
+
+   The reviewer returns a vetted list with annotations: each original finding marked as **kept** (optionally with revised severity), **dropped** (with reason), or **merged** (combined with a related finding).
+
+5. The lead agent assembles the **final report** from the reviewer's vetted findings. Dropped findings are not included in the main report but may be summarised in a "Filtered out" appendix if the user wants full transparency.
+
+This typically cuts audit wall-clock time by 3-4x compared to sequential execution and produces a higher signal-to-noise report than raw findings alone.
 
 ## Workflow
 
