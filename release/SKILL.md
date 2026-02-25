@@ -40,7 +40,7 @@ Assess the project's current release state.
 
 5. **Homebrew tap**: Check if `marcelocantos/homebrew-tap` exists and whether it already has a formula for this project.
 
-6. **Repo description**: Check that the GitHub repo has a description set (`gh repo view --json description`). homebrew-releaser crashes on null descriptions. If missing, set one with `gh repo edit --description "..."`.
+6. **Repo description**: Check that the GitHub repo has a description set (`gh repo view --json description`). homebrew-releaser crashes on null descriptions. If missing, set one with `gh repo edit --description "..."`. Also verify the description is **accurate and up to date** — stale descriptions (e.g., referencing renamed concepts) should be updated.
 
 7. **CLI flags audit**: If the project produces standalone binaries, check that the following flags exist and work:
 
@@ -57,7 +57,7 @@ Assess the project's current release state.
 
    This check applies to all dependency types: vendored submodules, copied header-only libraries, embedded source files, and generated/bundled code.
 
-9. **Working tree**: Verify the working tree is clean and up to date with the remote. If there are uncommitted changes or unpushed commits, flag them before proceeding.
+9. **Working tree**: Verify the working tree is clean and up to date with the remote. If there are uncommitted changes or unpushed commits, flag them before proceeding. If the changes are unrelated WIP, the standard resolution is: `git stash push -u -m "WIP: ..."`, proceed with the release, then `git stash pop` at the end. Always restore the stash after the release completes.
 
 Present a summary of findings and confirm before proceeding.
 
@@ -95,13 +95,15 @@ For pre-1.0 projects, create or update a `STABILITY.md` file in the repo root. T
 
 4. **Out of scope for 1.0** — Features or changes explicitly deferred to post-1.0. This prevents scope creep and sets expectations.
 
-**When creating** the document for the first time, perform a thorough audit of the codebase (read the public headers/API, CLI entry points, documentation, and tests) to populate each section. Present the draft to the user for review.
+**When creating** the document for the first time, perform a thorough audit of the codebase (read the public headers/API, CLI entry points, documentation, and tests) to populate each section. For large API surfaces (many public headers, dozens of combinators/functions), use parallel research agents to audit different surface areas concurrently — this phase can be context-intensive. Present the draft to the user for review.
 
 **When updating** an existing `STABILITY.md` (pre-1.0), review each section against the current release's changes. Move completed items out, add newly discovered gaps, and update stability assessments. If items have moved from "Fluid" to "Stable", note that. Update the surface catalogue to match the current codebase. Present the diff to the user.
 
 **Post-1.0 maintenance**: `STABILITY.md` survives into the post-1.0 era. The stability commitment and gap sections can be removed (they've served their purpose), but the **interaction surface catalogue must be maintained** on every release. It becomes the authoritative baseline for the Phase 1.6 breaking change audit. After a successful audit, update the catalogue with any additive changes and commit it as part of the release.
 
 **1.0 readiness check**: After updating `STABILITY.md`, assess whether the project is ready to release 1.0. If there are no remaining gaps, no "Fluid" items in the surface catalogue, and documentation is complete, recommend to the user that the next release be v1.0.0. This is not automatic — the user decides — but the skill should proactively flag when the checklist is clear.
+
+If the project validates documentation during build (e.g., markdown link checkers), verify the build still passes after adding or updating `STABILITY.md`.
 
 Commit and push the `STABILITY.md` changes before proceeding to Phase 2.
 
@@ -148,6 +150,8 @@ Determine the next version number. **Do not ask for confirmation** — just use 
 3. **Update version string**: If the project has a hardcoded version string (found in Phase 1 step 7), update it to match the new version. Commit the change before proceeding. If the version is injected at build time (e.g., via `-ldflags` or CI env vars), verify the injection mechanism uses the tag correctly and no manual update is needed.
 
    **C/C++ libraries with version macros**: If the header defines version macros (e.g., `#define PROJECTNAME_VERSION "x.y.z"` with `_MAJOR`, `_MINOR`, `_PATCH` companions), update all four macros to match the new version. Verify consistency: the string must equal `"MAJOR.MINOR.PATCH"`.
+
+   **No version macros found**: If a C/C++ library has no version macros at all, note this as a gap. For pre-1.0 projects, record it in `STABILITY.md` under gaps/prerequisites. Don't block the release — version macros are a 1.0 prerequisite, not a pre-1.0 gate.
 
 ### Phase 3: Release notes
 

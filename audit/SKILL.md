@@ -207,12 +207,19 @@ Assess the build system, continuous integration, and project infrastructure.
 
 ### Phase 6: Legal and licensing
 
-Assess licence compliance and legal hygiene. This is a **critical** category — licence violations can have serious legal consequences.
+Assess licence compliance and legal hygiene. This is a **critical** category for open-source projects — licence violations can have serious legal consequences. For proprietary projects, focus on dependency compliance without adding a project licence.
 
 #### 6.1 Project licence
 
-- **Licence file**: Does the project have a `LICENSE` file? Is it a recognised open-source licence? Is it the one the project intends (check SPDX identifiers in source headers if present)?
-- **Licence consistency**: Do source file headers (if present) match the project-level licence? Are there files with conflicting or missing licence headers?
+First, assess if the project is intended for open-source distribution:
+- Check CLAUDE.md for a marker like "## Private Project" or similar comment indicating proprietary status.
+- If gh (GitHub CLI) is available, run `gh repo view --json visibility -q .visibility` to check if the repo is "public" or "private". If private, treat as proprietary and add "## Private Project" marker to the top of CLAUDE.md for future audits.
+- Look for other indicators: public repository, project description mentions open-source, or existing licence files.
+
+If it's proprietary or internal, licence compliance still matters for dependencies, but skip adding a project licence.
+
+- **Licence file**: If open-source, does the project have a `LICENSE` file? Is it a recognised open-source licence? Is it the one the project intends (check SPDX identifiers in source headers if present)?
+- **Licence consistency**: If open-source, do source file headers (if present) match the project-level licence? Are there files with conflicting or missing licence headers?
 - **Copyright notices**: Are copyright years current? Is the copyright holder correctly identified?
 
 #### 6.2 Third-party compliance
