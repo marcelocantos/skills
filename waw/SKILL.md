@@ -6,8 +6,9 @@ user-invocable: true
 
 The user has been away and needs to get back up to speed.
 
-First, run `~/.claude/skills/waw/git-summary.sh` to get repo name, working tree
-state, and recent commits in a single call.
+First, execute `~/.claude/skills/waw/git-summary.sh` directly (it is already
+`chmod +x` — do **not** wrap it in `bash`, just invoke the path as the command)
+to get repo name, working tree state, and recent commits in a single call.
 
 Then produce a concise context-restoration briefing covering the following
 sections. Skip any section that has nothing to report.
