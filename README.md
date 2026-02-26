@@ -10,6 +10,7 @@ Claude Code skills for use with `~/.claude/skills/`.
 - **[`/progress-report`](progress-report/SKILL.md)** — Generate and publish a weekly progress report from git activity across all repos.
 - **[`/release`](release/SKILL.md)** — Publish a release — version, release notes, CI, Homebrew tap, tag, and GitHub release.
 - **[`/republish-skills`](republish-skills/SKILL.md)** — Sync ~/.claude/skills/ to the marcelocantos/skills GitHub repo.
+- **[`/todo`](todo/SKILL.md)** — Summarise open TODOs from the project's todo file.
 - **[`/waw`](waw/SKILL.md)** — "Where Are We?" — Context restoration after being AFK. Summarises session state, surfaces important details, and proposes continuation options.
 
 ## License

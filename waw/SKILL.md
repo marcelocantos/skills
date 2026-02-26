@@ -43,7 +43,12 @@ If the last build or test run had failures, surface them prominently — they're
 likely the most urgent thing to deal with. If everything was green, say so
 briefly.
 
-## 6. What's next?
+## 6. Open TODOs
+
+Invoke the `/todo` skill to surface open TODO items for the project. Include
+its output as this section.
+
+## 7. What's next?
 
 Based on the session context, infer what was likely to happen next. Present
 one or more concrete continuation options for the user to pick from. Frame
