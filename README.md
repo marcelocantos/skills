@@ -11,7 +11,6 @@ Claude Code skills for use with `~/.claude/skills/`.
 - **[`/release`](release/SKILL.md)** — Publish a release — version, release notes, CI, Homebrew tap, tag, and GitHub release.
 - **[`/republish-skills`](republish-skills/SKILL.md)** — Sync ~/.claude/skills/ to the marcelocantos/skills GitHub repo.
 - **[`/waw`](waw/SKILL.md)** — "Where Are We?" — Context restoration after being AFK. Summarises session state, surfaces important details, and proposes continuation options.
-- **[`/where`](where/SKILL.md)** — Give a concise one-liner summary of where the current work stands.
 
 ## License
 
