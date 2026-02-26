@@ -4,14 +4,18 @@ description: "Where Are We?" — Context restoration after being AFK. Summarises
 user-invocable: true
 ---
 
-The user has been away and needs to get back up to speed. Produce a concise
-context-restoration briefing covering the following sections. Skip any section
-that has nothing to report.
+The user has been away and needs to get back up to speed.
+
+First, run `~/.claude/skills/waw/git-summary.sh` to get repo name, working tree
+state, and recent commits in a single call.
+
+Then produce a concise context-restoration briefing covering the following
+sections. Skip any section that has nothing to report.
 
 ## 1. Summary
 
 Include the current repository name (from the working directory or git remote)
-in the heading, e.g. "## Summary — myproject". Then one or two sentences
+in the heading, e.g. "## 👉 Summary — myproject". Then one or two sentences
 covering what was accomplished in this session and where things stand right now.
 If conversation context has been compacted, note this and flag that details from
 before the compaction boundary may be approximate.
