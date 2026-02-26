@@ -28,7 +28,13 @@ Execute these phases in order. Summarise findings at the end of each phase and c
 
 ### Phase 1: Discovery
 
-Assess the project's current release state.
+Assess the project's current release state. **Start by running the companion discovery script:**
+
+```bash
+bash ~/.claude/skills/release/discover.sh
+```
+
+This script gathers all Phase 1 data in one invocation (tags, releases, build system, project type, CI workflows, Homebrew tap, repo description, version macros, vendored dependency licences, and working tree status). Parse its output, then verify or supplement the following items as needed:
 
 1. **Existing releases**: List existing tags and GitHub releases (`git tag --sort=-v:refname`, `gh release list`). Identify the latest version.
 

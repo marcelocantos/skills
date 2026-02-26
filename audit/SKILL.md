@@ -70,7 +70,13 @@ This information goes at the top of the audit report document, immediately after
 
 ### Phase 0: Orientation
 
-Before diving into checks, understand the project.
+Before diving into checks, understand the project. **Start by running the companion gathering script:**
+
+```bash
+bash ~/.claude/skills/audit/gather.sh
+```
+
+This script collects baseline codebase metrics in one invocation (languages and LOC, build system, test frameworks, dependencies, licence, CI workflows, git stats, open issues/PRs, quick security scan, and TODO/FIXME counts). Parse its output, then supplement with deeper exploration as needed:
 
 1. **Project survey**: Explore the project structure — languages, build system, directory layout, key entry points, public APIs, tests. Read CLAUDE.md, README, mkfile/Makefile, and any existing docs.
 

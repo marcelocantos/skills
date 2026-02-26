@@ -35,9 +35,17 @@ Confirm the period with the user before proceeding.
 
 ### Phase 1: Data gathering
 
-Follow guide sections 1.1–1.5 and section 4 (authorship). Use `~/work/github.com/` as the scan root.
+**Start by running the companion gathering script** with the period start date:
 
-For each organisation directory, find all repos with commits in the period. Collect metrics and read commit logs + diffs for every active repo. This is the most time-consuming phase — use parallel subagents where possible (e.g. one per organisation or per repo).
+```bash
+bash ~/.claude/skills/progress-report/gather.sh "<YYYY-MM-DD start date>"
+```
+
+This script scans all repos under `~/work/` for commits since the given date, collecting per-repo commit logs and diff stats. Parse its output to identify active repos and key metrics.
+
+Then follow guide sections 1.1–1.5 and section 4 (authorship). Use `~/work/github.com/` as the scan root.
+
+For each active repo, read commit diffs to understand the substance of the changes. Use parallel subagents where possible (e.g. one per organisation or per repo) for the deeper analysis.
 
 Present a summary of active repos, commit counts, and key themes before proceeding.
 
