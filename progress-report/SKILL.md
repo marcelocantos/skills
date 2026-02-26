@@ -37,9 +37,11 @@ Confirm the period with the user before proceeding.
 
 **Start by running the companion gathering script** with the period start date:
 
-```bash
-bash ~/.claude/skills/progress-report/gather.sh "<YYYY-MM-DD start date>"
 ```
+~/.claude/skills/progress-report/gather.sh "<YYYY-MM-DD start date>"
+```
+
+(It is already `chmod +x` — do **not** wrap it in `bash`, just invoke the path as the command.)
 
 This script scans all repos under `~/work/` for commits since the given date, collecting per-repo commit logs and diff stats. Parse its output to identify active repos and key metrics.
 

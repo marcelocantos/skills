@@ -30,9 +30,11 @@ Execute these phases in order. Summarise findings at the end of each phase and c
 
 Assess the project's current release state. **Start by running the companion discovery script:**
 
-```bash
-bash ~/.claude/skills/release/discover.sh
 ```
+~/.claude/skills/release/discover.sh
+```
+
+(It is already `chmod +x` — do **not** wrap it in `bash`, just invoke the path as the command.)
 
 This script gathers all Phase 1 data in one invocation (tags, releases, build system, project type, CI workflows, Homebrew tap, repo description, version macros, vendored dependency licences, and working tree status). Parse its output, then verify or supplement the following items as needed:
 

@@ -72,9 +72,11 @@ This information goes at the top of the audit report document, immediately after
 
 Before diving into checks, understand the project. **Start by running the companion gathering script:**
 
-```bash
-bash ~/.claude/skills/audit/gather.sh
 ```
+~/.claude/skills/audit/gather.sh
+```
+
+(It is already `chmod +x` — do **not** wrap it in `bash`, just invoke the path as the command.)
 
 This script collects baseline codebase metrics in one invocation (languages and LOC, build system, test frameworks, dependencies, licence, CI workflows, git stats, open issues/PRs, quick security scan, and TODO/FIXME counts). Parse its output, then supplement with deeper exploration as needed:
 
