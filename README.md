@@ -9,6 +9,7 @@ Claude Code skills for use with `~/.claude/skills/`.
 - **[`/open-source`](open-source/SKILL.md)** — Open-source a project — audit, fix, document, publish, and release.
 - **[`/pop`](pop/SKILL.md)** — Restore conversation context saved by /stash after a /clear.
 - **[`/progress-report`](progress-report/SKILL.md)** — Generate and publish a weekly progress report from git activity across all repos.
+- **[`/push`](push/SKILL.md)** — Push current work through a PR-based CI workflow. Creates branch and PR if needed.
 - **[`/release`](release/SKILL.md)** — Publish a release — version, release notes, CI, Homebrew tap, tag, and GitHub release.
 - **[`/republish-skills`](republish-skills/SKILL.md)** — Sync ~/.claude/skills/ to the marcelocantos/skills GitHub repo.
 - **[`/stash`](stash/SKILL.md)** — Save conversation context to auto-memory before /clear. Restore later with /pop.

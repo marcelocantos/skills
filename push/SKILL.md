@@ -1,0 +1,83 @@
+---
+name: push
+description: Push current work through a PR-based CI workflow. Creates branch and PR if needed.
+user-invocable: true
+---
+
+# Push
+
+Push the current branch through CI via a pull request. Creates a feature
+branch and PR if they don't already exist.
+
+## Steps
+
+### 1. Preflight
+
+- Run `git status --short --branch` and `git log --oneline -5`.
+- If the working tree is dirty (uncommitted changes), **stop** and tell the
+  user to commit first.
+- Determine the current branch name and whether it tracks a remote.
+- Identify the default branch (`master` unless the repo uses something else).
+
+### 2. Ensure a feature branch
+
+- If already on a non-default branch, use it as-is.
+- If on the default branch with commits ahead of the remote, create a feature
+  branch:
+  1. Run `git log --oneline origin/master..HEAD` to see all unpushed commits.
+  2. Derive a branch name from those commits — lowercase, hyphenated, max
+     ~50 chars (e.g., `add-github-actions-ci`). If there's a single commit,
+     use its message. If there are multiple, summarise the theme. Strip
+     conventional-commit prefixes (`fix:`, `feat:`, etc.) before slugifying.
+  3. Create and switch to the branch: `git checkout -b <branch>`.
+- If on the default branch with **no** commits ahead, **stop** — nothing to
+  push.
+
+### 3. Push
+
+- Push with upstream tracking: `git push -u origin HEAD`.
+
+### 4. Create or locate PR
+
+- Check for an existing open PR from this branch:
+  `gh pr list --head <branch> --state open --json number,url --jq '.[0]'`
+- If no PR exists, create one:
+  - **Single commit**: use `gh pr create --fill` (commit message becomes title
+    and body).
+  - **Multiple commits**: use `gh pr create --title <title> --body <body>`.
+    The title should summarise the theme of the commits. The body should
+    contain a bullet-point list of the individual commit messages.
+- Print the PR URL.
+
+### 5. Wait for CI
+
+- Find the latest check suite for the PR's head SHA and monitor it:
+  ```
+  gh pr checks <number> --watch
+  ```
+- If all checks pass, report success.
+- If any check fails:
+  1. Print the failed check names and their URLs.
+  2. For each failure, fetch the log and diagnose the root cause:
+     ```
+     gh run view <run-id> --log-failed
+     ```
+  3. Present a summary of failures and proposed fixes to the user.
+
+### 6. Iterate on failures
+
+When the user asks to fix CI failures (or approves proposed fixes):
+
+1. Make the fix locally.
+2. Commit the fix (separate commit, not amended — unless the user requests
+   amend).
+3. `git push` (upstream is already set).
+4. Return to step 5 — watch CI again.
+
+Repeat until CI is green or the user decides to stop.
+
+## Notes
+
+- Never force-push unless the user explicitly requests it.
+- Never push directly to the default branch.
+- If `gh` is not installed or not authenticated, tell the user and stop.
