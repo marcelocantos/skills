@@ -35,7 +35,11 @@ branch and PR if they don't already exist.
 
 ### 3. Push
 
-- Push with upstream tracking: `git push -u origin HEAD`.
+- Push with upstream tracking:
+  `git push -u origin HEAD --recurse-submodules=on-demand`
+  This automatically pushes any submodule commits that the parent references
+  but that haven't been pushed yet, avoiding a separate `cd <submodule> &&
+  git push` step.
 
 ### 4. Create or locate PR
 
@@ -81,9 +85,13 @@ Repeat until CI is green or the user decides to stop.
 Once CI is green:
 
 1. Confirm with the user before merging.
-2. Squash-merge via: `gh pr merge <number> --squash --delete-branch`
-3. Switch back to the default branch and pull:
-   `git checkout master && git pull`
+2. Run the merge script:
+   ```
+   ~/.claude/skills/push/merge.sh <pr-number> <default-branch> <feature-branch>
+   ```
+   This squash-merges the PR, fetches, hard-resets the local default branch to
+   match origin (avoiding rebase conflicts from squashed-vs-unsquashed history),
+   and deletes the local feature branch.
 
 ## Notes
 
