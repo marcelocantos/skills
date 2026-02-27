@@ -76,8 +76,19 @@ When the user asks to fix CI failures (or approves proposed fixes):
 
 Repeat until CI is green or the user decides to stop.
 
+### 7. Merge
+
+Once CI is green:
+
+1. Confirm with the user before merging.
+2. Squash-merge via: `gh pr merge <number> --squash --delete-branch`
+3. Switch back to the default branch and pull:
+   `git checkout master && git pull`
+
 ## Notes
 
 - Never force-push unless the user explicitly requests it.
 - Never push directly to the default branch.
+- All repos use squash-only merges. The PR title becomes the sole commit message
+  on the default branch.
 - If `gh` is not installed or not authenticated, tell the user and stop.

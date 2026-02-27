@@ -205,6 +205,7 @@ Assess the build system, continuous integration, and project infrastructure.
 - **Pipeline completeness**: Is the pipeline missing important steps? Common gaps: no linting, no security scanning, no build on multiple platforms when the project targets multiple platforms, tests only on one OS.
 - **Pipeline correctness**: Do CI config files reference correct branches, build commands, and artifacts? Are there CI configs that are clearly stale or broken?
 - **Secrets management**: Are CI secrets (tokens, keys) configured via the CI platform's secret store, or are they hardcoded in workflow files?
+- **Merge settings**: Verify squash-only merge is enabled (`allow_merge_commit` and `allow_rebase_merge` should be false), squash commit title is set to `PR_TITLE`, and delete-branch-on-merge is enabled. Check via `gh api repos/{owner}/{repo} --jq '{allow_squash_merge, allow_merge_commit, allow_rebase_merge, squash_merge_commit_title, delete_branch_on_merge}'`. Flag deviations.
 
 #### 5.3 Repository hygiene
 

@@ -6,26 +6,29 @@ user-invocable: true
 
 The user has been away and needs to get back up to speed.
 
-First, execute `~/.claude/skills/waw/git-summary.sh` directly (it is already
-`chmod +x` — do **not** wrap it in `bash`, just invoke the path as the command)
-to get repo name, working tree state, and recent commits in a single call.
+First, execute `~/.claude/skills/waw/gather.sh` directly (it is already
+`chmod +x` — do **not** wrap it in `bash`, just invoke the path as the command).
+This single script collects repo name, branch, working tree state, recent
+commits, stash list, diff stats, project CLAUDE.md, auto-memory files, and
+GSD/planning state — all in one call with markdown heading delimiters (`# section`).
 
-Then produce a concise context-restoration briefing covering the following
-sections. Skip any section that has nothing to report.
+Then produce a concise context-restoration briefing from that output, covering
+the following sections. Skip any section that has nothing to report.
 
 ## 1. Summary
 
-Include the current repository name (from the working directory or git remote)
-in the heading, e.g. "## 👉 Summary — myproject". Then one or two sentences
-covering what was accomplished in this session and where things stand right now.
-If conversation context has been compacted, note this and flag that details from
-before the compaction boundary may be approximate.
+Include the current repository name in the heading, e.g.
+"## Summary — myproject". Then one or two sentences covering what was
+accomplished in this session and where things stand right now. If conversation
+context has been compacted, note this and flag that details from before the
+compaction boundary may be approximate.
 
 ## 2. Working tree state
 
-Check for uncommitted changes (unstaged edits, staged but uncommitted work,
-untracked files). These often represent the exact point where work was
-interrupted. Report them briefly — file names and what changed, not full diffs.
+Use the `status`, `diff-stat`, and `diff-cached-stat` sections from the
+gather output. Report uncommitted changes briefly — file names and what
+changed, not full diffs. These often represent the exact point where work
+was interrupted.
 
 ## 3. Recent commits
 
@@ -36,7 +39,8 @@ One line each — hash and message.
 
 If the session involved design discussions, trade-off decisions, or explicit
 choices to do or not do something, summarise them briefly. This helps the user
-remember *why* things are the way they are.
+remember *why* things are the way they are. Use the auto-memory and
+conversation context to inform this section.
 
 ## 5. Build / test status
 

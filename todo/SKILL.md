@@ -7,20 +7,29 @@ user-invocable: true
 Manage TODO items for this project. Behaviour depends on whether
 arguments are provided after `/todo`.
 
-## Locate the TODO file
+## Step 1 — Gather
 
-1. Check the repo-local `CLAUDE.md` for a mentioned TODO file path (e.g.
-   `docs/todo.md`, `TODO.md`, `todo.md`).
-2. If `CLAUDE.md` doesn't mention one, look for common names: `docs/todo.md`,
-   `TODO.md`, `todo.md`, `docs/TODO.md`.
-3. If no file is found and the command is summarise (`/todo` with no args),
-   say so and offer to create `docs/TODO.md`.
-4. If no file is found and the command is add (`/todo <text>`), create
-   `docs/TODO.md` automatically and add the item there.
+Execute `~/.claude/skills/todo/gather.sh` directly (it is already `chmod +x` —
+do **not** wrap it in `bash`, just invoke the path as the command). This script
+locates the TODO file (checking CLAUDE.md for a path hint, then trying common
+names) and dumps its contents in one call.
 
-## `/todo` (no arguments) — Summarise
+Parse the output:
+- `# claude-md-hint` — any mention of a TODO file in CLAUDE.md.
+- `# todo-file` — either `path: <path>` followed by `---` and the file
+  contents, or `(not found)`.
 
-Read the file and present a concise summary:
+## Step 2 — Act
+
+### If no TODO file was found
+
+- **`/todo` (no args)**: Report that no TODO file exists and offer to create
+  `docs/TODO.md`.
+- **`/todo <text>`**: Create `docs/TODO.md` automatically and add the item.
+
+### `/todo` (no arguments) — Summarise
+
+Read the file contents from the gather output and present a concise summary:
 - Group items by section/heading as they appear in the file.
 - Show only **open** items (`- [ ]`). Skip completed (`- [x]`) and
   struck-through items.
@@ -28,11 +37,11 @@ Read the file and present a concise summary:
   (not the full design notes).
 - End with a count: "N open items across M sections."
 
-## `/todo <text>` — Add a new item
+### `/todo <text>` — Add a new item
 
-Append the provided text as a new open TODO item (`- [ ] …`) to the
-file. Choose the most appropriate existing section based on the item's
-content. If no section fits well, append to the end of the file.
+Use the `path:` from the gather output. Append the provided text as a new
+open TODO item (`- [ ] …`) to the file. Choose the most appropriate existing
+section based on the item's content. If no section fits well, append to the
+end of the file.
 
-After adding, confirm with the item text and the section it was placed
-in.
+After adding, confirm with the item text and the section it was placed in.

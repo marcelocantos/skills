@@ -2,7 +2,7 @@
 #
 # gather.sh — Collect codebase metrics and state for /audit.
 # Takes no arguments; discovers everything from the current repo.
-# Output uses === section_name === delimiters.
+# Output uses # section_name markdown heading delimiters.
 
 set -uo pipefail
 # Note: -e intentionally omitted. Grep returning exit 1 (no match) is normal
@@ -56,14 +56,14 @@ loc_stdin() {
 # ===================================================================
 # 1. Repo name
 # ===================================================================
-echo "=== repo ==="
+echo "# repo"
 basename "$ROOT"
 
 # ===================================================================
 # 2. Primary language(s)
 # ===================================================================
 echo ""
-echo "=== language ==="
+echo "# language"
 
 count_lang() {
     local name="$1"; shift
@@ -99,7 +99,7 @@ done
 # 3. File counts
 # ===================================================================
 echo ""
-echo "=== file_counts ==="
+echo "# file_counts"
 
 src_count=$(find_ext .go .c .cc .cpp .cxx .py .rs .ts .tsx .js .jsx .java .rb .swift .kt .cs .lua .zig .sh | count_stdin)
 test_count=$(find_ext .go .c .cc .cpp .cxx .py .rs .ts .tsx .js .jsx .java .rb .swift .kt .cs .lua .zig .sh .h .hpp \
@@ -116,7 +116,7 @@ echo "docs:    $doc_count"
 # 4. Lines of code
 # ===================================================================
 echo ""
-echo "=== loc ==="
+echo "# loc"
 
 src_loc=$(find_ext .go .c .cc .cpp .cxx .py .rs .ts .tsx .js .jsx .java .rb .swift .kt .cs .lua .zig .sh \
     | { grep -vE '(_test\.|\.test\.|_spec\.|\.spec\.|/test_)' || true; } \
@@ -134,7 +134,7 @@ echo "header:  ${header_loc:-0}"
 # 5. Build system
 # ===================================================================
 echo ""
-echo "=== build_system ==="
+echo "# build_system"
 
 build_files=(
     Makefile makefile GNUmakefile
@@ -175,7 +175,7 @@ fi
 # 6. Test framework
 # ===================================================================
 echo ""
-echo "=== test_framework ==="
+echo "# test_framework"
 
 frameworks=""
 
@@ -210,7 +210,7 @@ fi
 # 7. Dependencies (vendored)
 # ===================================================================
 echo ""
-echo "=== dependencies ==="
+echo "# dependencies"
 
 dep_dirs=(vendor third_party extern)
 found_deps=false
@@ -240,7 +240,7 @@ fi
 # 8. NOTICES file
 # ===================================================================
 echo ""
-echo "=== notices_file ==="
+echo "# notices_file"
 
 notices_found=false
 for f in NOTICES NOTICE NOTICES.md THIRD_PARTY THIRD_PARTY.md THIRD_PARTY_NOTICES; do
@@ -257,7 +257,7 @@ fi
 # 9. Project licence
 # ===================================================================
 echo ""
-echo "=== licence ==="
+echo "# licence"
 
 lic_file=""
 for f in LICENSE LICENSE.md LICENSE.txt LICENCE LICENCE.md LICENCE.txt COPYING COPYING.md; do
@@ -284,7 +284,7 @@ fi
 # 10. CI workflow files
 # ===================================================================
 echo ""
-echo "=== ci ==="
+echo "# ci"
 
 ci_found=false
 
@@ -311,7 +311,7 @@ fi
 # 11. Git stats
 # ===================================================================
 echo ""
-echo "=== git_stats ==="
+echo "# git_stats"
 
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     total_commits=$(git rev-list --count HEAD 2>/dev/null || echo "?")
@@ -330,7 +330,7 @@ fi
 # 12. Open issues / PRs
 # ===================================================================
 echo ""
-echo "=== open_issues ==="
+echo "# open_issues"
 
 if command -v gh >/dev/null 2>&1; then
     if gh repo view --json name >/dev/null 2>&1; then
@@ -351,7 +351,7 @@ fi
 # 13. Security scan (quick)
 # ===================================================================
 echo ""
-echo "=== security_scan ==="
+echo "# security_scan"
 
 # Hardcoded secrets (exclude test files and docs).
 secrets_count=$(grep -rn $GREP_EXCLUDE \
@@ -386,7 +386,7 @@ echo "SQL injection patterns:                    $sqli_count matches"
 # 14. TODO/FIXME/HACK/XXX
 # ===================================================================
 echo ""
-echo "=== todo_fixme ==="
+echo "# todo_fixme"
 
 todo_count=$(grep -rn $GREP_EXCLUDE \
     -E '\b(TODO|FIXME|HACK|XXX)\b' \
@@ -397,6 +397,6 @@ echo "TODO/FIXME/HACK/XXX: $todo_count"
 # 15. Working tree status
 # ===================================================================
 echo ""
-echo "=== working_tree ==="
+echo "# working_tree"
 
 git status --short --branch 2>/dev/null || echo "(not a git repository)"

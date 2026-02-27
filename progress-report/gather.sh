@@ -82,9 +82,9 @@ while IFS= read -r gitdir; do
 
     # Write this repo's block to the temp file.
     {
-        echo "=== repo: $repo_label ==="
+        echo "# repo: $repo_label"
         echo "$commit_log"
-        echo "--- $commit_count commits, $files_changed file changes, +$insertions/-$deletions ---"
+        echo "$commit_count commits, $files_changed file changes, +$insertions/-$deletions"
         echo ""
     } >> "$tmpfile"
 
@@ -104,7 +104,7 @@ fi
 cat "$tmpfile"
 
 # Summary.
-echo "=== summary ==="
+echo "# summary"
 echo "Repos with activity: $total_repos"
 echo "Total commits: $total_commits"
 echo "Period: since \"$SINCE\""

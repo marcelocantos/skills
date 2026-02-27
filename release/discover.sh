@@ -69,19 +69,19 @@ detect_licence() {
 # ---------------------------------------------------------------------------
 # 1. Repo
 # ---------------------------------------------------------------------------
-echo "=== repo ==="
+echo "# repo"
 repo_name
 
 # ---------------------------------------------------------------------------
 # 2. Tags
 # ---------------------------------------------------------------------------
-echo "=== tags ==="
+echo "# tags"
 git tag --sort=-v:refname 2>/dev/null || echo "(no tags)"
 
 # ---------------------------------------------------------------------------
 # 3. Releases (requires gh)
 # ---------------------------------------------------------------------------
-echo "=== releases ==="
+echo "# releases"
 if has_cmd gh; then
     gh release list --limit 20 2>/dev/null || echo "(no releases or gh auth issue)"
 else
@@ -91,7 +91,7 @@ fi
 # ---------------------------------------------------------------------------
 # 4. Description (requires gh)
 # ---------------------------------------------------------------------------
-echo "=== description ==="
+echo "# description"
 if has_cmd gh; then
     gh repo view --json description -q '.description' 2>/dev/null || echo "(unavailable)"
 else
@@ -101,7 +101,7 @@ fi
 # ---------------------------------------------------------------------------
 # 5. Build system
 # ---------------------------------------------------------------------------
-echo "=== build_system ==="
+echo "# build_system"
 for f in Makefile makefile GNUmakefile mkfile CMakeLists.txt Cargo.toml go.mod meson.build build.gradle build.gradle.kts pom.xml package.json pyproject.toml setup.py SConstruct Justfile Taskfile.yml; do
     [[ -f "$f" ]] && echo "$f"
 done
@@ -109,7 +109,7 @@ done
 # ---------------------------------------------------------------------------
 # 6. Dist target
 # ---------------------------------------------------------------------------
-echo "=== dist_target ==="
+echo "# dist_target"
 found_dist=false
 if [[ -f mkfile ]]; then
     if grep -qE '^dist[[:space:]]*:' mkfile 2>/dev/null; then
@@ -136,7 +136,7 @@ fi
 # ---------------------------------------------------------------------------
 # 7. Project type heuristic
 # ---------------------------------------------------------------------------
-echo "=== project_type ==="
+echo "# project_type"
 is_binary=false
 # Go: cmd/ or main package
 if [[ -d cmd ]] || [[ -f main.go ]]; then
@@ -169,7 +169,7 @@ fi
 # ---------------------------------------------------------------------------
 # 8. Workflows
 # ---------------------------------------------------------------------------
-echo "=== workflows ==="
+echo "# workflows"
 if compgen -G ".github/workflows/*.yml" >/dev/null 2>&1 || compgen -G ".github/workflows/*.yaml" >/dev/null 2>&1; then
     ls .github/workflows/*.yml .github/workflows/*.yaml 2>/dev/null
 else
@@ -179,7 +179,7 @@ fi
 # ---------------------------------------------------------------------------
 # 9. Homebrew tap (requires gh)
 # ---------------------------------------------------------------------------
-echo "=== homebrew_tap ==="
+echo "# homebrew_tap"
 if has_cmd gh; then
     gh api repos/marcelocantos/homebrew-tap/contents/Formula --jq '.[].name' 2>/dev/null || echo "(no tap or no Formula/ directory)"
 else
@@ -189,7 +189,7 @@ fi
 # ---------------------------------------------------------------------------
 # 10. Description check
 # ---------------------------------------------------------------------------
-echo "=== description_check ==="
+echo "# description_check"
 if has_cmd gh; then
     desc=$(gh repo view --json description -q '.description' 2>/dev/null) || desc=""
     if [[ -z "$desc" || "$desc" == "null" ]]; then
@@ -204,7 +204,7 @@ fi
 # ---------------------------------------------------------------------------
 # 11. Version macros
 # ---------------------------------------------------------------------------
-echo "=== version_macros ==="
+echo "# version_macros"
 # Search for VERSION defines/constants in source files, excluding vendor/
 grep -rn --include='*.h' --include='*.hpp' --include='*.cc' --include='*.cpp' \
     --include='*.c' --include='*.go' --include='*.rs' --include='*.py' \
@@ -217,7 +217,7 @@ grep -rn --include='*.h' --include='*.hpp' --include='*.cc' --include='*.cpp' \
 # ---------------------------------------------------------------------------
 # 12. Vendor dependencies + licence detection
 # ---------------------------------------------------------------------------
-echo "=== vendor_deps ==="
+echo "# vendor_deps"
 found_vendor=false
 for vdir in vendor third_party extern; do
     [[ -d "$vdir" ]] || continue
@@ -285,7 +285,7 @@ fi
 # ---------------------------------------------------------------------------
 # 13. Notices file
 # ---------------------------------------------------------------------------
-echo "=== notices_file ==="
+echo "# notices_file"
 found_notices=false
 for f in NOTICES NOTICES.md NOTICE NOTICE.md THIRD_PARTY THIRD_PARTY.md THIRD-PARTY-NOTICES THIRD-PARTY-NOTICES.md ATTRIBUTION ATTRIBUTION.md; do
     if [[ -f "$f" ]]; then
@@ -301,13 +301,13 @@ fi
 # ---------------------------------------------------------------------------
 # 14. Working tree
 # ---------------------------------------------------------------------------
-echo "=== working_tree ==="
+echo "# working_tree"
 git status --short --branch 2>/dev/null || echo "(not a git repo)"
 
 # ---------------------------------------------------------------------------
 # 15. Unpushed commits
 # ---------------------------------------------------------------------------
-echo "=== unpushed ==="
+echo "# unpushed"
 tracking=$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null) || true
 if [[ -n "$tracking" ]]; then
     count=$(git rev-list --count "$tracking..HEAD" 2>/dev/null) || count=0
