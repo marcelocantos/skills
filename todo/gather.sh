@@ -39,3 +39,11 @@ if [ -n "$TODO_PATH" ]; then
 else
     echo "(not found)"
 fi
+
+# --- GitHub issues ---
+section "github-issues"
+if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1 && gh repo view >/dev/null 2>&1; then
+    gh issue list --limit 50 --state open 2>/dev/null || echo "(gh issue list failed)"
+else
+    echo "(not a gh repo or gh not authenticated)"
+fi

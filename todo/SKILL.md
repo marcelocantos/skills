@@ -1,6 +1,6 @@
 ---
 name: todo
-description: Summarise open TODOs from the project's todo file.
+description: Summarise open TODOs from local todo file and GitHub issues.
 user-invocable: true
 ---
 
@@ -18,6 +18,8 @@ Parse the output:
 - `# claude-md-hint` — any mention of a TODO file in CLAUDE.md.
 - `# todo-file` — either `path: <path>` followed by `---` and the file
   contents, or `(not found)`.
+- `# github-issues` — open GitHub issues from `gh issue list`, or a
+  skip message if `gh` is unavailable / not in a repo.
 
 ## Step 2 — Act
 
@@ -29,13 +31,20 @@ Parse the output:
 
 ### `/todo` (no arguments) — Summarise
 
-Read the file contents from the gather output and present a concise summary:
+Present a combined view of all open work:
+
+**Local TODOs** (from the TODO file):
 - Group items by section/heading as they appear in the file.
 - Show only **open** items (`- [ ]`). Skip completed (`- [x]`) and
   struck-through items.
 - For each item, show the bold title and a short one-line description
   (not the full design notes).
-- End with a count: "N open items across M sections."
+
+**GitHub Issues** (from the gather output):
+- List open issues with number, title, and labels.
+- Group by label if labels are present; otherwise list flat.
+
+End with a combined count: "N local TODOs, M GitHub issues open."
 
 ### `/todo <text>` — Add a new item
 

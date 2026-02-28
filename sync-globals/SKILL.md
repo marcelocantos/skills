@@ -12,11 +12,30 @@ Scan managed repositories for compliance with global `~/.claude/CLAUDE.md` direc
 
 ### 1. Discover repos
 
-Find all repositories with a `CLAUDE.md` in the root. Search under `~/work/` recursively (max depth 3 to avoid vendor/node_modules noise):
+Find all repositories with a `CLAUDE.md` in the root. Search under
+`~/work/github.com/` — the CLAUDE.md sits at depth 3 (`org/repo/CLAUDE.md`):
 
 ```bash
-find ~/work -maxdepth 3 -name CLAUDE.md -not -path '*/.git/*' -not -path '*/vendor/*' -not -path '*/node_modules/*' -exec dirname {} \;
+find ~/work/github.com -mindepth 3 -maxdepth 3 -name CLAUDE.md -exec dirname {} \;
 ```
+
+**Exclude forks**: Check the "Known Forks" section at the bottom of
+`~/.claude/managed-repos.md` first. If the `org/repo` slug appears there,
+skip it without calling GitHub.
+
+For repos not in the known-forks list, derive the `org/repo` slug from
+the directory path (e.g. `~/work/github.com/squz/multimaze` →
+`squz/multimaze`) and check GitHub:
+
+```bash
+gh api "repos/$slug" --jq '.fork'
+```
+
+- If `.fork` is `true`, skip the repo **and add it to the "Known Forks"
+  list** in `managed-repos.md` (see step 4).
+- If `.fork` is `false`, include the repo.
+- If the `gh` check fails (not on GitHub, no remote, API error), include
+  the repo — err on the side of inclusion.
 
 ### 2. Read current global directives
 
@@ -44,12 +63,27 @@ For language detection: check for `go.mod` (Go), `Cargo.toml` (Rust), `package.j
 
 ### 4. Update manifest
 
-Read `~/.claude/managed-repos.md`. For each repo:
+Read `~/.claude/managed-repos.md`. The table uses `org/repo` as the repo
+identifier (e.g. `marcelocantos/dais`, `squz/multimaze`). For each repo:
 - If already in the table, update its columns
 - If new (has CLAUDE.md but not in table), add it
 - If in the table but no longer has CLAUDE.md, keep it but add `(removed)` to Notes
 
 Update the `Last scanned` date.
+
+Maintain a "Known Forks" section after the managed repos table. Format:
+
+```markdown
+## Known Forks
+
+These repos have a `CLAUDE.md` but are forks of upstream projects.
+They are excluded from compliance checks.
+
+- `anz-bank/decimal`
+```
+
+Add any newly discovered forks here. Do not remove entries — once
+a repo is known to be a fork, it stays cached.
 
 ### 5. Report
 
