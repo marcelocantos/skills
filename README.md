@@ -14,6 +14,7 @@ Claude Code skills for use with `~/.claude/skills/`.
 - **[`/republish-skills`](republish-skills/SKILL.md)** — Sync ~/.claude/skills/ to the marcelocantos/skills GitHub repo.
 - **[`/stash`](stash/SKILL.md)** — Save conversation context to auto-memory before /clear. Restore later with /pop.
 - **[`/status`](status/SKILL.md)** — Show project maintenance status from the audit log — recent activities, deferred items, and time since last audit/release/docs.
+- **[`/sync-globals`](sync-globals/SKILL.md)** — 
 - **[`/todo`](todo/SKILL.md)** — Summarise open TODOs from the project's todo file.
 - **[`/waw`](waw/SKILL.md)** — "Where Are We?" — Context restoration after being AFK. Summarises session state, surfaces important details, and proposes continuation options.
 

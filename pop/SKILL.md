@@ -18,7 +18,7 @@ Restore conversation context saved by `/stash`.
 
 3. **Clean up.** Run the cleanup script:
    ```
-   bash ~/.claude/skills/pop/cleanup.sh <auto-memory-dir>
+   ~/.claude/skills/pop/cleanup.sh <auto-memory-dir>
    ```
    where `<auto-memory-dir>` is your auto-memory directory path from the
    system prompt.
