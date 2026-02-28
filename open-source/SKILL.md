@@ -70,6 +70,8 @@ Apply fixes for issues identified in the audit.
      ```
      Then capture `flag.PrintDefaults()` into a `bytes.Buffer` (via `flag.CommandLine.SetOutput`) and print the buffer followed by `agentGuide`. For other languages, use the equivalent embedding mechanism or bundle the content as a string constant.
 
+     **Important**: If the agent guide lives at the repo root (e.g., `agents-guide.md`) but `go:embed` is in a subdirectory package, `go:embed` cannot reference parent directories. Use a Makefile copy step (e.g., `cp agents-guide.md internal/cli/help_agent.md`) with the copy gitignored. This keeps the repo-root file as the single source of truth. Remember to replicate this copy step in CI workflows — `go build` outside of `make` will fail without it.
+
 7. **Address remaining findings**: Work through other audit findings the user confirmed, in priority order.
 
 ### Phase 3: Documentation
