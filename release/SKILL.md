@@ -236,7 +236,7 @@ Draft release notes from git history.
 
    Key setup requirements:
    - **`HOMEBREW_TAP_TOKEN` secret**: Each source repo that publishes to the tap needs its own PAT and secret. Create a separate token per repo:
-     1. Create a **fine-grained** PAT at https://github.com/settings/personal-access-tokens/new — name it after the source repo (e.g., `<repo>-homebrew-tap`), select **only** the tap repo (`<owner>/homebrew-tap`) under "Repository access", and grant **Contents → Read and write** permission.
+     1. Create a **fine-grained** PAT at https://github.com/settings/personal-access-tokens/new — name it after the source repo (e.g., `<repo>-homebrew-tap`), select **only** `homebrew-tap` under "Repository access" (the owner is already scoped; don't paste `<owner>/homebrew-tap` — it won't match), and grant **Contents → Read and write** permission.
      2. Add the PAT as a secret named `HOMEBREW_TAP_TOKEN` at `https://github.com/<owner>/<repo>/settings/secrets/actions/new`.
      3. Provide these URLs to the user so they can complete the setup (secrets cannot be created via API without the token value).
    - The `homebrew-tap` repo must exist at `marcelocantos/homebrew-tap` with a `Formula/` directory.
