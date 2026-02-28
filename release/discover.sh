@@ -171,7 +171,7 @@ fi
 # ---------------------------------------------------------------------------
 echo "# workflows"
 if compgen -G ".github/workflows/*.yml" >/dev/null 2>&1 || compgen -G ".github/workflows/*.yaml" >/dev/null 2>&1; then
-    ls .github/workflows/*.yml .github/workflows/*.yaml 2>/dev/null
+    ls .github/workflows/*.yml .github/workflows/*.yaml 2>/dev/null || true
 else
     echo "(none)"
 fi

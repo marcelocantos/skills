@@ -131,4 +131,4 @@ Sub-skills (/audit, /docs, /release) skip their own audit-log entries when calle
 
 ## Skill improvement
 
-After each open-sourcing run, reflect on whether any reusable insights were gained — new audit checks that would have caught problems earlier, better patterns for documentation or licensing, workflow improvements, or edge cases in CI setup. If so, propose the specific changes to this skill file to the user. Only integrate them with user consent.
+After each open-sourcing run, reflect on whether any reusable insights were gained — new audit checks that would have caught problems earlier, better patterns for documentation or licensing, workflow improvements, or edge cases in CI setup. Pay special attention to unexpected failures in companion scripts or tool invocations encountered during the run — these may indicate bugs to fix in the skill or its scripts, not just one-off issues. If any improvements are identified, propose the specific changes to this skill file (or its companion files) to the user. Only integrate them with user consent.

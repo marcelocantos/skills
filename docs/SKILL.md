@@ -241,4 +241,4 @@ The entry should summarise what documents were created or updated and list any d
 
 ## Skill improvement
 
-After each documentation run, reflect on whether any reusable insights were gained — new document categories worth auditing, better quality checks, patterns for structuring docs in specific project types, or improvements to the workflow phases. If so, propose the specific changes to this skill file to the user. Only integrate them with user consent.
+After each documentation run, reflect on whether any reusable insights were gained — new document categories worth auditing, better quality checks, patterns for structuring docs in specific project types, or improvements to the workflow phases. Pay special attention to unexpected failures in companion scripts or tool invocations encountered during the run — these may indicate bugs to fix in the skill or its scripts, not just one-off issues. If any improvements are identified, propose the specific changes to this skill file (or its companion files) to the user. Only integrate them with user consent.
