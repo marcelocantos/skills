@@ -54,6 +54,20 @@ This typically cuts audit wall-clock time by 3-4x compared to sequential executi
 
 ## Workflow
 
+### Pre-flight: Audit log check
+
+Before anything else, check whether a recent audit already exists. Read `docs/audit-log.md` if it exists and find the most recent `## ` entry containing `/audit`.
+
+If a recent `/audit` entry exists (within the last 7 days AND at the same commit as `HEAD`):
+- Present the previous outcome and any deferred items to the user
+- Offer three options:
+  - **Re-audit**: Proceed with a full audit from scratch
+  - **Address deferred**: Skip the full audit and focus on the previously deferred items
+  - **Skip**: No audit needed right now
+- If the user chooses "Address deferred" or "Skip", stop here (no new log entry)
+
+**Skip this check** if invoked by another skill (e.g., `/open-source`) — the calling skill manages flow control.
+
 ### Pre-flight: Working tree check
 
 Before anything else, check `git status` and `git describe --tags --always`. If there are uncommitted changes (modified or untracked files beyond `.claude/`, `.mk/`, and other build artifacts):
@@ -295,6 +309,24 @@ Assess platform assumptions and compatibility constraints.
 - **Platform assumptions**: Does the code assume a specific OS, architecture, or environment? Are path separators hardcoded (`/` vs `\`)? Are there endianness assumptions? POSIX-specific system calls without Windows alternatives (or vice versa)?
 - **Compiler / runtime requirements**: Are minimum version requirements documented? Does the code use features that require a specific version (e.g., C++23 features, Go 1.22 range-over-func)?
 - **Implicit environment dependencies**: Does the code assume the presence of specific tools, environment variables, or system libraries without documenting them?
+
+## Audit log
+
+After writing the report to `docs/audit-YYYY-MM-DD.md` and offering to commit, append an entry to `docs/audit-log.md` (create the file with the standard header if it doesn't exist — see `~/.claude/skills/audit-log-convention.md` for the format).
+
+The entry should include finding counts by severity and any deferred items. Example:
+
+```markdown
+## 2026-02-25 — /audit
+
+- **Commit**: `790893a`
+- **Outcome**: 30 findings (4 critical, 7 high, 5 medium, 5 low, 9 info). Report: docs/audit-2026-02-25.md. All critical/high items addressed.
+- **Deferred**:
+  - audit.max_size_mb not enforced (medium)
+  - 5 packages at 0% test coverage (high)
+```
+
+**Skip this step** if invoked as part of another skill (e.g., `/open-source`) — the parent skill will log a summary entry.
 
 ## Calling from other skills
 

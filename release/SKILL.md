@@ -173,6 +173,8 @@ Determine the next version number. **Do not ask for confirmation** — just use 
 
    **C/C++ libraries with version macros**: If the header defines version macros (e.g., `#define PROJECTNAME_VERSION "x.y.z"` with `_MAJOR`, `_MINOR`, `_PATCH` companions), update all four macros to match the new version. Verify consistency: the string must equal `"MAJOR.MINOR.PATCH"`.
 
+   **STABILITY.md catalogue**: If `STABILITY.md` lists version macro values in its interaction surface catalogue, update those to match the new version too. Also update the "Snapshot as of" line to reference the new version.
+
    **No version macros found**: If a C/C++ library has no version macros at all, note this as a gap. For pre-1.0 projects, record it in `STABILITY.md` under gaps/prerequisites. Don't block the release — version macros are a 1.0 prerequisite, not a pre-1.0 gate.
 
 ### Phase 3: Release notes
@@ -259,29 +261,46 @@ Create the GitHub release and let CI handle the rest.
 
 1. **Validate version strings**: Before tagging, verify that any in-source version strings match the release version. For C/C++ projects with version macros, check that the `#define` values match the tag (strip leading `v`). Fail early if they don't — the version commit from Phase 2 step 3 should have already handled this, but double-check.
 
-2. **Regenerate distribution files**: If Phase 1 identified a dist generation target (e.g., `make dist`), run it now. If it produces any changes, commit them (e.g., "Regenerate dist for \<version\>") and push before tagging. This ensures the release tag includes up-to-date distribution artifacts.
+2. **Push**: Ensure all commits (version bump, STABILITY.md updates, etc.) are pushed to the remote before tagging. The release tag must point to a commit that exists on the remote.
 
-3. **Create the release**: Use `gh release create` which both tags and creates the release:
+3. **Regenerate distribution files**: If Phase 1 identified a dist generation target (e.g., `make dist`), run it now. If it produces any changes, commit them (e.g., "Regenerate dist for \<version\>") and push before tagging. This ensures the release tag includes up-to-date distribution artifacts.
+
+4. **Create the release**: Use `gh release create` which both tags and creates the release:
    ```bash
    gh release create <version> --title "<version>" --notes-file <notes-file>
    ```
    This triggers the `release.yml` workflow, which builds binaries, uploads them, and (if configured) runs homebrew-releaser to update the tap formula automatically.
 
-4. **Monitor CI**: Wait for the release workflow to complete:
+5. **Monitor CI**: Wait for the release workflow to complete:
    ```bash
    gh run list --workflow=release.yml --limit=1
    gh run watch <run-id>
    ```
    If it fails, help diagnose — do not delete the release or tag without asking.
 
-5. **Verify**: Confirm:
+6. **Verify**: Confirm:
    - The release appears on GitHub with correct notes and artifacts
    - Binary tarballs are attached for each platform
    - The Homebrew formula was updated in `marcelocantos/homebrew-tap` (check the tap repo's recent commits)
 
-6. **Report**: Print:
+7. **Report**: Print:
    - Release URL
    - Homebrew install command (if tap was set up): `brew install marcelocantos/tap/<project>`
+
+## Audit log
+
+After Phase 5 is complete (release verified), append an entry to `docs/audit-log.md` (create the file with the standard header if it doesn't exist — see `~/.claude/skills/audit-log-convention.md` for the format).
+
+The entry should include the version released, platforms, and any issues noted. Example:
+
+```markdown
+## 2026-02-28 — /release v0.2.0
+
+- **Commit**: `a1b2c3d`
+- **Outcome**: Released v0.2.0 (darwin-arm64, linux-amd64, linux-arm64). Homebrew formula updated.
+```
+
+**Skip this step** if invoked as part of another skill (e.g., `/open-source`) — the parent skill will log a summary entry.
 
 ## Error handling
 

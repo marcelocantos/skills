@@ -231,6 +231,14 @@ Do **not** recommend or create:
 - Inline comments should explain *why*, not *what*. Don't recommend adding comments that restate the code.
 - If a CLAUDE.md exists, treat it as the canonical architecture reference. Recommend improvements to it rather than creating a separate architecture doc that would drift.
 
+## Audit log
+
+After Phase 5 is complete, append an entry to `docs/audit-log.md` (create the file with the standard header if it doesn't exist — see `~/.claude/skills/audit-log-convention.md` for the format).
+
+The entry should summarise what documents were created or updated and list any deferred recommendations.
+
+**Skip this step** if invoked as part of another skill (e.g., `/open-source`) — the parent skill will log a summary entry.
+
 ## Skill improvement
 
 After each documentation run, reflect on whether any reusable insights were gained — new document categories worth auditing, better quality checks, patterns for structuring docs in specific project types, or improvements to the workflow phases. If so, propose the specific changes to this skill file to the user. Only integrate them with user consent.
