@@ -299,13 +299,37 @@ if [[ "$found_notices" == false ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 14. Working tree
+# 14. Agent guide
+# ---------------------------------------------------------------------------
+echo "# agent_guide"
+found_agent_guide=false
+for f in agents-guide.md AGENTS-GUIDE.md dist/agents-guide.md; do
+    if [[ -f "$f" ]]; then
+        echo "exists: $f"
+        found_agent_guide=true
+        break
+    fi
+done
+if [[ "$found_agent_guide" == false ]]; then
+    echo "missing"
+fi
+
+# Check if README mentions agent guide
+echo "# agent_guide_in_readme"
+if [[ -f README.md ]] && grep -qi 'agents-guide\|agent.guide' README.md 2>/dev/null; then
+    echo "mentioned"
+else
+    echo "not mentioned"
+fi
+
+# ---------------------------------------------------------------------------
+# 15. Working tree
 # ---------------------------------------------------------------------------
 echo "# working_tree"
 git status --short --branch 2>/dev/null || echo "(not a git repo)"
 
 # ---------------------------------------------------------------------------
-# 15. Unpushed commits
+# 16. Unpushed commits
 # ---------------------------------------------------------------------------
 echo "# unpushed"
 tracking=$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null) || true

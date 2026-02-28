@@ -58,14 +58,21 @@ This script gathers all Phase 1 data in one invocation (tags, releases, build sy
 
    Flag any that are missing.
 
-8. **Third-party licence attribution**: Scan the project for vendored or bundled third-party code — check `vendor/`, `third_party/`, `extern/`, or similar directories, and any headers/sources copied into the project. For each dependency found:
+8. **Agent guide**: Check whether the project has an `agents-guide.md` (or equivalent). This applies to **all project types** — both standalone binaries and libraries:
+
+   - **Libraries**: Must have `agents-guide.md` in the project root (or co-located with dist files if the library distributes as `dist/`). The guide should cover: what it does, how to include it, key API surface, common patterns, and gotchas. Flag if missing.
+   - **Standalone binaries**: Should also have `agents-guide.md` as the source for `--help-agent` output (checked in step 7 above). If `--help-agent` exists but there's no standalone `agents-guide.md`, that's acceptable. If neither exists, flag both.
+
+   Also verify that the README mentions the agent guide for discoverability (e.g., "If you use an agentic coding tool, include `agents-guide.md` in your project context").
+
+9. **Third-party licence attribution**: Scan the project for vendored or bundled third-party code — check `vendor/`, `third_party/`, `extern/`, or similar directories, and any headers/sources copied into the project. For each dependency found:
    - Identify its licence (MIT, BSD, Apache 2.0, etc.)
    - Check whether the project includes proper attribution (a NOTICES, THIRD_PARTY, or equivalent file listing each dependency with its licence text or a reference to it)
    - Flag any missing attributions. These must be resolved before release — distributing code without required attribution is a licence violation.
 
    This check applies to all dependency types: vendored submodules, copied header-only libraries, embedded source files, and generated/bundled code.
 
-9. **Working tree**: Verify the working tree is clean and up to date with the remote. If there are uncommitted changes or unpushed commits, flag them before proceeding. If the changes are unrelated WIP, the standard resolution is: `git stash push -u -m "WIP: ..."`, proceed with the release, then `git stash pop` at the end. Always restore the stash after the release completes.
+10. **Working tree**: Verify the working tree is clean and up to date with the remote. If there are uncommitted changes or unpushed commits, flag them before proceeding. If the changes are unrelated WIP, the standard resolution is: `git stash push -u -m "WIP: ..."`, proceed with the release, then `git stash pop` at the end. Always restore the stash after the release completes.
 
 Present a summary of findings and confirm before proceeding.
 
