@@ -296,7 +296,7 @@ Create the GitHub release and let CI handle the rest.
 
 ## Audit log
 
-After Phase 5 is complete (release verified), append an entry to `docs/audit-log.md` (create the file with the standard header if it doesn't exist — see `~/.claude/skills/audit-log-convention.md` for the format).
+Before the Phase 5 push (step 2), append an entry to `docs/audit-log.md` (create the file with the standard header if it doesn't exist — see `~/.claude/skills/audit-log-convention.md` for the format), commit it, and include it in the push. This ensures the log entry is part of the tagged release commit.
 
 The entry should include the version released, platforms, and any issues noted. Example:
 

@@ -105,7 +105,7 @@ Ask if the user wants to create an initial release. If yes, delegate to the `/re
 
 ## Audit log
 
-After all phases are complete, append a single summary entry to `docs/audit-log.md` (create the file with the standard header if it doesn't exist — see `~/.claude/skills/audit-log-convention.md` for the format).
+After all phases are complete, append a single summary entry to `docs/audit-log.md` (create the file with the standard header if it doesn't exist — see `~/.claude/skills/audit-log-convention.md` for the format). Commit and push it immediately so the entry doesn't drift into the next work cycle. (As an orchestrator spanning multiple commits, this is an exception to the "before the final commit" convention.)
 
 The entry should cover all sub-skills that ran (/audit, /docs, /release) and their outcomes. Example:
 

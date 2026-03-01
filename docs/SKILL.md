@@ -161,9 +161,11 @@ After all writing is done:
 
 3. **Consistency check**: Ensure terminology, project name, and conventions are consistent across all docs.
 
-4. **Commit**: If any files were created or modified, commit all documentation changes with a descriptive message summarising what was added or updated.
+4. **Audit log**: Append the audit-log entry (see "Audit log" section below) so it is committed with the documentation changes.
 
-5. **Final summary**: Report what was created, updated, and verified. List any remaining items the user deferred.
+5. **Commit**: If any files were created or modified, commit all documentation changes (including the audit-log entry) with a descriptive message summarising what was added or updated.
+
+6. **Final summary**: Report what was created, updated, and verified. List any remaining items the user deferred.
 
 ## Document types to consider
 
@@ -233,7 +235,7 @@ Do **not** recommend or create:
 
 ## Audit log
 
-After Phase 5 is complete, append an entry to `docs/audit-log.md` (create the file with the standard header if it doesn't exist — see `~/.claude/skills/audit-log-convention.md` for the format).
+Before the Phase 5 commit (step 5), append an entry to `docs/audit-log.md` (create the file with the standard header if it doesn't exist — see `~/.claude/skills/audit-log-convention.md` for the format). This ensures the entry is committed alongside the documentation changes.
 
 The entry should summarise what documents were created or updated and list any deferred recommendations.
 

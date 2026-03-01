@@ -28,7 +28,7 @@ Present findings as a numbered checklist grouped by category. For each finding, 
 - What the problem is and why it matters
 - Suggested fix or approach
 
-After presenting the full report, write it to `docs/audit-YYYY-MM-DD.md` (using today's date). The document should include a to-do checklist of actionable findings at the top, followed by the full detailed findings. Offer to commit and push the file. Then ask the user which findings they want to address.
+After presenting the full report, write it to `docs/audit-YYYY-MM-DD.md` (using today's date). The document should include a to-do checklist of actionable findings at the top, followed by the full detailed findings. Then append the audit-log entry (see "Audit log" section below) so both files are committed together. Offer to commit and push the report and log entry. Then ask the user which findings they want to address.
 
 ## Execution strategy
 
@@ -312,7 +312,7 @@ Assess platform assumptions and compatibility constraints.
 
 ## Audit log
 
-After writing the report to `docs/audit-YYYY-MM-DD.md` and offering to commit, append an entry to `docs/audit-log.md` (create the file with the standard header if it doesn't exist — see `~/.claude/skills/audit-log-convention.md` for the format).
+Before offering to commit, append an entry to `docs/audit-log.md` (create the file with the standard header if it doesn't exist — see `~/.claude/skills/audit-log-convention.md` for the format). This ensures the log entry is committed alongside the report.
 
 The entry should include finding counts by severity and any deferred items. Example:
 

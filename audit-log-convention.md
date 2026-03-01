@@ -36,7 +36,9 @@ maintenance activities. Append-only — newest entries at the bottom.
 
 ## When to log
 
-Each skill appends an entry **at the end of its run**, after all work is done and committed.
+Each skill appends an entry **before the final commit** of its workflow, so the entry is included in the same commit as the skill's work. This avoids orphaned log entries that drift into the next work cycle.
+
+Exception: orchestrator skills (e.g., `/open-source`) that delegate to sub-skills spanning multiple commits may append after the final sub-skill completes and commit the entry as a follow-up push.
 
 ## When NOT to log
 
