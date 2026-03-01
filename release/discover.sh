@@ -323,13 +323,27 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 15. Working tree
+# 15. README
+# ---------------------------------------------------------------------------
+echo "# readme"
+if [[ -f README.md ]]; then
+    echo "exists: README.md"
+elif [[ -f README ]]; then
+    echo "exists: README"
+elif [[ -f readme.md ]]; then
+    echo "exists: readme.md"
+else
+    echo "missing"
+fi
+
+# ---------------------------------------------------------------------------
+# 16. Working tree
 # ---------------------------------------------------------------------------
 echo "# working_tree"
 git status --short --branch 2>/dev/null || echo "(not a git repo)"
 
 # ---------------------------------------------------------------------------
-# 16. Unpushed commits
+# 17. Unpushed commits
 # ---------------------------------------------------------------------------
 echo "# unpushed"
 tracking=$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null) || true
