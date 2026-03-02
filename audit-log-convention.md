@@ -66,9 +66,10 @@ The format is simple enough to append manually. Example:
 - **Outcome**: Upgraded gopkg.in/yaml.v3 to v3.1.0
 ```
 
-## How `/status` uses the log
+## How `/waw` uses the log
 
-The `/status` skill reads `docs/audit-log.md` and presents:
-- Timeline of entries
-- Unresolved deferred items (items in deferred lists not addressed by a later entry)
+The `/waw` skill reads `docs/audit-log.md` (in its "Maintenance status"
+section) and presents:
 - Time since last audit, release, and docs pass
+- Unresolved deferred items (items in deferred lists not addressed by a later entry)
+- A nudge if an audit is overdue or deferred items need attention

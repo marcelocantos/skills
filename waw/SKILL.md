@@ -53,7 +53,26 @@ briefly.
 Invoke the `/todo` skill to surface open TODO items for the project. Include
 its output as this section.
 
-## 7. What's next?
+## 7. Maintenance status
+
+If `docs/audit-log.md` exists in the repo, read it and present a brief
+maintenance summary. Skip this section if the file doesn't exist.
+
+Each entry starts with `## YYYY-MM-DD — /skill-name [optional context]`.
+Parse entries and report:
+
+**Key dates** — time since last audit, last release (with version), and last
+docs pass. Use "never" if no matching entry exists.
+
+**Unresolved deferred items** — collect items from **Deferred** sections.
+An item is resolved if a subsequent entry's outcome mentions addressing it,
+or if a later entry for the same skill has no deferred items. Show only
+unresolved items, grouped by entry date. If none, say so.
+
+**Nudge** — if no audit in 30+ days, suggest `/audit`. If unresolved
+deferred items exist, mention them. Otherwise, note the project is healthy.
+
+## 8. What's next?
 
 Based on the session context, infer what was likely to happen next. Present
 one or more concrete continuation options for the user to pick from. Frame
