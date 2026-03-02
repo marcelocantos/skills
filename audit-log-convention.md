@@ -16,7 +16,7 @@ maintenance activities. Append-only — newest entries at the bottom.
 
 ## YYYY-MM-DD — /skill-name [optional context]
 
-- **Commit**: `abc1234` (or "working tree dirty")
+- **Commit**: `abc1234` (or "working tree dirty — `abc1234`")
 - **Outcome**: 1-2 sentence summary of what was done and key results
 - **Deferred**:
   - item 1 (reason or category)
@@ -29,7 +29,7 @@ maintenance activities. Append-only — newest entries at the bottom.
 - Date is ISO 8601 (`YYYY-MM-DD`).
 - Skill name is the slash-command name (e.g., `/audit`, `/release`, `/docs`).
 - `[optional context]` is for version tags (`v0.1.0`), scope (`security only`), or parent reference (`via /open-source`).
-- **Commit** is the short SHA at the time the skill ran. Use "working tree dirty" if there were uncommitted changes.
+- **Commit** is the short SHA of HEAD when the skill started (the state that was examined), captured via `git rev-parse --short HEAD` before making any changes. If the working tree had uncommitted changes at that point, use `"working tree dirty — \`abc1234\`"` to flag this while still recording the base commit.
 - **Outcome** is a brief factual summary — finding counts, what was written, version released, etc.
 - **Deferred** lists items that were identified but not addressed. Omit this section entirely if nothing was deferred.
 - Non-agentic entries use a free-form name instead of `/skill-name` (e.g., `manual security review`, `CI migration`, `dependency upgrade`).
