@@ -39,6 +39,16 @@ Present a combined view of all open work:
   struck-through items.
 - For each item, show the bold title and a short one-line description
   (not the full design notes).
+- Prefix each item with a category emoji inferred from its content:
+  - 🐛 Bug — fixes, crashes, error handling, null refs, regressions
+  - ✨ Feature — new functionality, user-facing additions
+  - 🔧 Tooling — build, CI, developer workflow, editor config
+  - 🏗️ Architecture — refactoring, restructuring, design patterns
+  - 💡 Idea — speculative, exploratory, "think about" items
+  - 📖 Docs — documentation, README, comments, guides
+  - 🔒 Security — auth, permissions, secrets, vulnerability fixes
+  - 📦 Dependency — upgrades, vendoring, package management
+  - 📋 Task — anything that doesn't fit the above categories
 
 **GitHub Issues** (from the gather output):
 - List open issues with number, title, and labels.
