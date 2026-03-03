@@ -17,7 +17,7 @@ fi
 # --- Find the TODO file ---
 section "todo-file"
 TODO_PATH=""
-for candidate in docs/todo.md TODO.md todo.md docs/TODO.md; do
+for candidate in docs/TODO.md TODO.md docs/todo.md todo.md; do
     if [ -f "$candidate" ]; then
         TODO_PATH="$candidate"
         break

@@ -21,13 +21,27 @@ Parse the output:
 - `# github-issues` — open GitHub issues from `gh issue list`, or a
   skip message if `gh` is unavailable / not in a repo.
 
+## Step 1.5 — Normalise path
+
+If a TODO file was found but its path is non-standard, flag it before
+proceeding:
+- **Wrong case** (e.g. `todo.md`, `Todo.md`): tell the user and offer to
+  `git mv` it to the all-caps `TODO.md` equivalent.
+- **Wrong directory** (e.g. `TODO.md` or `todo.md` in the repo root instead
+  of `docs/`): tell the user and offer to `git mv` it to `docs/TODO.md`.
+- If both are wrong, offer a single move (e.g. `todo.md` → `docs/TODO.md`).
+
+Only proceed with the rename if the user agrees. Use `git mv` so history
+is preserved. After renaming, update the project's `CLAUDE.md` if it
+references the old path.
+
 ## Step 2 — Act
 
 ### If no TODO file was found
 
 - **`/todo` (no args)**: Report that no TODO file exists and offer to create
-  `docs/TODO.md`.
-- **`/todo <text>`**: Create `docs/TODO.md` automatically and add the item.
+  `docs/TODO.md` (always all-caps `TODO`).
+- **`/todo <text>`**: Create `docs/TODO.md` automatically (always all-caps `TODO`) and add the item.
 
 ### `/todo` (no arguments) — Summarise
 
