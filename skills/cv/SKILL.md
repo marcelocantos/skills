@@ -8,17 +8,17 @@ Evaluate all active targets against the current project state and
 recommend what to work on next. This replaces manually cross-referencing
 TODOs, git status, and memory to answer "what should I do next?"
 
-## `/converge go` — Execute last suggested action
+## `/cv go` — Execute last suggested action
 
 If the argument is `go`, skip evaluation entirely. Read the most recent
-`/converge` output from this conversation (it will be earlier in the
+`/cv` output from this conversation (it will be earlier in the
 transcript) and execute the suggested action from that output. If there
-is no prior `/converge` output in the conversation, report the error
+is no prior `/cv` output in the conversation, report the error
 and run a normal default-tier evaluation instead.
 
 ## Evaluation tiers
 
-`/converge` operates in three tiers. Choose the tier that matches the
+`/cv` operates in three tiers. Choose the tier that matches the
 decision value of the moment.
 
 | Tier       | When to use                          | Cost        |
@@ -27,9 +27,9 @@ decision value of the moment.
 | **default**| Session start, run boundary, blockage| ~10-15 tool calls |
 | **full**   | Milestone boundary, periodic audit   | Unbounded   |
 
-- **`/converge`** (no args) → default tier.
-- **`/converge scan`** → scan tier.
-- **`/converge full`** → full tier.
+- **`/cv`** (no args) → default tier.
+- **`/cv scan`** → scan tier.
+- **`/cv full`** → full tier.
 
 ### Scan tier
 
@@ -90,7 +90,7 @@ For **full tier**, ignore the prior report and re-evaluate everything.
 
 ## Step 1.5 — Rank targets
 
-Run `python3 ~/.claude/skills/converge/rank.py <targets-path>` (where
+Run `python3 ~/.claude/skills/cv/rank.py <targets-path>` (where
 `<targets-path>` is the path from Step 1's `targets-file` output). Parse
 its output. Use the ranking to:
 
@@ -357,6 +357,6 @@ action crosses a delivery boundary:
 - **Never** suggest raw `git push`, `git merge`, `gh pr merge`, or
   `gh release create` as a suggested action.
 
-`/converge go` inherits this: if the suggested action is "run `/push`",
+`/cv go` inherits this: if the suggested action is "run `/push`",
 then `go` invokes `/push`, which checks the project's gates (including
 manual gates that require user approval).

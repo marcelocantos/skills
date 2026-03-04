@@ -26,7 +26,7 @@
     (2026-03-04). Revisit if real-world usage consistently exceeds
     budgets.
 - **Context**: The convergence system only works if it's cheap enough
-  to run routinely. If `/converge` costs as much as a work session,
+  to run routinely. If `/cv` costs as much as a work session,
   people won't run it. The context-size constraint matters as much as
   tool-call count — a single grep returning 2k lines burns more
   budget than 10 targeted checks.
@@ -36,7 +36,7 @@
 
 ### 🎯T1.1 Default evaluation deeply investigates only top targets
 - **Priority**: high
-- **Acceptance**: `/converge` (default tier) fully evaluates only the
+- **Acceptance**: `/cv` (default tier) fully evaluates only the
   top 2-3 targets by priority. Remaining targets are assessed from
   status fields and change-hint overlap. The skill definition
   explicitly specifies this tiered behaviour.
@@ -52,7 +52,7 @@
 - **Priority**: high
 - **Acceptance**: `gather.sh` emits a `changed-files` section listing
   files changed since the last evaluation SHA (stored in targets.md).
-  `/converge` uses this to flag targets whose domain may be affected
+  `/cv` uses this to flag targets whose domain may be affected
   without running greps.
 - **Context**: Level-triggered evaluation is correct but expensive. A
   hybrid approach that uses change sets as *hints* for where to focus
@@ -64,7 +64,7 @@
 
 ### 🎯T1.3 Re-evaluation happens at decision boundaries, not continuously
 - **Priority**: high
-- **Acceptance**: The `/converge` skill documentation and CLAUDE.md
+- **Acceptance**: The `/cv` skill documentation and CLAUDE.md
   directive specify when to evaluate: session start, run completion,
   blockage. Mid-work re-evaluation is explicitly discouraged. The
   stash skill prompts for target status reflection (cheap) not full
@@ -81,12 +81,12 @@
 ### 🎯T1.4 Acceptance criteria have evaluable cost classification
 - **Priority**: medium
 - **Acceptance**: The `/target` skill guidance recommends writing
-  grep-checkable criteria where possible. The `/converge` skill
+  grep-checkable criteria where possible. The `/cv` skill
   documentation describes three cost categories (grep-checkable,
   ci-checkable, review-required) and how each is handled per tier.
 - **Context**: Some criteria are a single grep; others require reading
   dozens of files for architectural judgement. Knowing the cost upfront
-  lets `/converge` skip expensive evaluations in lighter tiers.
+  lets `/cv` skip expensive evaluations in lighter tiers.
 - **Parent**: 🎯T1
 - **Status**: achieved
 - **Achieved**: 2026-03-04
@@ -95,7 +95,7 @@
 ### 🎯T1.5 Implied target checks are amortized across targets
 - **Priority**: medium
 - **Acceptance**: Git state, PR list, and CI status are gathered once
-  by `gather.sh` and matched to all targets by `/converge`, not
+  by `gather.sh` and matched to all targets by `/cv`, not
   queried per-target. The gather script has a single `git-state`
   section used for all implied delivery checks.
 - **Context**: Checking delivery status per-target means N API calls

@@ -262,7 +262,7 @@ cross-cutting dependencies outside the parent tree.
 ...
 ```
 
-The `last-evaluated` comment records the git SHA at which `/converge`
+The `last-evaluated` comment records the git SHA at which `/cv`
 last ran a full evaluation. The gather script uses this to compute
 changed files since the last evaluation, enabling change-hint-guided
 focus.
@@ -286,7 +286,7 @@ reference.
   ("no printf/fprintf in non-vendor code") or ci-checkable ("CI green
   on windows-latest"). This makes automated gap evaluation cheap.
   Criteria requiring architectural review are valid but are only
-  deeply evaluated in `/converge full` mode or when the target is
+  deeply evaluated in `/cv full` mode or when the target is
   the active recommendation.
 - When a TODO item is better expressed as a desired state, suggest
   converting it to a target.

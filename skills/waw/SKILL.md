@@ -63,7 +63,7 @@ If the gather output's `targets` section contains target data (not
   on what you know from the session context and gather data.
 - For targets with sub-targets, show a rollup count (e.g., "2/3 achieved").
 - If any targets appear stale (status doesn't match apparent state), flag them.
-- End with: "Run `/converge` for full gap analysis and recommendations."
+- End with: "Run `/cv` for full gap analysis and recommendations."
 
 Skip this section if no targets file exists.
 

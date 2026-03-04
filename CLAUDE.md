@@ -2,7 +2,7 @@
 
 **Before starting any new work**, check the project's `docs/targets.md`
 for convergence targets. If the work maps to an existing target, run
-`/converge` before planning. If no target exists, create one first. Do
+`/cv` before planning. If no target exists, create one first. Do
 not enter plan mode until convergence is assessed. See
 [Convergence targets](#convergence-targets) for the full protocol.
 
@@ -162,13 +162,13 @@ Common gotchas:
   emerges as you understand the problem; you don't need the full tree
   upfront. See [`~/.claude/convergence.md`](~/.claude/convergence.md)
   for the full decomposition model.
-- Plans converge toward targets. If `/converge` suggests different work
+- Plans converge toward targets. If `/cv` suggests different work
   than an active plan, trust the convergence assessment.
 - Evaluate convergence at decision boundaries (session start, run
   completion, blockage), not continuously. Within a coherent stretch of
   work toward a single target, don't re-evaluate — just work. After
   completing a small piece of work, update the target's status field if
-  appropriate; don't run a full `/converge` for every commit.
+  appropriate; don't run a full `/cv` for every commit.
 - **Workflow**: When starting new work (user request, session start, or
   picking up where you left off), check `docs/targets.md` first. If the
   work maps to an existing target, evaluate convergence before planning.
@@ -180,7 +180,7 @@ Common gotchas:
 ## Delivery
 
 - Projects declare their delivery definition in their CLAUDE.md under
-  a `## Delivery` heading. This tells `/converge` what "done" means
+  a `## Delivery` heading. This tells `/cv` what "done" means
   beyond code — e.g., `delivery: merged to master` or `delivery:
   deployed to staging`.
 - If no delivery section exists, the default is "merged to default
@@ -210,8 +210,8 @@ Common gotchas:
     approval.**
 - Available profiles: `base`, `game`, `library`, `cli`, `skill`.
 - Skills that cross delivery boundaries (`/push`, `/release`,
-  `/converge go`, `/republish-skills`) must check and enforce the
-  project's gates before proceeding. `/converge` must never suggest
+  `/cv go`, `/republish-skills`) must check and enforce the
+  project's gates before proceeding. `/cv` must never suggest
   raw delivery actions — always route through the appropriate skill.
 - **User override**: Gates constrain the agent, not the user. If the
   user explicitly asks to skip a gate, honour that — but name the
