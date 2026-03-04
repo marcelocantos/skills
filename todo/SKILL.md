@@ -68,6 +68,12 @@ Present a combined view of all open work:
 - List open issues with number, title, and labels.
 - Group by label if labels are present; otherwise list flat.
 
+If any TODO item reads more like a desired state than a one-off task
+(e.g., "ensure all tests pass on CI", "no compiler warnings"), suggest
+converting it to a convergence target: "This looks like a desired state
+rather than a task — consider `/target <description>` to track it as a
+convergence target."
+
 End with a combined count: "N local TODOs, M GitHub issues open."
 
 ### `/todo <text>` — Add a new item

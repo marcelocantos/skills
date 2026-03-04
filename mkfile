@@ -2,7 +2,9 @@ skills_src = $[shell echo ~/.claude/skills]
 
 !publish:
     @echo "Syncing skills from $skills_src..."
-    rsync -a --exclude='.*' --delete --filter='P README.md' --filter='P .git/' --filter='P mkfile' --filter='P LICENSE' $skills_src/ .
+    rsync -a --exclude='.*' --delete --filter='P README.md' --filter='P CLAUDE.md' --filter='P .git/' --filter='P mkfile' --filter='P LICENSE' $skills_src/ .
+    @echo "Copying CLAUDE.md..."
+    cp ~/.claude/CLAUDE.md CLAUDE.md
     @echo "Updating README.md..."
     python3 <<'PYEOF'
     import os, re
@@ -20,6 +22,8 @@ skills_src = $[shell echo ~/.claude/skills]
         '# Skills',
         '',
         'Claude Code skills for use with `~/.claude/skills/`.',
+        '',
+        'Also includes my global [`CLAUDE.md`](CLAUDE.md) directives.',
         '',
         '## Available Skills',
         '',

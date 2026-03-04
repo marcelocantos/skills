@@ -53,7 +53,21 @@ briefly.
 Invoke the `/todo` skill to surface open TODO items for the project. Include
 its output as this section.
 
-## 7. Maintenance status
+## 7. Convergence targets
+
+If the gather output's `targets` section contains target data (not
+"(not found)"), present a convergence summary:
+
+- List active targets grouped by priority (critical → high → medium → low).
+- For each target, show name, status, and a one-line gap assessment based
+  on what you know from the session context and gather data.
+- For targets with sub-targets, show a rollup count (e.g., "2/3 achieved").
+- If any targets appear stale (status doesn't match apparent state), flag them.
+- End with: "Run `/converge` for full gap analysis and recommendations."
+
+Skip this section if no targets file exists.
+
+## 8. Maintenance status
 
 If `docs/audit-log.md` exists in the repo, read it and present a brief
 maintenance summary. Skip this section if the file doesn't exist.
@@ -72,7 +86,7 @@ unresolved items, grouped by entry date. If none, say so.
 **Nudge** — if no audit in 30+ days, suggest `/audit`. If unresolved
 deferred items exist, mention them. Otherwise, note the project is healthy.
 
-## 8. What's next?
+## 9. What's next?
 
 Based on the session context, infer what was likely to happen next. Present
 one or more concrete continuation options for the user to pick from. Frame

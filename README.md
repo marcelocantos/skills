@@ -2,9 +2,12 @@
 
 Claude Code skills for use with `~/.claude/skills/`.
 
+Also includes my global [`CLAUDE.md`](CLAUDE.md) directives.
+
 ## Available Skills
 
 - **[`/audit`](audit/SKILL.md)** — Comprehensive codebase audit — code quality, security, testing, performance, legal, CI/CD, documentation, and agent-friendliness.
+- **[`/converge`](converge/SKILL.md)** — Evaluate convergence gaps on active targets and recommend next work.
 - **[`/docs`](docs/SKILL.md)** — End-to-end documentation sherpa — audit, plan, and write all project documentation.
 - **[`/open-source`](open-source/SKILL.md)** — Open-source a project — audit, fix, document, publish, and release.
 - **[`/pop`](pop/SKILL.md)** — Restore conversation context saved by /stash after a /clear.
@@ -14,6 +17,7 @@ Claude Code skills for use with `~/.claude/skills/`.
 - **[`/republish-skills`](republish-skills/SKILL.md)** — Sync ~/.claude/skills/ to the marcelocantos/skills GitHub repo.
 - **[`/stash`](stash/SKILL.md)** — Save conversation context to auto-memory before /clear. Restore later with /pop.
 - **[`/sync-globals`](sync-globals/SKILL.md)** — 
+- **[`/target`](target/SKILL.md)** — Manage convergence targets — desired states for the project.
 - **[`/todo`](todo/SKILL.md)** — Summarise open TODOs from local todo file and GitHub issues.
 - **[`/waw`](waw/SKILL.md)** — "Where Are We?" — Context restoration after being AFK. Summarises session state, surfaces important details, and proposes continuation options.
 
