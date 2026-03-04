@@ -271,14 +271,14 @@ repeat their full assessment. This lets the user focus on what's new.
 
 ### Persist the report
 
-After producing the report, write it to `docs/convergence-report.md`
-(create if needed). This file is committed — it provides context for
-anyone picking up the project in a new session.
+**Write the file before presenting the report.** Then present the
+full report as conversational output — the file persistence and the
+conversational display serve different purposes.
 
 The file has two parts:
 
-1. **The visible report** — everything shown to the user (standing
-   invariants, gap report, recommendation, suggested action).
+1. **The visible report** — standing invariants, movement, gap report,
+   recommendation, suggested action.
 
 2. **The machine-readable appendix** — an HTML comment at the end:
 
