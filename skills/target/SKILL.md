@@ -94,8 +94,10 @@ any are not yet achieved.
 
 ## Standard target format
 
+Target headings are prefixed with a 🎯 emoji for visual scanability:
+
 ```markdown
-### <Desired state as short assertion>
+### 🎯 <Desired state as short assertion>
 - **Priority**: critical / high / medium / low
 - **Acceptance**: <How to verify convergence — concrete, testable>
 - **Context**: <Why it matters, how discovered, what prompted it>
@@ -110,14 +112,32 @@ any are not yet achieved.
 ```markdown
 # Targets
 
+<!-- last-evaluated: abc1234 -->
+
 ## Active
 
-(targets here)
+### 🎯 All tests pass on Windows
+...
 
 ## Achieved
 
-(retired targets here)
+### 🎯 Logging uses spdlog macros everywhere
+...
 ```
+
+The `last-evaluated` comment records the git SHA at which `/converge`
+last ran a full evaluation. The gather script uses this to compute
+changed files since the last evaluation, enabling change-hint-guided
+focus.
+
+## Archival
+
+When the `## Achieved` section grows beyond ~10 entries, move older
+entries (achieved 30+ days ago) to `## Archive` at the bottom of the
+file, or to a separate `docs/targets-archive.md`. The gather script
+only emits `## Active` and `## Achieved` — archived targets don't
+consume context on routine evaluation but remain accessible for
+reference.
 
 ## Guidance
 
@@ -125,5 +145,18 @@ any are not yet achieved.
   assertion: "All tests pass on Windows" not "Fix Windows tests."
 - Acceptance criteria should be verifiable — ideally by reading code,
   running a command, or checking CI output.
+- Where possible, write acceptance criteria that are grep-checkable
+  ("no printf/fprintf in non-vendor code") or ci-checkable ("CI green
+  on windows-latest"). This makes automated gap evaluation cheap.
+  Criteria requiring architectural review are valid but are only
+  deeply evaluated in `/converge full` mode or when the target is
+  the active recommendation.
 - When a TODO item is better expressed as a desired state, suggest
   converting it to a target.
+- When decomposing a target into sub-targets, prefer splits that
+  create **independent** sub-targets over ones that create sequential
+  dependencies. Independent sub-targets can be worked in parallel
+  (by agent teams or concurrent sessions). There's no single right
+  axis — folder structure, discipline, functional area, platform are
+  all valid — but the question "can these be worked simultaneously?"
+  is worth asking when choosing how to split.

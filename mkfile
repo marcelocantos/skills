@@ -2,15 +2,18 @@ skills_src = $[shell echo ~/.claude/skills]
 
 !publish:
     @echo "Syncing skills from $skills_src..."
-    rsync -a --exclude='.*' --delete --filter='P README.md' --filter='P CLAUDE.md' --filter='P .git/' --filter='P mkfile' --filter='P LICENSE' $skills_src/ .
-    @echo "Copying CLAUDE.md..."
+    mkdir -p skills
+    rsync -a --exclude='.*' --delete $skills_src/ skills/
+    @echo "Copying CLAUDE.md and convergence.md..."
     cp ~/.claude/CLAUDE.md CLAUDE.md
+    cp ~/.claude/convergence.md convergence.md
     @echo "Updating README.md..."
     python3 <<'PYEOF'
     import os, re
     skills = []
-    for d in sorted(os.listdir('.')):
-        p = os.path.join(d, 'SKILL.md')
+    skills_dir = 'skills'
+    for d in sorted(os.listdir(skills_dir)):
+        p = os.path.join(skills_dir, d, 'SKILL.md')
         if not os.path.isfile(p):
             continue
         with open(p) as f:
@@ -23,13 +26,14 @@ skills_src = $[shell echo ~/.claude/skills]
         '',
         'Claude Code skills for use with `~/.claude/skills/`.',
         '',
-        'Also includes my global [`CLAUDE.md`](CLAUDE.md) directives.',
+        'Also includes my global [`CLAUDE.md`](CLAUDE.md) directives'
+        ' and the [`convergence.md`](convergence.md) reference.',
         '',
         '## Available Skills',
         '',
     ]
     for name, desc in skills:
-        lines.append(f'- **[`/{name}`]({name}/SKILL.md)** — {desc}')
+        lines.append(f'- **[`/{name}`](skills/{name}/SKILL.md)** — {desc}')
     lines += ['', '## License', '', 'Apache-2.0', '']
     with open('README.md', 'w') as f:
         f.write('\n'.join(lines))

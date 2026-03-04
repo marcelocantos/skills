@@ -1,5 +1,11 @@
 # Global Directives
 
+**Before starting any new work**, check the project's `docs/targets.md`
+for convergence targets. If the work maps to an existing target, run
+`/converge` before planning. If no target exists, create one first. Do
+not enter plan mode until convergence is assessed. See
+[Convergence targets](#convergence-targets) for the full protocol.
+
 ## Dependencies
 
 - Favour header-only libraries over compiled ones when a suitable option exists.
@@ -72,6 +78,11 @@ Common gotchas:
 
 - Always prefer `master` over `main` as the default branch name. Never ask or suggest creating a `main` branch.
 
+## Managed Repos
+
+- The full list of managed repos (across all orgs: `marcelocantos`, `squz`, `arr-ai`, `minicadesmobile`, etc.) is in `~/.claude/managed-repos.md`. Consult it when listing repos or looking up project status — `gh repo list` only shows one org at a time.
+- The file is auto-updated by `/sync-globals` and can also be edited manually.
+
 ## Repository Hygiene
 
 - Ensure .gitignore covers: build artifacts, IDE files (.vscode/, .idea/), OS files (.DS_Store), dependency directories (node_modules/, __pycache__/), and generated files.
@@ -142,8 +153,26 @@ Common gotchas:
   or pointing at the wrong thing — update the target first, then decide
   whether to continue, revise, or abandon the current plan. The target
   is the source of truth, not the plan.
+- Broad targets decompose into sub-targets. Don't plan against a
+  composite target directly — decompose until each sub-target is
+  independently achievable, then converge leaf-first. The hierarchy
+  emerges as you understand the problem; you don't need the full tree
+  upfront. See [`~/.claude/convergence.md`](~/.claude/convergence.md)
+  for the full decomposition model.
 - Plans converge toward targets. If `/converge` suggests different work
   than an active plan, trust the convergence assessment.
+- Evaluate convergence at decision boundaries (session start, run
+  completion, blockage), not continuously. Within a coherent stretch of
+  work toward a single target, don't re-evaluate — just work. After
+  completing a small piece of work, update the target's status field if
+  appropriate; don't run a full `/converge` for every commit.
+- **Workflow**: When starting new work (user request, session start, or
+  picking up where you left off), check `docs/targets.md` first. If the
+  work maps to an existing target, evaluate convergence before planning.
+  If no target exists, create one. Do not enter plan mode until the
+  target is established and convergence is assessed. This is a hard
+  prerequisite — convergence determines whether planning is even the
+  right next action.
 
 ## Delivery
 

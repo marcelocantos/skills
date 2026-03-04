@@ -67,3 +67,24 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 else
     echo "(not a git repo)"
 fi
+
+# --- Changed files since last evaluation ---
+section "changed-files"
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    # Check for last-evaluated SHA in targets file
+    LAST_SHA=""
+    if [ -n "$TARGETS_PATH" ]; then
+        LAST_SHA=$(grep -o 'last-evaluated: [0-9a-f]\{7,40\}' "$TARGETS_PATH" 2>/dev/null | head -1 | awk '{print $2}')
+    fi
+
+    if [ -n "$LAST_SHA" ] && git cat-file -e "$LAST_SHA" 2>/dev/null; then
+        echo "since: $LAST_SHA"
+        git diff --name-only "$LAST_SHA" 2>/dev/null || true
+    else
+        echo "since: (no baseline — showing uncommitted changes)"
+        git diff --name-only 2>/dev/null || true
+        git diff --name-only --cached 2>/dev/null || true
+    fi
+else
+    echo "(not a git repo)"
+fi
