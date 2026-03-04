@@ -1,5 +1,5 @@
 ---
-name: converge
+name: cv
 description: Evaluate convergence gaps on active targets and recommend next work.
 user-invocable: true
 ---
@@ -87,6 +87,18 @@ For **scan tier**, all targets use prior assessments; only flag stale
 ones as "potentially affected." For **default tier**, re-evaluate
 stale targets among the top 2-3 by weight; carry forward the rest.
 For **full tier**, ignore the prior report and re-evaluate everything.
+
+## Step 1.5 — Rank targets
+
+Run `python3 ~/.claude/skills/converge/rank.py <targets-path>` (where
+`<targets-path>` is the path from Step 1's `targets-file` output). Parse
+its output. Use the ranking to:
+
+- Flag blocked targets in the gap report.
+- Use effective weight (not declared weight) when sorting and
+  recommending targets.
+- Never recommend a blocked target — recommend the highest effective
+  weight unblocked target instead.
 
 ## Step 2 — Parse targets
 
@@ -211,23 +223,14 @@ For targets with implied delivery gaps, append:
 
 ### Recommendation
 
-Recommend which target to work on next. The heuristic: **highest
-weight with the most actionable gap**.
+Recommend which target to work on next. Use the ranking from
+`rank.py` — recommend the first unblocked target (highest effective
+weight). Never recommend a blocked target.
 
-Weight = value / cost (see `/target` value and cost model). Value
-propagates through the dependency graph: leaf targets (user-facing
-outcomes) carry human-scored value; interior targets (infrastructure,
-enablers) derive value as the sum of values of targets they gate.
-This means a foundational target that enables three high-value
-outcomes automatically outweighs a standalone medium-value target —
-no manual promotion needed.
-
-Cost is agent-estimated on a Fibonacci scale by analysing the
-codebase and comparing to completed targets with recorded actuals.
-
-Among equal weights, prefer the target with the smaller gap — closing
-it is cheaper. Weight < 1 means cost exceeds value — flag it for
-retirement or reframing, don't recommend working on it.
+Among equal effective weights, prefer the target with the smaller
+gap — closing it is cheaper. Effective weight < 1 means cost exceeds
+value — flag it for retirement or reframing, don't recommend working
+on it.
 
 ```
 ## Recommendation
