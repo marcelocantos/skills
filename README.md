@@ -7,7 +7,7 @@ Also includes my global [`CLAUDE.md`](CLAUDE.md) directives and the [`convergenc
 ## Available Skills
 
 - **[`/audit`](skills/audit/SKILL.md)** — Comprehensive codebase audit — code quality, security, testing, performance, legal, CI/CD, documentation, and agent-friendliness.
-- **[`/converge`](skills/converge/SKILL.md)** — Evaluate convergence gaps on active targets and recommend next work.
+- **[`/cv`](skills/cv/SKILL.md)** — Evaluate convergence gaps on active targets and recommend next work.
 - **[`/docs`](skills/docs/SKILL.md)** — End-to-end documentation sherpa — audit, plan, and write all project documentation.
 - **[`/open-source`](skills/open-source/SKILL.md)** — Open-source a project — audit, fix, document, publish, and release.
 - **[`/pop`](skills/pop/SKILL.md)** — Restore conversation context saved by /stash after a /clear.

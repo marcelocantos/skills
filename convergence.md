@@ -78,6 +78,25 @@ hitting a blocker), assess the gap:
    Update the parent's status to reflect child progress
    ("converging 3/5 sub-targets achieved").
 
+### Watch for non-convergence
+
+Not every target converges. During assessment, watch for:
+
+- **Stuck targets** — the gap isn't closing across sessions despite
+  work. Check the status history; if repeated attempts haven't moved
+  the needle, the target may be misframed or blocked by something
+  outside agent scope.
+- **Oscillation** — closing one gap reopens another, or fixes to one
+  target regress a sibling. This often signals a missing constraint or
+  a contradiction between targets. Surface the tension rather than
+  continuing to alternate.
+- **Unmeasurable acceptance** — criteria too vague to evaluate. If you
+  can't tell whether the gap is closing, the target needs rewriting
+  before more work is justified.
+
+When you spot these, flag them in the target's status and raise with
+the user rather than continuing to push.
+
 ## Value and cost
 
 Weight = value / cost. Value and cost are estimated differently.
