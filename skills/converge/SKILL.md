@@ -51,6 +51,18 @@ Investigate every active target against the codebase. Run greps, check
 CI, read code. Use this at milestone boundaries or when targets have
 been accumulating without evaluation.
 
+## Step 0 — Load prior report
+
+Check for `docs/convergence-report.md` (or the path used by the
+project). If it exists, read it. Parse:
+
+- The visible report (gap assessments, recommendation, timestamp).
+- The machine-readable appendix (inside `<!-- convergence-deps ... -->`):
+  per-target gap, assessment text, and list of files read.
+
+This is the **prior state**. It informs which targets can be carried
+forward and which need re-evaluation.
+
 ## Step 1 — Gather
 
 Execute `~/.claude/skills/target/gather.sh` directly (it is already
@@ -60,6 +72,21 @@ command). Parse the output sections: `targets-file`, `delivery`,
 
 If no targets file exists, report this and suggest running `/target` to
 create one. Stop here.
+
+### Staleness triage
+
+If a prior report exists, cross-reference `changed-files` against
+each target's recorded file list from the appendix:
+
+- **No overlap**: target is **fresh** — carry forward the prior gap
+  assessment without re-investigation.
+- **Overlap**: target is **stale** — must be re-evaluated this run.
+- **No prior entry** (new target): treat as stale.
+
+For **scan tier**, all targets use prior assessments; only flag stale
+ones as "potentially affected." For **default tier**, re-evaluate
+stale targets among the top 2-3 by weight; carry forward the rest.
+For **full tier**, ignore the prior report and re-evaluate everything.
 
 ## Step 2 — Parse targets
 
@@ -222,6 +249,66 @@ remaining printf calls, then replace with SPDLOG_* macros.">
 
 Type **go** to execute the suggested action.
 ```
+
+### Movement since last report
+
+If a prior report exists, show what changed since last evaluation
+before the gap report:
+
+```
+## Movement
+
+- 🎯T1: significant → close (tests added)
+- 🎯T3: not started → significant (initial implementation merged)
+- 🎯T5: (unchanged)
+```
+
+Targets that didn't move get a single "(unchanged)" line — don't
+repeat their full assessment. This lets the user focus on what's new.
+
+### Persist the report
+
+After producing the report, write it to `docs/convergence-report.md`
+(create if needed, add to `.gitignore` if not already there — this is
+local cache, not committed).
+
+The file has two parts:
+
+1. **The visible report** — everything shown to the user (standing
+   invariants, gap report, recommendation, suggested action).
+
+2. **The machine-readable appendix** — an HTML comment at the end:
+
+```markdown
+<!-- convergence-deps
+evaluated: 2026-03-04T14:30:00Z
+sha: abc1234
+
+🎯T1:
+  gap: significant
+  assessment: "Core rendering rework not started, orientation events close."
+  read:
+    - src/game/carousel.cpp
+    - src/game/carousel.h
+    - src/platform/orientation.cpp
+
+🎯T2:
+  gap: close
+  assessment: "CI workflow exists, one flaky test remaining."
+  read:
+    - .github/workflows/ci.yml
+    - tests/test_auth.py
+-->
+```
+
+The `read:` list records every file the agent actually opened (via
+Read, Grep match, or Glob result) while evaluating that target. This
+is best-effort — it won't capture absence-based judgments or broad
+directory scans, but it gives the next run a starting point for
+staleness triage. When the changed-files from gather overlap with a
+target's read list, that's a strong signal to re-evaluate. When they
+don't overlap, it's a reasonable (not guaranteed) signal to carry
+forward.
 
 ## Step 5 — Staleness check
 
