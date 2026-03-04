@@ -23,6 +23,21 @@ Parse the output:
 - `# git-state` — branch, open PRs, and CI status for implied target
   evaluation.
 
+## Step 1.5 — Conformance check
+
+If a targets file was found, check that it conforms to the current spec
+(standard format below). Common drift:
+
+- `Priority:` instead of `Weight:` — convert to weight. Estimate
+  value and cost, compute the ratio, show reasoning.
+- Missing `(value V / cost C)` annotation on weight — add it.
+- Missing 🎯T*N* prefix on headings — add it (assign next unused number).
+- Missing `<!-- last-evaluated: ... -->` comment — add it.
+- Missing `## Achieved` section — add it.
+
+If any targets need updating, fix them silently and continue. Don't
+prompt the user — conformance updates are mechanical, not decisions.
+
 ## Step 2 — Act
 
 Behaviour depends on arguments provided after `/target`.
@@ -36,11 +51,11 @@ Behaviour depends on arguments provided after `/target`.
 
 ### `/target` (no arguments) — Summarise
 
-Present all active targets grouped by priority (critical → high →
-medium → low). For each target show:
+Present all active targets sorted by weight (descending). For each
+target show:
 
 - Name (the `###` heading)
-- Priority
+- Weight
 - Status (identified / converging / achieved)
 - One-line gap assessment — how far is the project from this state?
   Read relevant code, check for the conditions in the acceptance
@@ -50,8 +65,7 @@ For targets with sub-targets (children that have a `Parent:` field
 pointing to this target), show a rollup: "converging (2/3 sub-targets
 achieved)" and list children indented below.
 
-End with a count: "N active targets (X critical, Y high, Z medium, W
-low)."
+End with a count of active targets.
 
 ### `/target <text>` — Add a new target
 
@@ -59,8 +73,13 @@ The text describes the desired state. From the description:
 
 1. **Infer acceptance criteria** — how would you verify this state is
    achieved? Write concrete, testable criteria.
-2. **Infer priority** — default to `medium` unless the description
-   implies urgency.
+2. **Infer weight** — estimate value (how much does achieving this
+   state matter?) and cost (how much effort to get there?), then
+   compute weight = value / cost, rounded to an integer. Glance at
+   existing weights and position the new one accordingly. Higher =
+   more important. Collisions are fine — they mean the ordering
+   between those targets doesn't matter. Show the reasoning:
+   `**Weight**: 4 (value 12 / cost 3)`.
 3. **Set status** to `identified`.
 4. **Set Discovered** to today's date.
 5. **Draft the target entry** in the standard format (see below) and
@@ -92,17 +111,31 @@ Find the target by name. Move it from `## Active` to `## Achieved`.
 Add an `Achieved: YYYY-MM-DD` line. If it has sub-targets, warn if
 any are not yet achieved.
 
+## Target numbering
+
+Every target gets a stable number prefixed with 🎯:
+
+- **Top-level targets**: 🎯T1, 🎯T2, 🎯T3, … (assigned sequentially on
+  creation, never reused after archival).
+- **Sub-targets**: 🎯T1.1, 🎯T1.2, … (parent number + sequential suffix).
+- **Deeper nesting**: 🎯T1.2.1, 🎯T1.2.2, … (recursive).
+
+The 🎯T prefix is inseparable — no space between 🎯 and T. This keeps
+the identifier atomic across line breaks.
+
+Always use the 🎯T*N* prefix when referring to targets: in headings,
+in status reports, in conversation with the user, and in cross-references
+(e.g., `Parent: 🎯T1`).
+
 ## Standard target format
 
-Target headings are prefixed with a 🎯 emoji for visual scanability:
-
 ```markdown
-### 🎯 <Desired state as short assertion>
-- **Priority**: critical / high / medium / low
+### 🎯T<N> <Desired state as short assertion>
+- **Weight**: <integer> (value <v> / cost <c>)
 - **Acceptance**: <How to verify convergence — concrete, testable>
 - **Context**: <Why it matters, how discovered, what prompted it>
-- **Parent**: <parent target name> (optional)
-- **Origin**: <manual / forked-from: <target name>> (optional)
+- **Parent**: 🎯T<N> (optional)
+- **Origin**: <manual / forked-from: 🎯T<N>> (optional)
 - **Status**: identified / converging / achieved
 - **Discovered**: YYYY-MM-DD
 ```
@@ -116,12 +149,12 @@ Target headings are prefixed with a 🎯 emoji for visual scanability:
 
 ## Active
 
-### 🎯 All tests pass on Windows
+### 🎯T1 All tests pass on Windows
 ...
 
 ## Achieved
 
-### 🎯 Logging uses spdlog macros everywhere
+### 🎯T2 Logging uses spdlog macros everywhere
 ...
 ```
 

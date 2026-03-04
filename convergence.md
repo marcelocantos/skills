@@ -97,17 +97,17 @@ Plans are hypotheses about how to close a gap. They serve targets.
 
 Decomposition:
 
-- **🎯 T1.1**: Orientation events from player reach the carousel code on
+- **🎯T1.1**: Orientation events from player reach the carousel code on
   the server. *(Gap: close — wire protocol already forwards
   SDL_EVENT_DISPLAY_ORIENTATION; carousel just doesn't listen yet.)*
-- **🎯 T1.2**: Carousel layout adapts to orientation — vertical strip on
+- **🎯T1.2**: Carousel layout adapts to orientation — vertical strip on
   the side in landscape, horizontal at bottom in portrait. *(Gap:
   significant — core rendering and input rework.)*
-- **🎯 T1.3**: iPad vs iPhone distinguished so iPhones stay portrait-only.
+- **🎯T1.3**: iPad vs iPhone distinguished so iPhones stay portrait-only.
   *(Gap: significant — no device type in protocol yet.)*
-- **🎯 T1.4**: Text renders correctly in vertical carousel mode. *(Gap:
+- **🎯T1.4**: Text renders correctly in vertical carousel mode. *(Gap:
   unknown — needs design decision on rotation vs horizontal.)*
-- **🎯 T1.5**: Globe viewport uses available space effectively when
+- **🎯T1.5**: Globe viewport uses available space effectively when
   carousel is side-mounted. *(Gap: close — globe already renders 1:1
   centered square; may just work.)*
 

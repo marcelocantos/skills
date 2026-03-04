@@ -8,6 +8,14 @@ Evaluate all active targets against the current project state and
 recommend what to work on next. This replaces manually cross-referencing
 TODOs, git status, and memory to answer "what should I do next?"
 
+## `/converge go` — Execute last suggested action
+
+If the argument is `go`, skip evaluation entirely. Read the most recent
+`/converge` output from this conversation (it will be earlier in the
+transcript) and execute the suggested action from that output. If there
+is no prior `/converge` output in the conversation, report the error
+and run a normal default-tier evaluation instead.
+
 ## Evaluation tiers
 
 `/converge` operates in three tiers. Choose the tier that matches the
@@ -139,10 +147,12 @@ If all pass, show briefly: "Standing invariants: all green."
 
 ### Gap report
 
-Group targets by priority (critical > high > medium > low). For each:
+Sort targets by weight (descending). Always use the 🎯T*N* prefix when
+referring to targets — in headings, inline references, and conversation
+with the user. For each:
 
 ```
-### <Target name>  [priority]
+### 🎯T1 <Target name>  [priority]
 Gap: <achieved / close / significant / not started>
 <1-2 sentence assessment of what's met and what's not>
 ```
@@ -151,7 +161,7 @@ For targets not deeply evaluated (default tier, lower-priority targets),
 show status field with change-hint annotation:
 
 ```
-### <Target name>  [medium]  (status only)
+### 🎯T3 <Target name>  [medium]  (status only)
 Status: converging
 Changed files overlap: src/logging/* — may be affected
 ```
@@ -159,12 +169,12 @@ Changed files overlap: src/logging/* — may be affected
 For targets with sub-targets, show the rollup then indent children:
 
 ```
-### <Parent target>  [high]
+### 🎯T1 <Parent target>  [high]
 Gap: converging (2/3 sub-targets achieved)
 
-  [check] <Child 1> — achieved
-  [ ] <Child 2> — significant: <brief note>
-  [check] <Child 3> — achieved
+  [check] 🎯T1.1 <Child 1> — achieved
+  [ ] 🎯T1.2 <Child 2> — significant: <brief note>
+  [check] 🎯T1.3 <Child 3> — achieved
 ```
 
 For targets with implied delivery gaps, append:
@@ -174,16 +184,19 @@ For targets with implied delivery gaps, append:
 
 ### Recommendation
 
-Based on priority and gap size, recommend which target to work on next.
-The heuristic: **highest priority with the most actionable gap**. A
-"close" gap on a high-priority target beats a "significant" gap on a
-medium-priority target. A "not started" target with clear acceptance
-criteria beats a vague one.
+Recommend which target to work on next. The heuristic: **highest
+weight with the most actionable gap**. Weight already encodes value/cost,
+so the ranking is effectively WSJF (Weighted Shortest Job First). Among
+equal weights, prefer the target with the smaller gap — closing it is
+cheaper. A target that gates others gets effective weight promotion:
+if target A blocks target B, A's effective weight is at least B's.
+Weight < 1 means cost exceeds value — flag it for retirement or
+reframing, don't recommend working on it.
 
 ```
 ## Recommendation
 
-Work on: **<target name>**
+Work on: **🎯T<N> <target name>**
 Reason: <why this is the highest-leverage next step>
 ```
 
@@ -197,6 +210,8 @@ plan — just the first actionable thing to do.
 
 <Concrete instruction, e.g. "Run `grep -r printf src/` to identify
 remaining printf calls, then replace with SPDLOG_* macros.">
+
+Type **go** to execute the suggested action.
 ```
 
 ## Step 5 — Staleness check
@@ -207,7 +222,7 @@ update it:
 
 ```
 Stale targets detected:
-- "<target name>": status is "identified" but gap is "close" — update to "converging"?
+- 🎯T1 "<target name>": status is "identified" but gap is "close" — update to "converging"?
 ```
 
 If the user confirms, update the targets file. After updating, record
@@ -230,3 +245,19 @@ If there's an active GSD plan (`.planning/` exists), note it:
 
 Plans are hypotheses; targets are the source of truth. If they diverge,
 trust the convergence assessment.
+
+## Gate enforcement
+
+Suggested actions must never bypass delivery gates. When a suggested
+action crosses a delivery boundary:
+
+- **Merge** → suggest running `/push` (which enforces pre-merge gates).
+- **Release** → suggest running `/release` (which enforces pre-release
+  gates).
+- **Skill publish** → suggest running `/republish-skills`.
+- **Never** suggest raw `git push`, `git merge`, `gh pr merge`, or
+  `gh release create` as a suggested action.
+
+`/converge go` inherits this: if the suggested action is "run `/push`",
+then `go` invokes `/push`, which checks the project's gates (including
+manual gates that require user approval).

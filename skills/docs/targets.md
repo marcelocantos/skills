@@ -1,10 +1,14 @@
 # Targets
 
-<!-- last-evaluated: (none) -->
+<!-- last-evaluated: fd98e65 -->
 
 ## Active
 
-### Convergence evaluation is practical for daily use
+(none)
+
+## Achieved
+
+### 🎯T1 Convergence evaluation is practical for daily use
 - **Priority**: high
 - **Acceptance**:
   - **Scan tier**: 1 tool call (gather script only). No codebase
@@ -26,10 +30,11 @@
   people won't run it. The context-size constraint matters as much as
   tool-call count — a single grep returning 2k lines burns more
   budget than 10 targeted checks.
-- **Status**: converging
+- **Status**: achieved
+- **Achieved**: 2026-03-04
 - **Discovered**: 2026-03-04
 
-### Default evaluation deeply investigates only top targets
+### 🎯T1.1 Default evaluation deeply investigates only top targets
 - **Priority**: high
 - **Acceptance**: `/converge` (default tier) fully evaluates only the
   top 2-3 targets by priority. Remaining targets are assessed from
@@ -38,11 +43,12 @@
 - **Context**: Evaluating every target on every run is O(n) in tool
   calls and context. Most runs only need to deeply assess the targets
   likely to be recommended — the rest just need a staleness check.
-- **Parent**: Convergence evaluation is practical for daily use
+- **Parent**: 🎯T1
 - **Status**: achieved
+- **Achieved**: 2026-03-04
 - **Discovered**: 2026-03-04
 
-### Gather script provides change hints
+### 🎯T1.2 Gather script provides change hints
 - **Priority**: high
 - **Acceptance**: `gather.sh` emits a `changed-files` section listing
   files changed since the last evaluation SHA (stored in targets.md).
@@ -51,49 +57,12 @@
 - **Context**: Level-triggered evaluation is correct but expensive. A
   hybrid approach that uses change sets as *hints* for where to focus
   captures most of the benefit at a fraction of the cost.
-- **Parent**: Convergence evaluation is practical for daily use
+- **Parent**: 🎯T1
 - **Status**: achieved
+- **Achieved**: 2026-03-04
 - **Discovered**: 2026-03-04
 
-### Acceptance criteria have evaluable cost classification
-- **Priority**: medium
-- **Acceptance**: The `/target` skill guidance recommends writing
-  grep-checkable criteria where possible. The `/converge` skill
-  documentation describes three cost categories (grep-checkable,
-  ci-checkable, review-required) and how each is handled per tier.
-- **Context**: Some criteria are a single grep; others require reading
-  dozens of files for architectural judgement. Knowing the cost upfront
-  lets `/converge` skip expensive evaluations in lighter tiers.
-- **Parent**: Convergence evaluation is practical for daily use
-- **Status**: achieved
-- **Discovered**: 2026-03-04
-
-### Implied target checks are amortized across targets
-- **Priority**: medium
-- **Acceptance**: Git state, PR list, and CI status are gathered once
-  by `gather.sh` and matched to all targets by `/converge`, not
-  queried per-target. The gather script has a single `git-state`
-  section used for all implied delivery checks.
-- **Context**: Checking delivery status per-target means N API calls
-  for N targets. Gathering once and matching is O(1) in API calls.
-- **Parent**: Convergence evaluation is practical for daily use
-- **Status**: achieved
-- **Discovered**: 2026-03-04
-
-### Achieved targets don't accumulate unboundedly in context
-- **Priority**: medium
-- **Acceptance**: The `/target` skill documents an archival policy:
-  achieved targets older than 30 days rotate to `## Archive` or a
-  separate file. Gather script only emits `## Active` and
-  `## Achieved` sections. The archival guideline is in the SKILL.md.
-- **Context**: A project running for months could accumulate dozens of
-  achieved targets. Each consumes context on every gather. Archival
-  keeps context bounded while preserving history.
-- **Parent**: Convergence evaluation is practical for daily use
-- **Status**: achieved
-- **Discovered**: 2026-03-04
-
-### Re-evaluation happens at decision boundaries, not continuously
+### 🎯T1.3 Re-evaluation happens at decision boundaries, not continuously
 - **Priority**: high
 - **Acceptance**: The `/converge` skill documentation and CLAUDE.md
   directive specify when to evaluate: session start, run completion,
@@ -104,33 +73,53 @@
   strategy is to replan when the expected value of the new plan
   exceeds the replanning cost. For most small work increments, a
   status-field update suffices.
-- **Parent**: Convergence evaluation is practical for daily use
+- **Parent**: 🎯T1
 - **Status**: achieved
+- **Achieved**: 2026-03-04
 - **Discovered**: 2026-03-04
 
-### 🎯 Value and cost scales are calibrated across projects and time
-- **Weight**: 5 (value 10 / cost 2)
-- **Acceptance**: The system defines reference points for value and
-  cost so that weight 4 means roughly the same thing in project A as
-  in project B, and the same thing in March as in September. An agent
-  assigning weight can anchor against these reference points rather
-  than inventing a scale each time.
-- **Context**: Without calibration, value and cost are local to the
-  moment of assignment. A weight of 6 in one project might reflect
-  careful reasoning against known anchors; in another it's a guess
-  with no frame of reference. Over time, scale drift makes weights
-  across projects incomparable and even within a project the numbers
-  lose meaning as the implicit scale shifts. This doesn't need to be
-  heavy — a few reference points (e.g., "cost 1 = a focused session,
-  cost 5 = a multi-day effort; value 1 = nice to have, value 10 =
-  blocks a release") would anchor the scale. The question is where
-  these live and how they stay consistent.
-- **Status**: identified
+### 🎯T1.4 Acceptance criteria have evaluable cost classification
+- **Priority**: medium
+- **Acceptance**: The `/target` skill guidance recommends writing
+  grep-checkable criteria where possible. The `/converge` skill
+  documentation describes three cost categories (grep-checkable,
+  ci-checkable, review-required) and how each is handled per tier.
+- **Context**: Some criteria are a single grep; others require reading
+  dozens of files for architectural judgement. Knowing the cost upfront
+  lets `/converge` skip expensive evaluations in lighter tiers.
+- **Parent**: 🎯T1
+- **Status**: achieved
+- **Achieved**: 2026-03-04
 - **Discovered**: 2026-03-04
 
-## Achieved
+### 🎯T1.5 Implied target checks are amortized across targets
+- **Priority**: medium
+- **Acceptance**: Git state, PR list, and CI status are gathered once
+  by `gather.sh` and matched to all targets by `/converge`, not
+  queried per-target. The gather script has a single `git-state`
+  section used for all implied delivery checks.
+- **Context**: Checking delivery status per-target means N API calls
+  for N targets. Gathering once and matching is O(1) in API calls.
+- **Parent**: 🎯T1
+- **Status**: achieved
+- **Achieved**: 2026-03-04
+- **Discovered**: 2026-03-04
 
-### Convergence system has a comprehensive design report
+### 🎯T1.6 Achieved targets don't accumulate unboundedly in context
+- **Priority**: medium
+- **Acceptance**: The `/target` skill documents an archival policy:
+  achieved targets older than 30 days rotate to `## Archive` or a
+  separate file. Gather script only emits `## Active` and
+  `## Achieved` sections. The archival guideline is in the SKILL.md.
+- **Context**: A project running for months could accumulate dozens of
+  achieved targets. Each consumes context on every gather. Archival
+  keeps context bounded while preserving history.
+- **Parent**: 🎯T1
+- **Status**: achieved
+- **Achieved**: 2026-03-04
+- **Discovered**: 2026-03-04
+
+### 🎯T2 Convergence system has a comprehensive design report
 - **Priority**: medium
 - **Acceptance**: `docs/reports/desired-state-convergence.md` exists,
   covers theoretical foundations (≥7 domains), design principles,

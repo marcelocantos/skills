@@ -80,11 +80,31 @@ When the user asks to fix CI failures (or approves proposed fixes):
 
 Repeat until CI is green or the user decides to stop.
 
-### 7. Merge
+### 7. Gate check
 
-Once CI is green:
+Once CI is green, enforce the project's delivery gates before merging.
 
-1. Confirm with the user before merging.
+1. Read the project's `## Gates` section from CLAUDE.md to determine the
+   profile (default: `base`).
+2. Read `~/.claude/gates/base.yaml` and the profile YAML (if not base).
+   Merge them: profile gates add to base; `override: [gate: skip]`
+   removes specific base gates.
+3. Check each `pre-merge` gate:
+   - **automated**: Verify the condition (CI green, tests exist for
+     changed code). Report pass/fail.
+   - **routed**: These are already satisfied by being inside `/push`.
+   - **manual**: Present the gate's prompt to the user and **wait for
+     explicit approval**. Do not proceed until the user confirms.
+4. If any gate fails, **stop**. Report which gate failed and why.
+   Do not merge.
+
+### 8. Merge
+
+Once all gates pass:
+
+1. Confirm with the user before merging (this may already be covered
+   by a manual gate — don't double-prompt if the user just approved
+   a manual gate).
 2. Run the merge script:
    ```
    ~/.claude/skills/push/merge.sh <pr-number> <default-branch> <feature-branch>

@@ -264,6 +264,24 @@ Draft release notes from git history.
 
 3. **Verify**: Show the workflow file to the user for review. Commit it to `master` and push before tagging.
 
+### Phase 4.5: Gate check
+
+Enforce the project's delivery gates before releasing.
+
+1. Read the project's `## Gates` section from CLAUDE.md to determine the
+   profile (default: `base`).
+2. Read `~/.claude/gates/base.yaml` and the profile YAML (if not base).
+   Merge them: profile gates add to base; `override: [gate: skip]`
+   removes specific base gates.
+3. Check each `pre-release` gate (in addition to any `pre-merge` gates
+   that haven't already been satisfied):
+   - **automated**: Verify the condition. Report pass/fail.
+   - **routed**: Delegate to the named skill.
+   - **manual**: Present the gate's prompt to the user and **wait for
+     explicit approval**. Do not proceed until the user confirms.
+4. If any gate fails, **stop**. Report which gate failed and why.
+   Do not proceed to Phase 5.
+
 ### Phase 5: Release
 
 Create the GitHub release and let CI handle the rest.
