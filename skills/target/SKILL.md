@@ -77,7 +77,14 @@ The text describes the desired state. From the description:
 1. **Infer acceptance criteria** — how would you verify this state is
    achieved? Write concrete, testable criteria.
 2. **Estimate weight** — see [Value and cost model](#value-and-cost-model)
-   below. Show the reasoning.
+   below. For leaf targets, present the Fibonacci value scale to the
+   user and suggest a score:
+   > Value? (1 = marginal, 2-3 = noticeable, 5 = meaningful,
+   > 8 = significant, 13 = major, 20 = strategic)
+   > I'd suggest **5** because …
+   Let the user confirm or adjust. For interior targets, compute
+   value from the graph — no user input needed. Estimate cost from
+   the codebase and show reasoning.
 3. **Set status** to `identified`.
 4. **Set Discovered** to today's date.
 5. **Draft the target entry** in the standard format (see below) and
