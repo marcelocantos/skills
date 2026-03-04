@@ -269,8 +269,8 @@ repeat their full assessment. This lets the user focus on what's new.
 ### Persist the report
 
 After producing the report, write it to `docs/convergence-report.md`
-(create if needed, add to `.gitignore` if not already there — this is
-local cache, not committed).
+(create if needed). This file is committed — it provides context for
+anyone picking up the project in a new session.
 
 The file has two parts:
 
