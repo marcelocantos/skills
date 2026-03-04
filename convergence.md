@@ -78,6 +78,44 @@ hitting a blocker), assess the gap:
    Update the parent's status to reflect child progress
    ("converging 3/5 sub-targets achieved").
 
+## Value and cost
+
+Weight = value / cost. Value and cost are estimated differently.
+
+### Value flows backward through the graph
+
+All value originates from **user-facing outcomes** — things a human
+experiences. Infrastructure, tooling, and architecture have no direct
+value; they derive value solely from the outcomes they enable.
+
+- **Leaf targets** (don't gate anything): human-scored on a Fibonacci
+  scale (1, 2, 3, 5, 8, 13, 20). The question: "how much does this
+  outcome matter to the user?"
+- **Interior targets** (gate other targets): value = sum of values of
+  all targets they directly gate. Computed automatically. No human
+  input needed.
+
+This means a foundational target that enables three value-8 outcomes
+has value 24 — automatically. Adding a new dependency increases the
+enabler's value without re-scoring. Removing a dependency decreases it.
+
+"CI is green" is not a user-facing outcome. "A smooth 60 FPS working
+game" is. CI derives its value from the outcomes it gates.
+
+### Cost is agent-estimated
+
+The agent estimates cost by reading the codebase: files to change,
+complexity, comparison to completed targets with recorded actuals.
+Cost uses the same Fibonacci scale but measures effort.
+
+When a target is retired, actual cost is recorded alongside the
+estimate. This calibrates future estimates.
+
+### Weight
+
+weight = value / cost (integer, minimum 1). The ranking is WSJF
+(Weighted Shortest Job First): highest weight = highest-leverage work.
+
 ## Relationship to planning
 
 Plans are hypotheses about how to close a gap. They serve targets.

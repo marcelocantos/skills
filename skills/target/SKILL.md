@@ -28,9 +28,12 @@ Parse the output:
 If a targets file was found, check that it conforms to the current spec
 (standard format below). Common drift:
 
-- `Priority:` instead of `Weight:` — convert to weight. Estimate
-  value and cost, compute the ratio, show reasoning.
+- `Priority:` instead of `Weight:` — convert to weight using the
+  value and cost model. For leaf targets, ask the user for value.
+  For interior targets, derive value from gated targets. Estimate
+  cost from the codebase.
 - Missing `(value V / cost C)` annotation on weight — add it.
+- Missing `Estimated-cost:` field — add it.
 - Missing 🎯T*N* prefix on headings — add it (assign next unused number).
 - Missing `<!-- last-evaluated: ... -->` comment — add it.
 - Missing `## Achieved` section — add it.
@@ -73,20 +76,15 @@ The text describes the desired state. From the description:
 
 1. **Infer acceptance criteria** — how would you verify this state is
    achieved? Write concrete, testable criteria.
-2. **Infer weight** — estimate value (how much does achieving this
-   state matter?) and cost (how much effort to get there?), then
-   compute weight = value / cost, rounded to an integer. Glance at
-   existing weights and position the new one accordingly. Higher =
-   more important. Collisions are fine — they mean the ordering
-   between those targets doesn't matter. Show the reasoning:
-   `**Weight**: 4 (value 12 / cost 3)`.
+2. **Estimate weight** — see [Value and cost model](#value-and-cost-model)
+   below. Show the reasoning.
 3. **Set status** to `identified`.
 4. **Set Discovered** to today's date.
 5. **Draft the target entry** in the standard format (see below) and
    show it to the user for confirmation/refinement before writing.
 
 If the user provides additional context (like `parent:`, `origin:`,
-`priority:`), honour those.
+`gates:`), honour those.
 
 After confirmation, append to the `## Active` section of the targets
 file. If the file doesn't exist, create it with the standard structure.
@@ -111,6 +109,10 @@ Find the target by name. Move it from `## Active` to `## Achieved`.
 Add an `Achieved: YYYY-MM-DD` line. If it has sub-targets, warn if
 any are not yet achieved.
 
+If the target has an `Estimated-cost:` field, ask the user how the
+estimate compared to reality and record `Actual-cost:` alongside.
+This calibrates future cost estimates.
+
 ## Target numbering
 
 Every target gets a stable number prefixed with 🎯:
@@ -127,14 +129,109 @@ Always use the 🎯T*N* prefix when referring to targets: in headings,
 in status reports, in conversation with the user, and in cross-references
 (e.g., `Parent: 🎯T1`).
 
+## Value and cost model
+
+Weight = value / cost. But value and cost are estimated differently.
+
+### Value
+
+All value originates from **user-facing outcomes** — things a human
+experiences: "smooth 60 FPS gameplay," "library consumers can upgrade
+without breaking," "CLI responds in under 100ms." Infrastructure,
+tooling, and architecture have no direct value — they derive value
+solely from the outcomes they enable.
+
+**Leaf targets** (targets that don't gate any other target) are the
+value sources. The user scores these on a modified Fibonacci scale:
+
+| Score | Meaning |
+|-------|---------|
+| 1     | Nice-to-have, marginal improvement |
+| 2-3   | Noticeable quality-of-life improvement |
+| 5     | Meaningful capability or quality gain |
+| 8     | Significant feature, users would miss it |
+| 13    | Major capability, core to the product |
+| 20    | Project-defining, strategic |
+
+**Interior targets** (targets that gate other targets via `Gates:`
+or `Parent:` relationships) derive value automatically:
+
+> value = sum of values of all targets this target directly gates
+
+The agent computes this by walking the dependency graph. No human
+input needed for interior targets. If an interior target also has
+direct user-facing value (rare), split the user-facing part into its
+own leaf target.
+
+### Cost
+
+The agent estimates cost by analysing the codebase:
+
+- Count files and functions that need to change.
+- Assess complexity: new module vs. mechanical edit, cross-cutting
+  vs. localised.
+- Compare to completed targets with recorded actuals.
+
+Express cost on the same Fibonacci scale, where:
+
+| Score | Meaning |
+|-------|---------|
+| 1     | A few minutes, trivial change |
+| 2-3   | A focused session, straightforward |
+| 5     | Half a day, some investigation needed |
+| 8     | A full day, multiple files/subsystems |
+| 13    | Multi-day, cross-cutting changes |
+| 20    | A week+, should probably decompose |
+
+When presenting the estimate, cite the reasoning: "I estimate cost 5
+— similar to 🎯T3 (actual cost 5), touches 4 files but requires a
+new abstraction." The user can override.
+
+### Calibration
+
+When retiring a target (`/target retire`), record `Actual-cost:` next
+to the original `Estimated-cost:`. Over time, this builds a
+calibration history that improves future estimates. The agent should
+reference completed targets with actuals when estimating new ones.
+
+### Weight computation
+
+```
+weight = value / cost    (rounded to nearest integer, minimum 1)
+```
+
+- **Leaf targets**: weight = (human-scored value) / (agent-estimated cost)
+- **Interior targets**: weight = (sum of gated target values) / (agent-estimated cost)
+- **Weight < 1**: cost exceeds value — flag for retirement or reframing.
+- **Collisions are fine** — equal weight means ordering doesn't matter.
+
+Show the breakdown: `**Weight**: 3 (value 8 / cost 3)`.
+
+### The `Gates:` field
+
+Targets can declare gating relationships independently of the
+parent/child hierarchy:
+
+```markdown
+- **Gates**: 🎯T4, 🎯T7
+```
+
+This means achieving this target is a prerequisite for 🎯T4 and 🎯T7.
+The value of this target includes the values of 🎯T4 and 🎯T7 (and
+transitively, anything they gate). `Parent:` implies a gates
+relationship (parent gates children), but `Gates:` allows
+cross-cutting dependencies outside the parent tree.
+
 ## Standard target format
 
 ```markdown
 ### 🎯T<N> <Desired state as short assertion>
 - **Weight**: <integer> (value <v> / cost <c>)
+- **Estimated-cost**: <fibonacci score>
 - **Acceptance**: <How to verify convergence — concrete, testable>
 - **Context**: <Why it matters, how discovered, what prompted it>
 - **Parent**: 🎯T<N> (optional)
+- **Gates**: 🎯T<N>, 🎯T<M> (optional — targets this one enables)
 - **Origin**: <manual / forked-from: 🎯T<N>> (optional)
 - **Status**: identified / converging / achieved
 - **Discovered**: YYYY-MM-DD

@@ -185,13 +185,22 @@ For targets with implied delivery gaps, append:
 ### Recommendation
 
 Recommend which target to work on next. The heuristic: **highest
-weight with the most actionable gap**. Weight already encodes value/cost,
-so the ranking is effectively WSJF (Weighted Shortest Job First). Among
-equal weights, prefer the target with the smaller gap — closing it is
-cheaper. A target that gates others gets effective weight promotion:
-if target A blocks target B, A's effective weight is at least B's.
-Weight < 1 means cost exceeds value — flag it for retirement or
-reframing, don't recommend working on it.
+weight with the most actionable gap**.
+
+Weight = value / cost (see `/target` value and cost model). Value
+propagates through the dependency graph: leaf targets (user-facing
+outcomes) carry human-scored value; interior targets (infrastructure,
+enablers) derive value as the sum of values of targets they gate.
+This means a foundational target that enables three high-value
+outcomes automatically outweighs a standalone medium-value target —
+no manual promotion needed.
+
+Cost is agent-estimated on a Fibonacci scale by analysing the
+codebase and comparing to completed targets with recorded actuals.
+
+Among equal weights, prefer the target with the smaller gap — closing
+it is cheaper. Weight < 1 means cost exceeds value — flag it for
+retirement or reframing, don't recommend working on it.
 
 ```
 ## Recommendation
