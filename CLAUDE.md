@@ -171,9 +171,9 @@ Common gotchas:
   appropriate; don't run a full `/cv` for every commit.
 - **After achieving a target**: Run `/cv` to pick up the next piece of
   work. If the context window is substantially consumed (e.g., context
-  compression has already occurred), recommend a fresh session instead
-  of running `/cv` inline — the evaluation plus auto-execute would
-  compound context pressure.
+  compression has already occurred), run `/cv scan` and present the
+  recommendation, but suggest continuing in a fresh session rather
+  than auto-executing.
 - **Workflow**: When starting new work (user request, session start, or
   picking up where you left off), check `docs/targets.md` first. If the
   work maps to an existing target, evaluate convergence before planning.
