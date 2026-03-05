@@ -119,9 +119,13 @@ This is a direct consequence of the core idea: the implied root is
 have no direct value; they derive value solely from the outcomes they
 enable.
 
-- **Leaf targets** (don't gate anything): human-scored on a Fibonacci
-  scale (1, 2, 3, 5, 8, 13, 20). The question: "how much does this
-  outcome matter to the user?"
+- **Leaf targets** (don't gate anything): scored on a Fibonacci scale
+  (1, 2, 3, 5, 8, 13, 20). The question: "how much does this outcome
+  matter to the user?" The human has final say, but the agent should
+  actively suggest values — drawing on its understanding of user
+  psychology, UX patterns, and what tends to matter to real people.
+  Challenge scores that seem off; a "nice-to-have" visual tweak and
+  a fix for data loss shouldn't both be 5.
 - **Interior targets** (gate other targets): value = sum of values of
   all targets they directly gate. Computed automatically. No human
   input needed.
