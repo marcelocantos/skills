@@ -360,3 +360,30 @@ action crosses a delivery boundary:
 `/cv go` inherits this: if the suggested action is "run `/push`",
 then `go` invokes `/push`, which checks the project's gates (including
 manual gates that require user approval).
+
+## Step 7 — Auto-execute
+
+After presenting the report, automatically execute the suggested action
+if **all** of the following hold:
+
+1. **Clear candidate** — a single unblocked target has the highest
+   effective weight (no tie with another unblocked target).
+2. **No standing invariant violations** — if tests are failing or CI is
+   red, stop and let the user decide.
+3. **Action does not cross a delivery boundary** — if the suggested
+   action is "run `/push`", "run `/release`", or "run
+   `/republish-skills`", present it but don't auto-execute. These
+   involve gates that benefit from conscious user initiation.
+4. **Not scan tier** — scan is intentionally lightweight; don't attach
+   execution to it.
+
+When auto-executing, say:
+
+```
+Clear next step — executing now.
+```
+
+Then proceed with the suggested action as if the user had typed `go`.
+
+If any condition fails, fall back to the current behaviour:
+present the suggestion and let the user decide.
