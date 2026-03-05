@@ -170,8 +170,8 @@ Common gotchas:
   completing a small piece of work, update the target's status field if
   appropriate; don't run a full `/cv` for every commit.
 - **After achieving a target**: Run `/cv` to pick up the next piece of
-  work. If the context window is substantially consumed (e.g., context
-  compression has already occurred), run `/cv scan` and present the
+  work. If the remaining context window is too small for a full
+  evaluation and follow-on work, run `/cv scan` and present the
   recommendation, but suggest continuing in a fresh session rather
   than auto-executing.
 - **Workflow**: When starting new work (user request, session start, or
