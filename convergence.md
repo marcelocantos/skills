@@ -6,11 +6,21 @@ The key principles are in `~/.claude/CLAUDE.md` under
 
 ## Core idea
 
+Nothing matters unless it reaches the customer. Every target tree has
+an implied root: **happy customer**. The visible targets in a project
+are subtrees of that root — a target that can't trace its ancestry
+back to user impact is orphaned and shouldn't exist.
+
 A **target** is a desired state — an assertion about the project that
 should become true. Work converges toward targets by closing the gap
 between current state and desired state. The convergence model replaces
 task-list thinking ("do X, then Y, then Z") with state-gap thinking
 ("the project should satisfy P; what's the shortest path from here?").
+
+This means delivery is not a final step bolted onto completed code —
+it's intrinsic to the target. "Merged to master" is a waypoint, not a
+destination. The destination is the user experiencing the change.
+Targets are not achieved until their impact is delivered.
 
 ## Decomposition
 
@@ -101,11 +111,13 @@ the user rather than continuing to push.
 
 Weight = value / cost. Value and cost are estimated differently.
 
-### Value flows backward through the graph
+### Value flows backward from the customer
 
-All value originates from **user-facing outcomes** — things a human
-experiences. Infrastructure, tooling, and architecture have no direct
-value; they derive value solely from the outcomes they enable.
+This is a direct consequence of the core idea: the implied root is
+"happy customer," so all value originates from **user-facing outcomes**
+— things a human experiences. Infrastructure, tooling, and architecture
+have no direct value; they derive value solely from the outcomes they
+enable.
 
 - **Leaf targets** (don't gate anything): human-scored on a Fibonacci
   scale (1, 2, 3, 5, 8, 13, 20). The question: "how much does this
