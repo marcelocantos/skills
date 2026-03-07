@@ -20,6 +20,7 @@ Also includes my global [`CLAUDE.md`](CLAUDE.md) directives and the [`convergenc
 - **[`/target`](skills/target/SKILL.md)** — Manage convergence targets — desired states for the project.
 - **[`/todo`](skills/todo/SKILL.md)** — Summarise open TODOs from local todo file and GitHub issues.
 - **[`/waw`](skills/waw/SKILL.md)** — "Where Are We?" — Context restoration after being AFK. Summarises session state, surfaces important details, and proposes continuation options.
+- **[`/wrap`](skills/wrap/SKILL.md)** — Pre-clear housekeeping — update targets, capture learnings, prepare for next /cv cycle.
 
 ## License
 
