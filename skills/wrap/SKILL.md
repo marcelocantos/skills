@@ -76,26 +76,61 @@ Check whether the session produced insights that don't belong in
 
 If so, write or update topic files in the auto-memory directory
 (not `stash-context.md` — that's `/stash`'s domain). Keep entries
-concise and link them from `MEMORY.md` if one exists.
+concise.
 
-If nothing warrants saving, skip this step.
+### 5. Update MEMORY.md
 
-### 5. Report
+Write a `## Last session` section at the **top** of `MEMORY.md` in
+the project's auto-memory directory (create the file if it doesn't
+exist). This section is automatically loaded into every new
+conversation, so it survives `/clear` without any explicit action.
+
+Replace any existing `## Last session` section — there should only
+ever be one. Keep it concise (aim for under 20 lines) to avoid
+bloating the always-loaded context. Include:
+
+- **What happened** — 1-2 sentence summary of the session.
+- **Targets affected** — which targets changed and how (reference
+  the target updates from Step 3).
+- **In-flight work** — anything started but not finished, with
+  enough context to resume.
+- **Key context** — blockers, gotchas, or decisions that the next
+  session needs to know immediately (not buried in a topic file).
+
+```markdown
+## Last session
+**Date**: YYYY-MM-DD
+
+Summary of what happened.
+
+**Targets**: 🎯T1 achieved, 🎯T3 converging (details).
+
+**In-flight**: Description of unfinished work if any.
+
+**Context**: Key things the next session needs to know.
+```
+
+If Step 4 created topic files, reference them here:
+`See also: memory/debugging.md`
+
+### 6. Report
 
 Output:
 
 ```
 Ready to clear.
 - N target(s) updated, M new, K achieved, J retired
+- MEMORY.md updated (will persist after /clear)
 - [Context saved to memory/topic.md] (if applicable)
 ```
 
 ## Notes
 
-- `/wrap` does **not** stash conversation context — use `/stash`
-  before `/clear` if you also need that. The two are complementary:
-  `/wrap` maintains convergence state, `/stash` preserves session
-  context.
+- `/wrap` writes a `## Last session` section to `MEMORY.md`, which
+  the system auto-loads into every conversation. This gives the next
+  session immediate awareness of what just happened. `/stash` is
+  still available for deeper context preservation if needed, but
+  `/wrap` covers the common case.
 - `/wrap` does **not** run `/cv` — it prepares state so the next
   `/cv` is accurate. Don't evaluate gaps here; just record what
   happened.

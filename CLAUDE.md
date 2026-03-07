@@ -174,6 +174,10 @@ Common gotchas:
   evaluation and follow-on work, run `/cv scan` and present the
   recommendation, but suggest continuing in a fresh session rather
   than auto-executing.
+- **On context compression**: When the system compacts the conversation,
+  immediately run `/wrap` to update targets and capture learnings
+  before state is lost. After `/wrap` completes, recommend `/clear`
+  to start a fresh session.
 - **Workflow**: When starting new work (user request, session start, or
   picking up where you left off), check `docs/targets.md` first. If the
   work maps to an existing target, evaluate convergence before planning.
