@@ -51,7 +51,9 @@ Investigate every active target against the codebase. Run greps, check
 CI, read code. Use this at milestone boundaries or when targets have
 been accumulating without evaluation.
 
-## Step 0 — Load prior report
+## Step 0 — Load prior context
+
+### 0a. Prior report
 
 Check for `docs/convergence-report.md` (or the path used by the
 project). If it exists, read it. Parse:
@@ -62,6 +64,25 @@ project). If it exists, read it. Parse:
 
 This is the **prior state**. It informs which targets can be carried
 forward and which need re-evaluation.
+
+### 0b. Saved context
+
+The `saved-context` section from gather output (Step 1) lists files
+in the project's auto-memory directory with their first few lines.
+Check it for target-relevant context:
+
+- **`stash-context.md`** — left by `/stash` before a `/clear`. Contains
+  a session snapshot with progress, decisions, and next steps. If the
+  headings suggest target-relevant content, read the full file. Don't
+  remove it — `/pop` owns its lifecycle.
+- **Other `*.md` files** — topic-specific notes. Only read further if
+  headings overlap with active targets.
+- **`MEMORY.md`** — already loaded into conversation context by the
+  system. No explicit read needed, but be aware it may contain
+  target-relevant notes.
+
+This is best-effort — skim what gather provides, deep-read only if
+something looks relevant. If nothing overlaps, move on.
 
 ## Step 1 — Gather
 

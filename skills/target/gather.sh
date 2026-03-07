@@ -88,3 +88,23 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 else
     echo "(not a git repo)"
 fi
+
+# --- Saved context from auto-memory ---
+section "saved-context"
+# Resolve project memory dir: ~/.claude/projects/-<cwd-with-dashes>/memory/
+MEMORY_DIR="$HOME/.claude/projects/$(echo "$PWD" | sed 's|/|-|g')/memory"
+if [ -d "$MEMORY_DIR" ]; then
+    for f in "$MEMORY_DIR"/*.md; do
+        [ -f "$f" ] || continue
+        fname=$(basename "$f")
+        echo "## $fname"
+        if [ "$fname" = "stash-context.md" ]; then
+            echo "(stashed session — check for target-relevant progress/blockers)"
+        fi
+        # Emit first 10 non-empty lines (headings + opening content)
+        grep -m 10 '.' "$f" 2>/dev/null
+        echo "..."
+    done
+else
+    echo "(no auto-memory directory)"
+fi
