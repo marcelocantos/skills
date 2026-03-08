@@ -10,6 +10,39 @@ session's `/cv` starts from accurate state.
 
 ## Steps
 
+### 0. Safety net (write-first)
+
+**This step must complete before anything else.** Context exhaustion
+is the most common `/wrap` failure mode — the agent runs out of
+context mid-analysis and nothing gets persisted.
+
+Immediately write `wrap-draft.md` to the project's auto-memory
+directory. No analysis, no user confirmation — just dump what you
+know right now from conversation context. Keep it under 40 lines.
+
+```markdown
+# Wrap draft (YYYY-MM-DD)
+
+## Work completed
+- <bullet list of what was done>
+
+## Target progress
+- 🎯TN: <status change or reframing>
+
+## In-flight work
+- <uncommitted changes, partially implemented features>
+
+## Key decisions
+- <architectural choices, trade-offs, user preferences>
+
+## Learnings
+- <debugging insights, gotchas, non-obvious discoveries>
+```
+
+This file is a **safety net** — if context runs out during later
+steps, the next session can recover from it. If `/wrap` completes
+normally, it gets cleaned up in Step 6.
+
 ### 1. Scan the session
 
 Review the conversation for:
@@ -113,7 +146,10 @@ Summary of what happened.
 If Step 4 created topic files, reference them here:
 `See also: memory/debugging.md`
 
-### 6. Report
+### 6. Clean up and report
+
+Delete `wrap-draft.md` from the auto-memory directory — the proper
+files (targets, MEMORY.md, topic files) now contain everything.
 
 Output:
 
@@ -122,6 +158,7 @@ Ready to clear.
 - N target(s) updated, M new, K achieved, J retired
 - MEMORY.md updated (will persist after /clear)
 - [Context saved to memory/topic.md] (if applicable)
+- Safety net cleaned up ✓
 ```
 
 ## Notes
@@ -136,3 +173,7 @@ Ready to clear.
   happened.
 - If there are no changes to make, say so briefly and confirm the
   user is ready to clear.
+- **Interrupted wrap recovery**: If `wrap-draft.md` exists in the
+  auto-memory directory at the start of a new session, it means a
+  previous `/wrap` was interrupted (likely by context exhaustion).
+  `/cv` and `/waw` check for this file and surface its contents.

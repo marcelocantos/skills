@@ -71,6 +71,13 @@ The `saved-context` section from gather output (Step 1) lists files
 in the project's auto-memory directory with their first few lines.
 Check it for target-relevant context:
 
+- **`wrap-draft.md`** — left by `/wrap` Step 0 if a previous wrap was
+  interrupted (usually by context exhaustion). **If this file exists,
+  read it immediately** — it contains the last session's work summary,
+  target progress, in-flight work, and key decisions that didn't make
+  it into targets or MEMORY.md. Surface it prominently at the top of
+  the report under a "Recovered from interrupted wrap" heading. After
+  incorporating its content into the evaluation, delete the file.
 - **`stash-context.md`** — left by `/stash` before a `/clear`. Contains
   a session snapshot with progress, decisions, and next steps. If the
   headings suggest target-relevant content, read the full file. Don't
