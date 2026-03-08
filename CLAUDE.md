@@ -295,6 +295,24 @@ Notable tools installed via Homebrew that may be useful during development:
 - `qemu` — hardware virtualisation / emulation.
 - `act` — run GitHub Actions locally. Test CI workflows without pushing.
 
+**iOS device tooling:**
+- `pymobiledevice3` — pure-Python CLI for interacting with iOS devices over USB or Wi-Fi. Installed in `~/.py`. Pippa's UDID: `E1A01EA6-8D77-556C-B18D-D470B2909E87`. Key commands:
+  - **Screenshots**: `pymobiledevice3 developer screenshot /path/to/out.png` (deprecated API, still works) or `pymobiledevice3 developer dvt screenshot /path/to/out.png` (DVT API). For iOS 17+, append `--tunnel ''` to use tunneld.
+  - **Syslog**: `pymobiledevice3 syslog` — live syslog stream with filtering.
+  - **Apps**: `pymobiledevice3 apps list` — list/query/install/uninstall apps.
+  - **Files**: `pymobiledevice3 afc` — browse/push/pull files in `/var/mobile/Media`.
+  - **Process control**: `pymobiledevice3 developer dvt proclist`, `kill`, `launch`, `pkill`.
+  - **Location simulation**: `pymobiledevice3 developer simulate-location` — set/clear/replay GPX routes.
+  - **Network capture**: `pymobiledevice3 pcap` — sniff device traffic.
+  - **Crash reports**: `pymobiledevice3 crash` — pull crash logs.
+  - **Diagnostics**: `pymobiledevice3 diagnostics` — reboot, shutdown, battery/IO info.
+  - **Backup**: `pymobiledevice3 backup2` — create/restore MobileBackup2 backups.
+  - **System monitor**: `pymobiledevice3 developer dvt sysmon` — top-like monitoring.
+  - **Energy**: `pymobiledevice3 developer dvt energy <PID>` — per-process energy consumption.
+  - **WebInspector**: `pymobiledevice3 springboard` — UI interaction, orientation.
+  - **Developer mode**: `pymobiledevice3 amfi` — enable/query developer mode; `pymobiledevice3 mounter mount` — mount DeveloperDiskImage (prerequisite for `developer` commands).
+  - For iOS 17+, create a tunnel first: `sudo pymobiledevice3 remote start-tunnel`, then pass `--tunnel ''` to commands.
+
 **Formal verification:**
 - TLA+ (`tla2tools.jar`) — model checker for concurrent/distributed protocols. Projects that use it typically have a `formal/` directory with a `tlc` wrapper script.
 

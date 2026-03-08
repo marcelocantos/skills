@@ -109,9 +109,9 @@ Once all gates pass:
    ```
    ~/.claude/skills/push/merge.sh <pr-number> <default-branch> <feature-branch>
    ```
-   This squash-merges the PR, fetches, hard-resets the local default branch to
-   match origin (avoiding rebase conflicts from squashed-vs-unsquashed history),
-   and deletes the local feature branch.
+   This squash-merges the PR, fetches, rebases the local default branch onto
+   origin (skipping already-squashed commits while preserving any additional
+   local commits like pending docs), and deletes the local feature branch.
 
 ### 9. Post-merge docs
 

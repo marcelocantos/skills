@@ -23,9 +23,11 @@ git fetch origin
 # 3. Switch to the default branch.
 git checkout "$default_branch"
 
-# 4. Hard-reset to match the squash-merged remote.
-#    This is safe: the local commits are already captured in the squash.
-git reset --hard "origin/$default_branch"
+# 4. Rebase onto the squash-merged remote.
+#    This skips local commits already captured in the squash, avoiding
+#    the need for `git reset --hard` while preserving any additional
+#    local commits (e.g., pending docs updates).
+git rebase "origin/$default_branch"
 
 # 5. Delete the local feature branch (if it still exists).
 if git rev-parse --verify "$feature_branch" >/dev/null 2>&1; then
