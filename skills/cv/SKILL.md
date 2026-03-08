@@ -384,21 +384,30 @@ manual gates that require user approval).
 
 ## Step 7 — Auto-execute
 
-After presenting the report, automatically execute the suggested action
-if **all** of the following hold:
+**Step 7 is not optional.** After presenting the report, check the
+conditions below. If they hold, execute immediately — do not ask the
+user. If any condition fails, state **which one** and **why** so the
+user can see exactly what blocked auto-execution.
 
-1. **Clear candidate** — a single unblocked target has the highest
-   effective weight (no tie with another unblocked target).
-2. **No standing invariant violations** — if tests are failing or CI is
-   red, stop and let the user decide.
-3. **Action does not cross a delivery boundary** — if the suggested
-   action is "run `/push`", "run `/release`", or "run
-   `/republish-skills`", present it but don't auto-execute. These
-   involve gates that benefit from conscious user initiation.
+### Conditions (all must hold)
+
+1. **Unblocked candidate(s) exist** — at least one unblocked target
+   with a suggested action.
+2. **No standing invariant violations** — tests pass and CI is green.
+   If CI state is unknown (not checked, no CI configured), treat it
+   as passing — do not block on uncertainty.
+3. **No action crosses a delivery boundary** — if a suggested action
+   is "run `/push`", "run `/release`", or "run `/republish-skills`",
+   that specific action is not auto-executed (present it and let the
+   user initiate). Other non-delivery actions in the same run are
+   still eligible.
 4. **Not scan tier** — scan is intentionally lightweight; don't attach
    execution to it.
 
-When auto-executing, say:
+### Single target
+
+When there is one top-ranked unblocked target (or a tie broken by
+smaller gap), say:
 
 ```
 Clear next step — executing now.
@@ -406,5 +415,35 @@ Clear next step — executing now.
 
 Then proceed with the suggested action as if the user had typed `go`.
 
-If any condition fails, fall back to the current behaviour:
-present the suggestion and let the user decide.
+### Parallel execution
+
+When there are **2+ unblocked targets** at the top of the ranking
+(same effective weight, or close enough that both are clearly worth
+doing), and they don't depend on each other:
+
+1. **Check context budget** — if context compression has already
+   occurred or the conversation is long, don't fan out. Pick the
+   top one and execute solo.
+2. **Fan out team agents** with `isolation: "worktree"` — one agent
+   per target, using the model guidance from the Teams directive in
+   CLAUDE.md (opus for complex work, sonnet for well-scoped coding).
+3. Say:
+
+```
+N independent targets ready — fanning out.
+- 🎯T1 "Name" → agent 1 (worktree)
+- 🎯T3 "Name" → agent 2 (worktree)
+```
+
+If any target's action crosses a delivery boundary, exclude it from
+the fan-out and present it separately.
+
+### When blocked
+
+If any condition fails, present the suggestion without executing and
+state the blocker:
+
+```
+Auto-execute blocked: [condition N — reason].
+Type **go** to execute manually.
+```

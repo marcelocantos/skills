@@ -110,6 +110,7 @@ Common gotchas:
 - All owned repos use squash-only merges. The PR title becomes the commit message on `master`, so keep it concise and descriptive.
 - Feature branches are deleted on merge (GitHub setting).
 - Wait for CI to pass before merging. Do not merge with failing checks.
+- **Do not push to a PR branch that has passing CI** without explicit user approval. A green CI run is valuable — pushing additional commits (even docs-only changes) resets it and forces another full cycle. If further changes are needed, create a new branch (off the green PR branch or off master) and open a separate PR.
 
 ## Teams
 
