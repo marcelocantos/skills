@@ -18,7 +18,7 @@ context mid-analysis and nothing gets persisted.
 
 Immediately write `wrap-draft.md` to the project's auto-memory
 directory. No analysis, no user confirmation — just dump what you
-know right now from conversation context. Keep it under 40 lines.
+know right now from conversation context. Keep it under 60 lines.
 
 ```markdown
 # Wrap draft (YYYY-MM-DD)
@@ -37,7 +37,30 @@ know right now from conversation context. Keep it under 40 lines.
 
 ## Learnings
 - <debugging insights, gotchas, non-obvious discoveries>
+
+## Raw references
+Files read or modified this session (with line ranges where relevant):
+- `src/Foo.cpp:120-180` — <what was found/changed>
+- `ge/tools/ios/main.mm` — <what was found/changed>
+
+URLs discussed:
+- <any URLs shared by user or fetched during session>
+
+Transcript excerpts (key quotes from user decisions):
+- "<verbatim user quote about a decision>" (re: <topic>)
 ```
+
+The **Raw references** section is critical — it gives a fresh session
+cheap pointers to reconstruct context without re-reading the full
+transcript. Include:
+
+- **File paths with line ranges** for files that were read, modified,
+  or central to discussion. Annotate briefly what was found/changed.
+- **URLs** shared by the user or fetched during the session (docs,
+  gists, external references, chat transcripts).
+- **Transcript excerpts** — short verbatim quotes of key user
+  decisions or preferences that shaped the work direction. These are
+  the hardest to reconstruct and the most valuable to preserve.
 
 This file is a **safety net** — if context runs out during later
 steps, the next session can recover from it. If `/wrap` completes
