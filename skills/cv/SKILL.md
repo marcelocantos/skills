@@ -77,7 +77,8 @@ Check it for target-relevant context:
   target progress, in-flight work, and key decisions that didn't make
   it into targets or MEMORY.md. Surface it prominently at the top of
   the report under a "Recovered from interrupted wrap" heading. After
-  incorporating its content into the evaluation, delete the file.
+  incorporating its content into the evaluation, clean it up by
+  executing `~/.claude/skills/wrap/cleanup.sh` directly.
 - **`stash-context.md`** — left by `/stash` before a `/clear`. Contains
   a session snapshot with progress, decisions, and next steps. If the
   headings suggest target-relevant content, read the full file. Don't
@@ -119,8 +120,33 @@ For **full tier**, ignore the prior report and re-evaluate everything.
 ## Step 1.5 — Rank targets
 
 Run `python3 ~/.claude/skills/cv/rank.py <targets-path>` (where
-`<targets-path>` is the path from Step 1's `targets-file` output). Parse
-its output. Use the ranking to:
+`<targets-path>` is the path from Step 1's `targets-file` output).
+
+### Handling errors
+
+If `rank.py` exits non-zero, its output starts with `# errors` and
+lists active targets with missing required fields (e.g., missing
+`Weight`). When this happens:
+
+1. **Fix the targets file** — apply the same conformance logic as
+   `/target` Step 1.5. For each target missing a Weight field:
+   - **Leaf targets** (no gated dependents): present the Fibonacci
+     value scale to the user and suggest a score based on the target's
+     description and acceptance criteria. Let the user confirm or
+     adjust. Estimate cost from the codebase.
+   - **Interior targets** (gates other targets): derive value from the
+     graph automatically.
+   - Write the `- **Weight**: N (value V / cost C)` field into the
+     target entry.
+2. **Re-run `rank.py`** after fixing. If it still errors, report the
+   remaining issues to the user and stop.
+
+This is not optional — `/cv` must not silently default missing fields
+or proceed with zero-weight rankings.
+
+### Using the ranking
+
+Parse the output. Use the ranking to:
 
 - Flag blocked targets in the gap report.
 - Use effective weight (not declared weight) when sorting and

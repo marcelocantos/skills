@@ -13,7 +13,20 @@ def parse_targets(path):
 
     targets = {}
     heading_re = re.compile(r'^#{3,4}\s+(🎯T[\d.]+)\s+(.*)', re.MULTILINE)
+    section_re = re.compile(r'^##\s+(Active|Achieved|Archive)\b', re.MULTILINE)
     tid_re = re.compile(r'🎯T[\d.]+')
+
+    # Build a map of position -> section name
+    sections = [(m.start(), m.group(1).lower()) for m in section_re.finditer(content)]
+
+    def section_at(pos):
+        """Return the section name for a given position in the file."""
+        current = None
+        for sec_pos, sec_name in sections:
+            if sec_pos > pos:
+                break
+            current = sec_name
+        return current
 
     matches = list(heading_re.finditer(content))
     for i, match in enumerate(matches):
@@ -23,13 +36,16 @@ def parse_targets(path):
 
         tid = match.group(1)
         name = match.group(2).strip()
+        sec = section_at(match.start())
 
         t = {
             'id': tid,
             'name': name,
+            'section': sec,
             'value': 0,
             'cost': 1,
-            'status': 'identified',
+            'has_weight': False,
+            'status': 'achieved' if sec in ('achieved', 'archive') else 'identified',
             'depends_on': [],
             'parent': None,
             'gates': [],
@@ -47,6 +63,7 @@ def parse_targets(path):
             if wm:
                 t['value'] = int(wm.group(1))
                 t['cost'] = int(wm.group(2))
+                t['has_weight'] = True
                 continue
 
             sm = re.match(r'- \*\*Status\*\*:\s*(\S+)', line)
@@ -124,6 +141,16 @@ def rank_targets(path):
     if not active:
         print("# rank\n\nAll targets achieved.")
         return
+
+    # Check for missing Weight fields on active targets
+    missing_weight = [t for t in active if not t['has_weight']]
+    if missing_weight:
+        print("# errors")
+        for t in missing_weight:
+            print(f"\n{t['id']} {t['name']}")
+            print("  missing: Weight field (expected: - **Weight**: N (value V / cost C))")
+        print()
+        sys.exit(1)
 
     # Compute blocked-by and effective values
     results = {}

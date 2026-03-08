@@ -171,8 +171,9 @@ If Step 4 created topic files, reference them here:
 
 ### 6. Clean up and report
 
-Delete `wrap-draft.md` from the auto-memory directory — the proper
-files (targets, MEMORY.md, topic files) now contain everything.
+Clean up `wrap-draft.md` by executing `~/.claude/skills/wrap/cleanup.sh`
+directly (it is already `chmod +x`). The proper files (targets,
+MEMORY.md, topic files) now contain everything.
 
 Output:
 
