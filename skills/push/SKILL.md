@@ -113,6 +113,28 @@ Once all gates pass:
    match origin (avoiding rebase conflicts from squashed-vs-unsquashed history),
    and deletes the local feature branch.
 
+### 9. Post-merge docs
+
+After merge completes and local master is synced:
+
+1. Check for uncommitted docs-only changes on local master (files
+   matching `docs/**` or `*.md` in the repo root). Use
+   `git status --short` and filter for these paths.
+2. If there are no such changes, skip this step.
+3. Commit them with a message like
+   "Update docs for <context>" (e.g., "Update targets for 🎯T2 achieved").
+4. Create a branch, push, and open a PR using `gh pr create --fill`.
+5. Watch CI with `gh pr checks <number> --watch`.
+6. If CI passes, merge immediately using the merge script — no
+   additional gate check needed (docs-only changes don't warrant
+   manual review gates).
+7. If CI fails, report the failure and leave the PR open for the
+   user to handle.
+
+This step is automatic — don't ask the user whether to proceed.
+The point is to flush pending docs updates without polluting the
+main feature PR or requiring a separate manual cycle.
+
 ## Notes
 
 - Never force-push unless the user explicitly requests it.
