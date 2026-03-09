@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Rank active convergence targets by effective weight with dependency analysis."""
+"""Rank active convergence targets using parent/child value propagation."""
 
 import re
 import sys
-from collections import defaultdict
+from collections import defaultdict, deque
 
 
 def parse_targets(path):
@@ -16,11 +16,9 @@ def parse_targets(path):
     section_re = re.compile(r'^##\s+(Active|Achieved|Archive)\b', re.MULTILINE)
     tid_re = re.compile(r'🎯T[\d.]+')
 
-    # Build a map of position -> section name
     sections = [(m.start(), m.group(1).lower()) for m in section_re.finditer(content)]
 
     def section_at(pos):
-        """Return the section name for a given position in the file."""
         current = None
         for sec_pos, sec_name in sections:
             if sec_pos > pos:
@@ -42,13 +40,14 @@ def parse_targets(path):
             'id': tid,
             'name': name,
             'section': sec,
-            'value': 0,
-            'cost': 1,
-            'has_weight': False,
+            'value': None,
+            'cost': None,
+            'weight': None,
+            'parent': None,
+            'gates': [],        # target IDs this target gates (enables)
+            'tags': [],
             'status': 'achieved' if sec in ('achieved', 'archive') else 'identified',
             'depends_on': [],
-            'parent': None,
-            'gates': [],
         }
 
         for line in body.split('\n'):
@@ -56,34 +55,42 @@ def parse_targets(path):
             if not line.startswith('- **'):
                 continue
 
-            wm = re.match(
-                r'- \*\*Weight\*\*:\s*\d+\s*\(value\s+(\d+)\s*/\s*cost\s+(\d+)\)',
-                line,
-            )
+            # Weight: N (value V / cost C)
+            wm = re.match(r'- \*\*Weight\*\*:\s*([\d.]+)\s*\(value\s+([\d.]+)\s*/\s*cost\s+([\d.]+)\)', line)
             if wm:
-                t['value'] = int(wm.group(1))
-                t['cost'] = int(wm.group(2))
-                t['has_weight'] = True
+                t['weight'] = float(wm.group(1))
+                t['value'] = float(wm.group(2))
+                t['cost'] = float(wm.group(3))
                 continue
 
-            sm = re.match(r'- \*\*Status\*\*:\s*(\S+)', line)
-            if sm:
-                t['status'] = sm.group(1)
-                continue
-
-            dm = re.match(r'- \*\*Depends on\*\*:\s*(.*)', line)
-            if dm:
-                t['depends_on'] = tid_re.findall(dm.group(1))
-                continue
-
+            # Parent: 🎯TN
             pm = re.match(r'- \*\*Parent\*\*:\s*(🎯T[\d.]+)', line)
             if pm:
                 t['parent'] = pm.group(1)
                 continue
 
+            # Gates: 🎯TN, 🎯TM
             gm = re.match(r'- \*\*Gates\*\*:\s*(.*)', line)
             if gm:
                 t['gates'] = tid_re.findall(gm.group(1))
+                continue
+
+            # Tags
+            tm = re.match(r'- \*\*Tags\*\*:\s*(.*)', line)
+            if tm:
+                t['tags'] = [s.strip() for s in tm.group(1).split(',') if s.strip()]
+                continue
+
+            # Status
+            sm = re.match(r'- \*\*Status\*\*:\s*(.+)', line)
+            if sm:
+                t['status'] = sm.group(1)
+                continue
+
+            # Depends on
+            dm = re.match(r'- \*\*Depends on\*\*:\s*(.*)', line)
+            if dm:
+                t['depends_on'] = tid_re.findall(dm.group(1))
                 continue
 
         targets[tid] = t
@@ -91,126 +98,108 @@ def parse_targets(path):
     return targets
 
 
-def rank_targets(path):
+def build_children(targets):
+    """Build parent -> [children] map from Parent fields."""
+    children = defaultdict(list)
+    for tid, t in targets.items():
+        if t['parent'] and t['parent'] in targets:
+            children[t['parent']].append(tid)
+    return children
+
+
+def rank_targets(path, mermaid_only=False):
     targets = parse_targets(path)
     if not targets:
         print("# rank\n\nNo targets found.")
         return
 
-    # Build dependency graph: deps[X] = set of target IDs that X depends on
-    deps = defaultdict(set)
-    for t in targets.values():
-        tid = t['id']
-        for dep in t['depends_on']:
-            if dep in targets:
-                deps[tid].add(dep)
-        if t['parent'] and t['parent'] in targets:
-            deps[t['parent']].add(tid)
-        for gated in t['gates']:
-            if gated in targets:
-                deps[gated].add(tid)
+    # Filter to active targets
+    active_ids = {tid for tid, t in targets.items()
+                  if t['section'] not in ('achieved', 'archive')}
+    active_targets = {tid: t for tid, t in targets.items() if tid in active_ids}
 
-    # Build reverse deps: reverse_deps[X] = targets that depend on X
-    reverse_deps = defaultdict(set)
-    for tid, dep_set in deps.items():
-        for dep in dep_set:
-            reverse_deps[dep].add(tid)
-
-    # Transitive dependents (everything that depends on tid, directly or not)
-    def get_dependents(tid):
-        visited = set()
-        stack = list(reverse_deps.get(tid, set()))
-        while stack:
-            d = stack.pop()
-            if d not in visited:
-                visited.add(d)
-                stack.extend(reverse_deps.get(d, set()) - visited)
-        return visited
-
-    # Filter: exclude achieved targets and sub-targets of achieved parents
-    active = [
-        t for t in targets.values()
-        if t['status'] != 'achieved'
-        and not (
-            t['parent']
-            and t['parent'] in targets
-            and targets[t['parent']]['status'] == 'achieved'
-        )
-    ]
-
-    if not active:
+    if not active_targets:
         print("# rank\n\nAll targets achieved.")
         return
 
-    # Check for missing Weight fields on active targets
-    missing_weight = [t for t in active if not t['has_weight']]
-    if missing_weight:
-        print("# errors")
-        for t in missing_weight:
-            print(f"\n{t['id']} {t['name']}")
-            print("  missing: Weight field (expected: - **Weight**: N (value V / cost C))")
-        print()
+    children = build_children(targets)
+
+    # Validate: active targets must have Weight (value/cost)
+    errors = []
+    for tid, t in active_targets.items():
+        if t['weight'] is None:
+            errors.append(f"  {tid} {t['name']}: missing Weight field")
+        elif t['value'] is None or t['cost'] is None:
+            errors.append(f"  {tid} {t['name']}: Weight missing (value V / cost C) breakdown")
+    if errors:
+        print("# errors\n")
+        print('\n'.join(errors))
         sys.exit(1)
 
-    # Compute blocked-by and effective values
-    results = {}
-    for t in active:
-        tid = t['id']
-
-        # Direct deps that are not achieved
+    # Determine blocked targets (via Depends on)
+    blocked_by = {}
+    for tid in active_ids:
+        t = targets[tid]
         blockers = sorted(
-            d for d in deps.get(tid, set())
+            d for d in t['depends_on']
             if d in targets and targets[d]['status'] != 'achieved'
         )
+        blocked_by[tid] = blockers
 
-        # gated_value = sum of declared values of all transitive dependents
-        dependents = get_dependents(tid)
-        gated_value = sum(targets[d]['value'] for d in dependents if d in targets)
-        eff_value = t['value'] + gated_value
-        eff_weight = eff_value / t['cost'] if t['cost'] > 0 else 0
-
-        # Direct active dependents (for "enables" line)
-        enables = sorted(
-            d for d in reverse_deps.get(tid, set())
-            if d in targets and targets[d]['status'] != 'achieved'
-        )
-
+    # Build results using declared values
+    results = {}
+    for tid in active_ids:
+        t = targets[tid]
+        val = float(t['value'])
+        cost = float(t['cost'])
+        weight = val / cost if cost > 0 else 0.0
         results[tid] = {
-            'blockers': blockers,
-            'eff_value': eff_value,
-            'eff_weight': eff_weight,
-            'enables': enables,
+            'value': val,
+            'cost': cost,
+            'weight': weight,
+            'blockers': blocked_by[tid],
+            'children': [c for c in children.get(tid, []) if c in active_ids],
         }
 
-    # Split and sort by effective weight descending
-    unblocked = sorted(
-        [t for t in active if not results[t['id']]['blockers']],
-        key=lambda t: results[t['id']]['eff_weight'],
-        reverse=True,
-    )
-    blocked = sorted(
-        [t for t in active if results[t['id']]['blockers']],
-        key=lambda t: results[t['id']]['eff_weight'],
+    # Mermaid-only mode
+    if mermaid_only:
+        print(generate_mermaid(targets, active_ids, results, children))
+        return
+
+    # Split: top-level (no parent or parent not active) vs children
+    top_level = sorted(
+        [t for t in active_targets.values()
+         if not t['parent'] or t['parent'] not in active_ids],
+        key=lambda t: results[t['id']]['weight'],
         reverse=True,
     )
 
-    def fmt_weight(value, cost):
-        w = value / cost if cost > 0 else 0
-        return str(int(w)) if w == int(w) else f"{w:.1f}"
+    def fmt_num(n):
+        return str(int(n)) if n == int(n) else f"{n:.1f}"
 
-    def print_target(t):
+    def print_target(t, indent=0):
         tid = t['id']
         r = results[tid]
-        print(f"\n{tid} {t['name']}")
-        print(f"  status: {t['status']}")
-        print(f"  weight: {fmt_weight(t['value'], t['cost'])} "
-              f"(value {t['value']} / cost {t['cost']})")
-        print(f"  effective: {r['eff_weight']:.1f} "
-              f"(value {r['eff_value']} / cost {t['cost']})")
-        if r['enables']:
-            print(f"  enables: {', '.join(r['enables'])}")
+        prefix = "  " * indent
+        print(f"\n{prefix}{tid} {t['name']}")
+        print(f"{prefix}  status: {t['status']}")
+        print(f"{prefix}  value: {fmt_num(r['value'])}  cost: {fmt_num(r['cost'])}  "
+              f"weight: {fmt_num(r['weight'])}")
+        if t['tags']:
+            print(f"{prefix}  tags: {', '.join(t['tags'])}")
+        if t['gates']:
+            print(f"{prefix}  gates: {', '.join(t['gates'])}")
         if r['blockers']:
-            print(f"  blocked-by: {', '.join(r['blockers'])}")
+            print(f"{prefix}  blocked-by: {', '.join(r['blockers'])}")
+        # Print children
+        for child_tid in sorted(r['children'],
+                                key=lambda c: results[c]['weight'],
+                                reverse=True):
+            print_target(targets[child_tid], indent + 1)
+
+    # Separate blocked/unblocked at top level
+    unblocked = [t for t in top_level if not results[t['id']]['blockers']]
+    blocked = [t for t in top_level if results[t['id']]['blockers']]
 
     print("# rank")
 
@@ -228,9 +217,74 @@ def rank_targets(path):
     else:
         print("\n(none)")
 
+    # Append mermaid graph
+    print("\n## graph\n")
+    print("```mermaid")
+    print(generate_mermaid(targets, active_ids, results, children))
+    print("```")
+
+
+def condense_title(name):
+    """Shorten a target name for Mermaid graph display."""
+    short = name
+    for word in ['works', 'is ', 'are ', 'the ', 'The ']:
+        short = short.replace(word, '')
+    short = short.strip().rstrip('.')
+    if len(short) > 30:
+        short = short[:28] + '…'
+    return short
+
+
+def generate_mermaid(targets, active_ids, results, children_map):
+    """Generate Mermaid graph of active targets."""
+    lines = ['graph TD']
+
+    # Nodes
+    for tid in sorted(active_ids):
+        t = targets[tid]
+        title = condense_title(t['name'])
+        node_id = tid.replace('🎯', '').replace('.', '_')
+        lines.append(f'    {node_id}["{title}"]')
+
+    # Parent -> child edges
+    for parent_tid in sorted(active_ids):
+        parent_node = parent_tid.replace('🎯', '').replace('.', '_')
+        for child_tid in children_map.get(parent_tid, []):
+            if child_tid not in active_ids:
+                continue
+            child_node = child_tid.replace('🎯', '').replace('.', '_')
+            lines.append(f'    {parent_node} --> {child_node}')
+
+    # Gates edges (cross-cutting)
+    for tid in sorted(active_ids):
+        t = targets[tid]
+        node_id = tid.replace('🎯', '').replace('.', '_')
+        for gated_tid in t.get('gates', []):
+            if gated_tid not in active_ids:
+                continue
+            gated_node = gated_tid.replace('🎯', '').replace('.', '_')
+            lines.append(f'    {node_id} -.->|gates| {gated_node}')
+
+    # Depends-on edges
+    for tid in sorted(active_ids):
+        t = targets[tid]
+        node_id = tid.replace('🎯', '').replace('.', '_')
+        for dep_tid in t.get('depends_on', []):
+            if dep_tid not in active_ids:
+                continue
+            dep_node = dep_tid.replace('🎯', '').replace('.', '_')
+            lines.append(f'    {node_id} -.->|needs| {dep_node}')
+
+    return '\n'.join(lines)
+
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print(f"Usage: {sys.argv[0]} <targets.md>", file=sys.stderr)
+    args = [a for a in sys.argv[1:] if not a.startswith('-')]
+    flags = {a for a in sys.argv[1:] if a.startswith('-')}
+
+    if not args:
+        print(f"Usage: {sys.argv[0]} [--mermaid] <targets.md>", file=sys.stderr)
         sys.exit(1)
-    rank_targets(sys.argv[1])
+
+    mermaid_only = '--mermaid' in flags
+    rank_targets(args[0], mermaid_only=mermaid_only)

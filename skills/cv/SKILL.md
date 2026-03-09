@@ -78,7 +78,8 @@ Check it for target-relevant context:
   it into targets or MEMORY.md. Surface it prominently at the top of
   the report under a "Recovered from interrupted wrap" heading. After
   incorporating its content into the evaluation, clean it up by
-  executing `~/.claude/skills/wrap/cleanup.sh` directly.
+  executing `~/.claude/skills/wrap/cleanup.sh <auto-memory-directory>`
+  (use the directory containing `wrap-draft.md` from the `saved-context` listing).
 - **`stash-context.md`** — left by `/stash` before a `/clear`. Contains
   a session snapshot with progress, decisions, and next steps. If the
   headings suggest target-relevant content, read the full file. Don't

@@ -87,10 +87,11 @@ Review the conversation for:
 
 ### 2. Propose target updates
 
-Present a summary of proposed changes, grouped by type:
+Apply the changes directly — don't ask for confirmation. Present a
+summary of what was written, grouped by type:
 
 ```
-## Proposed target updates
+## Target updates applied
 
 **Status changes:**
 - 🎯T1 "Target name": identified → converging (acceptance criteria X met)
@@ -111,14 +112,11 @@ Present a summary of proposed changes, grouped by type:
 **No changes:** 🎯T7, 🎯T8
 ```
 
-Wait for user confirmation before writing. The user may adjust,
-add, or reject individual changes. Iterate until they confirm.
-
 ### 3. Write target updates
 
-Apply confirmed changes to `docs/targets.md` (or the project's
-configured targets path). Move achieved targets to the `## Achieved`
-section. Add new targets to `## Active`.
+Apply changes to `docs/targets.md` (or the project's configured
+targets path). Move achieved targets to the `## Achieved` section.
+Add new targets to `## Active`.
 
 ### 4. Save residual context
 
@@ -171,9 +169,10 @@ If Step 4 created topic files, reference them here:
 
 ### 6. Clean up and report
 
-Clean up `wrap-draft.md` by executing `~/.claude/skills/wrap/cleanup.sh`
-directly (it is already `chmod +x`). The proper files (targets,
-MEMORY.md, topic files) now contain everything.
+Clean up `wrap-draft.md` by executing
+`~/.claude/skills/wrap/cleanup.sh <auto-memory-directory>`
+(pass the directory you wrote `wrap-draft.md` into in Step 0). The proper files
+(targets, MEMORY.md, topic files) now contain everything.
 
 Output:
 

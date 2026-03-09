@@ -62,6 +62,16 @@ Common gotchas:
 - **Resource hygiene**: Preserve file attributes (permissions, ownership) when
   rewriting. Close/clean up resources on all paths, including errors.
 
+## Web Development
+
+See [`~/.claude/web-development.md`](~/.claude/web-development.md)
+for guidelines on smoke testing, deep links, sample data, and visual
+verification cadence in web-based projects.
+
+## Magic Numbers
+
+- Never use magic numbers or raw integer constants when an enum, named constant, or symbolic value is available. This applies across all languages — C++ enums, Python enums/constants, JS/TS const objects, Go iota, etc.
+
 ## Refactoring
 
 - Consider refactoring semi-regularly to keep the codebase clean, but don't overdo it. Small, targeted improvements alongside feature work are preferable to large sweeping rewrites.

@@ -96,6 +96,11 @@ If the user provides additional context (like `parent:`, `origin:`,
 After confirmation, append to the `## Active` section of the targets
 file. If the file doesn't exist, create it with the standard structure.
 
+### Output
+
+Always finish by printing the absolute path to the targets file so
+the user can click to open it. Example: `Targets: /Users/foo/project/docs/targets.md`
+
 ### `/target check <name>` — Evaluate a specific target
 
 Find the target by name (fuzzy match on `###` headings). Then:
@@ -208,11 +213,15 @@ weight = value / cost    (rounded to nearest integer, minimum 1)
 ```
 
 - **Leaf targets**: weight = (human-scored value) / (agent-estimated cost)
-- **Interior targets**: weight = (sum of gated target values) / (agent-estimated cost)
+- **Interior targets**: value = sum of child target values; cost = sum of
+  child target costs. Compute the weight from these.
 - **Weight < 1**: cost exceeds value — flag for retirement or reframing.
 - **Collisions are fine** — equal weight means ordering doesn't matter.
 
-Show the breakdown: `**Weight**: 3 (value 8 / cost 3)`.
+**Always write the computed integer.** Never write "derived", "TBD", or
+any placeholder — the Weight field must always contain a number with
+the `(value V / cost C)` breakdown. For interior targets, compute from
+the children and write the result.
 
 ### The `Gates:` field
 

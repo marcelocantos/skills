@@ -38,7 +38,7 @@ fi
 
 # --- Auto-memory ---
 section "memory"
-MEMORY_DIR="$HOME/.claude/projects/-$(pwd | tr '/.' '--')/memory"
+MEMORY_DIR="$HOME/.claude/projects/$(pwd | tr '/.' '-')/memory"
 if [ -d "$MEMORY_DIR" ]; then
     for f in "$MEMORY_DIR"/*.md; do
         [ -f "$f" ] || continue

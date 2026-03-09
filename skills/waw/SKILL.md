@@ -18,7 +18,8 @@ Before producing the briefing, check the auto-memory directory for
 into the briefing — especially the "In-flight work" and "Key decisions"
 sections, which represent lost context from the previous session.
 Mention the interrupted wrap prominently so the user knows context
-was recovered. After incorporating, delete the file.
+was recovered. After incorporating, clean it up by executing
+`~/.claude/skills/wrap/cleanup.sh <auto-memory-directory>`.
 
 Then produce a concise context-restoration briefing from that output, covering
 the following sections. Skip any section that has nothing to report.
