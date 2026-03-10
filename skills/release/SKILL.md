@@ -76,7 +76,9 @@ This script gathers all Phase 1 data in one invocation (tags, releases, build sy
 
    This check applies to all dependency types: vendored submodules, copied header-only libraries, embedded source files, and generated/bundled code.
 
-11. **Working tree**: Verify the working tree is clean and up to date with the remote. If there are uncommitted changes or unpushed commits, flag them before proceeding. If the changes are unrelated WIP, the standard resolution is: `git stash push -u -m "WIP: ..."`, proceed with the release, then `git stash pop` at the end. Always restore the stash after the release completes.
+11. **Language bindings / wrappers**: Check for language-specific bindings or wrappers in the repo (e.g., `go/`, `python/`, `wasm/`, or similar directories). If found, verify their test suites cover the features being released. Flag any new features that lack binding-level tests. Bindings that lag behind the core implementation should be updated before tagging.
+
+12. **Working tree**: Verify the working tree is clean and up to date with the remote. If there are uncommitted changes or unpushed commits, flag them before proceeding. If the changes are unrelated WIP, the standard resolution is: `git stash push -u -m "WIP: ..."`, proceed with the release, then `git stash pop` at the end. Always restore the stash after the release completes.
 
 Present a summary of findings and confirm before proceeding.
 

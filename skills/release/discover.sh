@@ -337,13 +337,28 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 16. Working tree
+# 16. Language bindings / wrappers
+# ---------------------------------------------------------------------------
+echo "# bindings"
+found_bindings=false
+for d in go python py wasm ffi bindings csharp java ruby swift kotlin; do
+    if [[ -d "$d" ]]; then
+        echo "$d/"
+        found_bindings=true
+    fi
+done
+if [[ "$found_bindings" == false ]]; then
+    echo "(none)"
+fi
+
+# ---------------------------------------------------------------------------
+# 17. Working tree
 # ---------------------------------------------------------------------------
 echo "# working_tree"
 git status --short --branch 2>/dev/null || echo "(not a git repo)"
 
 # ---------------------------------------------------------------------------
-# 17. Unpushed commits
+# 18. Unpushed commits
 # ---------------------------------------------------------------------------
 echo "# unpushed"
 tracking=$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null) || true
