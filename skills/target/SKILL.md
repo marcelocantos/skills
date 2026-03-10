@@ -297,8 +297,17 @@ reference.
   Criteria requiring architectural review are valid but are only
   deeply evaluated in `/cv full` mode or when the target is
   the active recommendation.
-- When a TODO item is better expressed as a desired state, suggest
-  converting it to a target.
+- Three tracking systems, one flow: **TODOs** are the inbox (low-
+  friction capture), **targets** are the backlog (desired states the
+  agent converges toward), **GitHub issues** are the public interface
+  (collaborative, tied to CI/PRs). Items flow upward — TODOs get
+  triaged into targets or issues, and the TODO file drains toward
+  empty. When summarising or adding targets, check `docs/TODO.md`
+  and open GitHub issues for items that are better expressed as
+  desired states. Suggest promoting them and removing the original.
+  Targets and issues aren't 1:1: a target might spawn multiple
+  issues, and closing an issue might partially satisfy a target's
+  acceptance criteria.
 - When decomposing a target into sub-targets, prefer splits that
   create **independent** sub-targets over ones that create sequential
   dependencies. Independent sub-targets can be worked in parallel

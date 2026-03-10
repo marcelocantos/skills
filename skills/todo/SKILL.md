@@ -68,13 +68,33 @@ Present a combined view of all open work:
 - List open issues with number, title, and labels.
 - Group by label if labels are present; otherwise list flat.
 
-If any TODO item reads more like a desired state than a one-off task
-(e.g., "ensure all tests pass on CI", "no compiler warnings"), suggest
-converting it to a convergence target: "This looks like a desired state
-rather than a task — consider `/target <description>` to track it as a
-convergence target."
+**Triage pass** — three tracking systems, one flow:
 
-End with a combined count: "N local TODOs, M GitHub issues open."
+> **TODOs** = inbox (low-friction capture)
+> **Targets** = backlog (desired states the agent converges toward)
+> **GitHub issues** = interface (public, collaborative, tied to CI/PRs)
+
+Items flow upward: a thought lands in TODO, gets triaged into a target
+or issue (or discarded), and the TODO file drains toward empty.
+
+For each TODO item, assess where it belongs:
+- 🎯 **Promote to target** — items describing a desired state ("all
+  tests pass on CI", "dispatch supports structured results"). Suggest:
+  "Promote to target? `/target <…>`"
+- 🔗 **Promote to issue** — items that benefit from public visibility,
+  contributor discussion, or CI linkage (bug reports, feature requests,
+  user-facing changes). Suggest: "Open as issue? `gh issue create …`"
+- ✅ **Keep as TODO** — speculative ideas, trivial one-offs, notes to
+  self that don't warrant tracking overhead.
+- 🗑️ **Discard** — stale, already done, or superseded. Suggest removal.
+
+Also check GitHub issues for items that imply a desired state — these
+may warrant a corresponding target so `/cv` can track convergence.
+Issues and targets aren't 1:1: a target might spawn multiple issues,
+and closing an issue might partially satisfy a target's acceptance
+criteria.
+
+End with a combined count: "N local TODOs (K promote candidates), M GitHub issues open."
 
 ### `/todo <text>` — Add a new item
 

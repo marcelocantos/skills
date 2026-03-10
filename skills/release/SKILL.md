@@ -238,6 +238,7 @@ Draft release notes from git history.
            homebrew_tap: homebrew-tap
            github_token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
            formula_folder: Formula
+           version: ${{ github.event.release.tag_name }}
            install: 'bin.install "<project>" => "<project>"'
            target_darwin_arm64: true
            target_linux_amd64: true
@@ -261,6 +262,7 @@ Draft release notes from git history.
    - **`skip_checksum: true` is required** when `HOMEBREW_TAP_TOKEN` is scoped to the tap repo only. Without it, homebrew-releaser tries to upload `checksum.txt` to the source repo's release and gets a 403.
    - **The GitHub repo must have a description set.** homebrew-releaser crashes (`TypeError: 'NoneType' object is not subscriptable`) if the repo description is null. Set it with `gh repo edit --description "..."` before the first release.
    - **Formula description truncation.** homebrew-releaser truncates the repo description to fit Homebrew's field limit (~80 chars). Keep repo descriptions concise to avoid mid-word cutoffs.
+   - **Version detection from arch-specific URLs.** Without an explicit `version` input, homebrew-releaser auto-detects the version from download URLs. Platform-specific URLs like `foo-1.0.0-darwin-arm64.tar.gz` can confuse the parser — it may extract "64" from "arm64" instead of "1.0.0". Always set `version: ${{ github.event.release.tag_name }}` to override auto-detection.
 
 3. **Verify**: Show the workflow file to the user for review. Commit it to `master` and push before tagging.
 
