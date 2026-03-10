@@ -376,8 +376,8 @@ context.
 Spawn workers as background processes. Use `--model` to tag them for routing:
 
 ```bash
-cworkers worker --model opus --timeout 590s &
-cworkers worker --model sonnet --timeout 590s &
+cworkers worker --session <session-id> --model opus --timeout 590s &
+cworkers worker --session <session-id> --model sonnet --timeout 590s &
 ```
 
 The 590s timeout stays within Claude Code's 600s bash tool limit. Workers
@@ -432,7 +432,7 @@ cworkers unshadow --session <session-id>
 | Command | Key Flags |
 |---|---|
 | `serve` | `--wait <dur>` (dispatch wait timeout, default 30s) |
-| `worker` | `--timeout <dur>` (lifetime, default 590s), `--model <name>` |
+| `worker` | `--session <id>` (required), `--timeout <dur>` (lifetime, default 590s), `--model <name>` |
 | `dispatch` | `--model <name>`, `--session <id>` |
 | `shadow` | `--session <id>` (required), `--transcript <path>` (required), `--context <N>` (default 50) |
 | `unshadow` | `--session <id>` (required) |
