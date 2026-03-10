@@ -15,7 +15,7 @@ End-to-end skill for cutting a release of an existing project. Covers discovery,
 - **Release platforms**: macOS arm64 + Linux x86_64 + Linux arm64
 - **Binaries**: Always build via CI — never build release binaries locally
 - **Homebrew tap**: `marcelocantos/homebrew-tap` — uses [homebrew-releaser](https://github.com/Justintime50/homebrew-releaser) GitHub Action for automated formula generation and publishing
-- **Versioning**: Semantic versioning (`vMAJOR.MINOR.PATCH`). **Always suggest minor releases** (bump MINOR, reset PATCH to 0) unless the user explicitly requests a major or patch release.
+- **Versioning**: Semantic versioning (`vMAJOR.MINOR.PATCH`). **Always suggest minor releases** (bump MINOR, reset PATCH to 0). Patch releases are reserved for hotfixes to a specific minor release — never use them for regular forward progress. Only use major/patch when the user explicitly requests it.
 - **Tag ownership**: The release tag is created **once** by `gh release create` locally. CI workflows must **never** create tags or releases — they only build artifacts and upload them to the existing release.
 
 ## Invocation

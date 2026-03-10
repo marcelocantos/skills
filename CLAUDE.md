@@ -103,7 +103,7 @@ deep links, sample data, and visual verification cadence.
 ## Versioning
 
 - Use semantic versioning (vMAJOR.MINOR.PATCH). First release: v0.1.0.
-- Default to minor releases (bump MINOR, reset PATCH). Only use major/patch when explicitly requested.
+- Default to minor releases (bump MINOR, reset PATCH). Patch releases are reserved for hotfixes to a specific minor release — never use them for regular forward progress. Only use major/patch when explicitly requested.
 
 ## CLI Binaries
 
