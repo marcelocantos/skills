@@ -4,17 +4,16 @@ description: Evaluate convergence gaps on active targets and recommend next work
 user-invocable: true
 ---
 
+**DELEGATE VIA CWORKERS.** Do not execute any part of this skill
+directly. Send the entire skill text to a cworker and relay the
+result. The cworkers guide (`~/.claude/cworkers-guide.md`) has the
+dispatch protocol.
+
+---
+
 Evaluate all active targets against the current project state and
 recommend what to work on next. This replaces manually cross-referencing
 TODOs, git status, and memory to answer "what should I do next?"
-
-## `/cv go` — Execute last suggested action
-
-If the argument is `go`, skip evaluation entirely. Read the most recent
-`/cv` output from this conversation (it will be earlier in the
-transcript) and execute the suggested action from that output. If there
-is no prior `/cv` output in the conversation, report the error
-and run a normal default-tier evaluation instead.
 
 ## Evaluation tiers
 
@@ -177,10 +176,44 @@ change hints.
 For default tier, select the top 2-3 targets by priority for deep
 evaluation. For full tier, evaluate all.
 
-For each target being evaluated (leaf targets first, then roll up to
-parents):
+### 3-dispatch. Delegate evaluations via cworkers
 
-### 3a. Direct evaluation
+Each target evaluation is independent — delegate them to keep the root
+session's context lean. For each target being evaluated:
+
+1. Build a self-contained prompt containing:
+   - The target's name, 🎯 ID, acceptance criteria, status, and parent/child info.
+   - The `git-state` and `changed-files` sections from gather output
+     (so the worker can check CI state and file overlap without
+     re-running gather).
+   - The evaluation instructions from 3a below.
+   - The required response format (see below).
+
+2. Dispatch: `cworkers dispatch --session <session-id> --model sonnet "<prompt>"`
+   - If `NO_WORKERS` (exit 2): spawn a regular Agent with the same
+     prompt instead. Follow the self-warming protocol from the
+     cworkers guide.
+   - Dispatch all targets in parallel (multiple Bash calls or Agents
+     in one message). Don't wait for one to finish before sending the
+     next.
+
+3. Collect results. Each worker returns a structured block:
+
+   ```
+   TARGET: 🎯T<N> <name>
+   GAP: <achieved | close | significant | not started>
+   ASSESSMENT: <1-2 sentence summary>
+   FILES_READ:
+   - path/to/file1
+   - path/to/file2
+   ```
+
+   If a worker times out or fails, evaluate that target in the root
+   session as a fallback.
+
+### 3a. Direct evaluation (per-target instructions)
+
+These instructions are included in each worker's prompt:
 
 Read the acceptance criteria and classify the evaluation cost:
 
@@ -188,23 +221,26 @@ Read the acceptance criteria and classify the evaluation cost:
   patterns in code (e.g., "no printf in non-vendor code"). Run the
   grep directly.
 - **ci-checkable**: Criteria that reference build/test/CI state. Use
-  cached results from the `git-state` gather section. Don't make
+  cached results from the `git-state` section provided. Don't make
   additional API calls.
 - **review-required**: Criteria that require architectural judgement
   across multiple files (e.g., "all platform differences behind
   src/platform/ interfaces"). Only evaluate in full tier or when this
   specific target is the recommendation.
 
-Classify each target's gap as one of:
+Classify the target's gap as one of:
 
 - **achieved** — all acceptance criteria met.
 - **close** — most criteria met, minor remaining work.
 - **significant** — substantial work remaining, but path is clear.
 - **not started** — no meaningful progress toward the desired state.
 
+Return the result in the structured format above. Nothing else.
+
 ### 3b. Sub-target rollup
 
-For targets with children, derive the parent's gap from its children:
+After collecting all worker results, derive parent gaps from children
+in the root session:
 - Count achieved vs total children.
 - Parent is never "achieved" while any child is outstanding.
 - Report: "converging (N/M sub-targets achieved)".
@@ -304,8 +340,6 @@ plan — just the first actionable thing to do.
 
 <Concrete instruction, e.g. "Run `grep -r printf src/` to identify
 remaining printf calls, then replace with SPDLOG_* macros.">
-
-Type **go** to execute the suggested action.
 ```
 
 ### Movement since last report
@@ -412,9 +446,9 @@ action crosses a delivery boundary:
 - **Never** suggest raw `git push`, `git merge`, `gh pr merge`, or
   `gh release create` as a suggested action.
 
-`/cv go` inherits this: if the suggested action is "run `/push`",
-then `go` invokes `/push`, which checks the project's gates (including
-manual gates that require user approval).
+Auto-execute inherits this: if the suggested action is "run `/push`",
+auto-execute invokes `/push`, which checks the project's gates
+(including manual gates that require user approval).
 
 ## Step 7 — Auto-execute
 
@@ -479,5 +513,4 @@ state the blocker:
 
 ```
 Auto-execute blocked: [condition N — reason].
-Type **go** to execute manually.
 ```
