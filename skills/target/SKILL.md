@@ -166,14 +166,28 @@ value sources. The user scores these on a modified Fibonacci scale:
 | 20    | Project-defining, strategic |
 
 **Interior targets** (targets that gate other targets via `Gates:`
-or `Parent:` relationships) derive value automatically:
+or `Parent:` relationships) derive value automatically using
+criticality-weighted propagation:
 
-> value = sum of values of all targets this target directly gates
+> value = Σ criticality_i × value(gated_i)
+
+Each gating relationship has a **criticality** in (0, 1] — the
+fraction of the gated target's value that depends on this gate.
+Criticality defaults to 1.0 (hard prerequisite). A criticality of
+0.7 means 70% of the gated target's value is lost without this gate.
 
 The agent computes this by walking the dependency graph. No human
 input needed for interior targets. If an interior target also has
 direct user-facing value (rare), split the user-facing part into its
 own leaf target.
+
+When creating or editing a `Gates:` field, prompt the user for
+criticality on each edge:
+> Criticality for 🎯T4? (default 100% = hard prerequisite;
+> lower if the gated target retains partial value without this gate)
+
+For `Parent:` relationships, criticality is always 1.0 (the parent
+is definitionally essential to its children).
 
 ### Cost
 
@@ -213,8 +227,9 @@ weight = value / cost    (rounded to nearest integer, minimum 1)
 ```
 
 - **Leaf targets**: weight = (human-scored value) / (agent-estimated cost)
-- **Interior targets**: value = sum of child target values; cost = sum of
-  child target costs. Compute the weight from these.
+- **Interior targets**: value = Σ(criticality_i × value_i) over all
+  directly gated targets; cost = sum of child target costs. Compute
+  the weight from these.
 - **Weight < 1**: cost exceeds value — flag for retirement or reframing.
 - **Collisions are fine** — equal weight means ordering doesn't matter.
 
@@ -226,17 +241,25 @@ the children and write the result.
 ### The `Gates:` field
 
 Targets can declare gating relationships independently of the
-parent/child hierarchy:
+parent/child hierarchy. Each entry optionally carries a criticality
+percentage — the fraction of the gated target's value that depends
+on this gate:
 
 ```markdown
-- **Gates**: 🎯T4, 🎯T7
+- **Gates**: 🎯T4 (80%), 🎯T7
 ```
 
-This means achieving this target is a prerequisite for 🎯T4 and 🎯T7.
-The value of this target includes the values of 🎯T4 and 🎯T7 (and
-transitively, anything they gate). `Parent:` implies a gates
-relationship (parent gates children), but `Gates:` allows
-cross-cutting dependencies outside the parent tree.
+This means achieving this target is a prerequisite for 🎯T4
+(criticality 0.8 — 🎯T4 retains 20% of its value without this gate)
+and 🎯T7 (criticality 1.0 — hard prerequisite, the default when no
+percentage is specified).
+
+The derived value of this target is `0.8 × value(🎯T4) + 1.0 ×
+value(🎯T7)`. Criticality propagates recursively through the graph.
+
+`Parent:` implies a gates relationship at criticality 1.0 (parent
+gates children), but `Gates:` allows cross-cutting dependencies
+outside the parent tree with explicit criticality.
 
 ## Standard target format
 
@@ -247,7 +270,7 @@ cross-cutting dependencies outside the parent tree.
 - **Acceptance**: <How to verify convergence — concrete, testable>
 - **Context**: <Why it matters, how discovered, what prompted it>
 - **Parent**: 🎯T<N> (optional)
-- **Gates**: 🎯T<N>, 🎯T<M> (optional — targets this one enables)
+- **Gates**: 🎯T<N> (<criticality>%), 🎯T<M> (optional — targets this one enables; criticality defaults to 100% if omitted)
 - **Origin**: <manual / forked-from: 🎯T<N>> (optional)
 - **Status**: identified / converging / achieved
 - **Discovered**: YYYY-MM-DD

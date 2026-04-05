@@ -17,10 +17,11 @@ Also includes my global [`CLAUDE.md`](CLAUDE.md) directives and the [`convergenc
 - **[`/release`](skills/release/SKILL.md)** — Publish a release — version, release notes, CI, Homebrew tap, tag, and GitHub release.
 - **[`/republish-skills`](skills/republish-skills/SKILL.md)** — Sync ~/.claude/skills/ to the marcelocantos/skills GitHub repo.
 - **[`/stash`](skills/stash/SKILL.md)** — Save conversation context to auto-memory before /clear. Restore later with /pop.
-- **[`/sync-globals`](skills/sync-globals/SKILL.md)** — 
+- **[`/sync-globals`](skills/sync-globals/SKILL.md)** — sync-globals
 - **[`/target`](skills/target/SKILL.md)** — Manage convergence targets — desired states for the project.
 - **[`/todo`](skills/todo/SKILL.md)** — Summarise open TODOs from local todo file and GitHub issues.
-- **[`/waw`](skills/waw/SKILL.md)** — "Where Are We?" — Context restoration after being AFK. Summarises session state, surfaces important details, and proposes continuation options.
+- **[`/vera`](skills/vera/SKILL.md)** — Semantic code search, regex pattern search, and symbol lookup across a local repository. Returns ranked markdown codeblocks with file path, line range, content, and optional symbol info. Use `vera search` for conceptual/behavioral queries (how a feature works, where logic lives, exploring unfamiliar code). Use `vera grep` for exact strings, regex patterns, imports, and TODOs. Use `vera references` to trace callers/callees. Use rg only for bulk find-and-replace or files outside the index.
+- **[`/waw`](skills/waw/SKILL.md)** — "Where Are We?" — Context restoration after being AFK. Default is a quick recap; `/waw all` runs the full deep briefing.
 - **[`/wrap`](skills/wrap/SKILL.md)** — Pre-clear housekeeping — update targets, capture learnings, prepare for next /cv cycle.
 
 ## License

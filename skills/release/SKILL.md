@@ -125,16 +125,20 @@ For pre-1.0 projects, create or update a `STABILITY.md` file in the repo root. T
 **1.0 readiness check**: After updating `STABILITY.md`, assess whether the project is ready to release 1.0. Two conditions must **both** be met:
 
 1. **Checklist clear**: No remaining gaps, no "Fluid" items in the surface catalogue, documentation complete.
-2. **Settling threshold met**: Count every public function, type, enum, constant, wire format, and config field in the surface catalogue to determine N:
+2. **Settling threshold met**: The settling threshold is purely time-based —
+   new releases don't accelerate it, because new code is inherently
+   destabilising. Count every public function, type, enum, constant, wire
+   format, and config field in the surface catalogue, then look up the
+   minimum settling period:
 
-   | Surface items | N |
+   | Surface items | Minimum settling period |
    |---|---|
-   | < 20 | 2 |
-   | 20–50 | 3 |
-   | 50–100 | 4 |
-   | > 100 | 5 |
+   | < 20 | 1 month |
+   | 20–50 | 2 months |
+   | 50–100 | 3 months |
+   | > 100 | 4 months |
 
-   Then **either**: N consecutive minor releases with zero breaking changes to the surface, **or** N months since the last breaking change.
+   The clock starts from the last breaking change to the interaction surface.
 
 If both conditions are met, flag it to the user: "the checklist is clear and the settling threshold is met — the project is eligible for 1.0." The user decides — this is never automatic. If only the checklist is clear but the settling threshold is not, report which condition is unmet and how far away it is.
 
@@ -187,6 +191,10 @@ Determine the next version number. **Do not ask for confirmation** — just use 
    **C/C++ libraries with version macros**: If the header defines version macros (e.g., `#define PROJECTNAME_VERSION "x.y.z"` with `_MAJOR`, `_MINOR`, `_PATCH` companions), update all four macros to match the new version. Verify consistency: the string must equal `"MAJOR.MINOR.PATCH"`.
 
    **STABILITY.md catalogue**: If `STABILITY.md` lists version macro values in its interaction surface catalogue, update those to match the new version too. Also update the "Snapshot as of" line to reference the new version.
+
+   **Go module version constants**: If the project has Go wrapper modules with
+   version constants (e.g., `Version = "x.y.z"` with `VersionMajor`,
+   `VersionMinor`, `VersionPatch`), update them to match the new version.
 
    **No version macros found**: If a C/C++ library has no version macros at all, note this as a gap. For pre-1.0 projects, record it in `STABILITY.md` under gaps/prerequisites. Don't block the release — version macros are a 1.0 prerequisite, not a pre-1.0 gate.
 
@@ -304,19 +312,30 @@ Create the GitHub release and let CI handle the rest.
    ```
    This triggers the `release.yml` workflow, which builds binaries, uploads them, and (if configured) runs homebrew-releaser to update the tap formula automatically.
 
-5. **Monitor CI**: Wait for the release workflow to complete:
+5. **Go module tags**: If the project contains Go modules in subdirectories
+   (e.g., `go/sqlpipe/go.mod`), create subdirectory-prefixed tags for each
+   Go module so that `go get` can resolve them. For a module at path
+   `go/sqlpipe` and release version `v0.11.0`, create and push:
+   ```bash
+   git tag go/sqlpipe/<version> <version>
+   git push origin go/sqlpipe/<version>
+   ```
+   Also update the Go module's version constants (if any) to match the
+   release version during the Phase 2 version bump.
+
+6. **Monitor CI**: Wait for the release workflow to complete:
    ```bash
    gh run list --workflow=release.yml --limit=1
    gh run watch <run-id>
    ```
    If it fails, help diagnose — do not delete the release or tag without asking.
 
-6. **Verify**: Confirm:
+7. **Verify**: Confirm:
    - The release appears on GitHub with correct notes and artifacts
    - Binary tarballs are attached for each platform
    - The Homebrew formula was updated in `marcelocantos/homebrew-tap` (check the tap repo's recent commits)
 
-7. **Report**: Print:
+8. **Report**: Print:
    - Release URL
    - Homebrew install command (if tap was set up): `brew install marcelocantos/tap/<project>`
 

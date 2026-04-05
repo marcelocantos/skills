@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rank active convergence targets using parent/child value propagation."""
+"""Rank active convergence targets with criticality-weighted value propagation."""
 
 import re
 import sys
@@ -44,7 +44,7 @@ def parse_targets(path):
             'cost': None,
             'weight': None,
             'parent': None,
-            'gates': [],        # target IDs this target gates (enables)
+            'gates': [],        # [(target_id, criticality)] this target gates
             'tags': [],
             'status': 'achieved' if sec in ('achieved', 'archive') else 'identified',
             'depends_on': [],
@@ -69,10 +69,23 @@ def parse_targets(path):
                 t['parent'] = pm.group(1)
                 continue
 
-            # Gates: 🎯TN, 🎯TM
+            # Gates: 🎯TN (80%), 🎯TM  — with optional criticality
             gm = re.match(r'- \*\*Gates\*\*:\s*(.*)', line)
             if gm:
-                t['gates'] = tid_re.findall(gm.group(1))
+                gates_text = gm.group(1)
+                gate_entries = []
+                for part in re.split(r',\s*', gates_text):
+                    part = part.strip()
+                    if not part:
+                        continue
+                    gid_match = tid_re.search(part)
+                    if not gid_match:
+                        continue
+                    gid = gid_match.group(0)
+                    crit_match = re.search(r'\((\d+)%\)', part)
+                    crit = float(crit_match.group(1)) / 100.0 if crit_match else 1.0
+                    gate_entries.append((gid, crit))
+                t['gates'] = gate_entries
                 continue
 
             # Tags
@@ -188,7 +201,13 @@ def rank_targets(path, mermaid_only=False):
         if t['tags']:
             print(f"{prefix}  tags: {', '.join(t['tags'])}")
         if t['gates']:
-            print(f"{prefix}  gates: {', '.join(t['gates'])}")
+            gate_strs = []
+            for gid, crit in t['gates']:
+                if crit < 1.0:
+                    gate_strs.append(f"{gid} ({int(crit * 100)}%)")
+                else:
+                    gate_strs.append(gid)
+            print(f"{prefix}  gates: {', '.join(gate_strs)}")
         if r['blockers']:
             print(f"{prefix}  blocked-by: {', '.join(r['blockers'])}")
         # Print children
@@ -259,11 +278,12 @@ def generate_mermaid(targets, active_ids, results, children_map):
     for tid in sorted(active_ids):
         t = targets[tid]
         node_id = tid.replace('🎯', '').replace('.', '_')
-        for gated_tid in t.get('gates', []):
+        for gated_tid, crit in t.get('gates', []):
             if gated_tid not in active_ids:
                 continue
             gated_node = gated_tid.replace('🎯', '').replace('.', '_')
-            lines.append(f'    {node_id} -.->|gates| {gated_node}')
+            label = f"gates {int(crit * 100)}%" if crit < 1.0 else "gates"
+            lines.append(f'    {node_id} -.->|{label}| {gated_node}')
 
     # Depends-on edges
     for tid in sorted(active_ids):

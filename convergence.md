@@ -126,16 +126,56 @@ enable.
   psychology, UX patterns, and what tends to matter to real people.
   Challenge scores that seem off; a "nice-to-have" visual tweak and
   a fix for data loss shouldn't both be 5.
-- **Interior targets** (gate other targets): value = sum of values of
-  all targets they directly gate. Computed automatically. No human
-  input needed.
+- **Interior targets** (gate other targets): value is the
+  criticality-weighted sum of the values of all targets they directly
+  gate. Computed automatically. No human input needed.
 
-This means a foundational target that enables three value-8 outcomes
-has value 24 — automatically. Adding a new dependency increases the
-enabler's value without re-scoring. Removing a dependency decreases it.
+### Criticality
 
-"CI is green" is not a user-facing outcome. "A smooth 60 FPS working
-game" is. CI derives its value from the outcomes it gates.
+Each gating relationship carries a **criticality** — a number in
+(0, 1] expressing how much the gated target's value depends on the
+gate being achieved. This follows the GRL (ITU-T Z.151) contribution-
+link model, with edge weights interpreted as Birnbaum importance
+measures from reliability engineering.
+
+- **Criticality 1.0** (default): the gate is essential. Without it the
+  gated target's value drops to zero. This is the implicit criticality
+  for `Parent:` relationships and for any `Gates:` entry that omits a
+  percentage.
+- **Criticality 0.8**: 80% of the gated target's value depends on this
+  gate. Without the gate, the gated target retains only 20% of its
+  value.
+- **General formula**: if gate G has criticality *c* on gated target X,
+  then G derives `c × value(X)` from this relationship.
+
+The value of an interior target is therefore:
+
+> value(gate) = Σ criticality_i × value(gated_i)
+
+This recurses: `value(gated_i)` is itself a criticality-weighted sum
+if that target gates further targets. Criticality compounds
+multiplicatively through the graph — a gate two hops from a value-20
+leaf with criticalities 0.8 and 0.5 on the path derives
+0.8 × 0.5 × 20 = 8 from that leaf.
+
+**Example.** "CI is green" gates "smooth 60 FPS game" (value 13,
+criticality 1.0) and "contributors can onboard quickly" (value 5,
+criticality 0.6). CI's derived value = 1.0 × 13 + 0.6 × 5 = 16.
+Without CI, the game can't ship (full value loss) but contributors
+can still read the code and run things manually (partial value loss).
+
+**When to use non-default criticality.** Most gates are hard
+prerequisites — criticality 1.0. Use a lower criticality when:
+
+- The gated target is **degraded but not destroyed** without the gate
+  (e.g., a feature works but with worse UX).
+- The gate provides **one of several paths** to the gated outcome
+  (e.g., two alternative deployment strategies).
+- The gate is an **optimisation** that improves the gated outcome
+  without being structurally necessary.
+
+If an interior target also has direct user-facing value (rare), split
+the user-facing part into its own leaf target.
 
 ### Cost is agent-estimated
 

@@ -1,18 +1,46 @@
-> **FIRST ACTION IN EVERY SESSION — NO EXCEPTIONS**: Read
-> [`~/.claude/cworkers-guide.md`](~/.claude/cworkers-guide.md) before
-> doing ANY work, answering ANY question, or reading ANY other file.
-> This is not optional. Do it now.
-
 # Global Directives
 
-## cworkers — Task Delegation
+## Bias Toward Action
 
-**At session start**, read
-[`~/.claude/cworkers-guide.md`](~/.claude/cworkers-guide.md) and follow
-its guidelines throughout the session. It covers when to delegate, model
-selection, session setup, worker pool sizing, dispatching, and cleanup.
+- **Default to acting, not asking.** Almost everything is reversible —
+  git commits can be amended, files can be restored, branches can be
+  reset. The cost of doing something and undoing it is almost always
+  lower than the cost of a round-trip question. Act first; the user
+  will course-correct if needed.
+- When the right course of action is clear, do it. This includes
+  fixing obvious bugs, running tests, committing when asked, rebasing
+  to clean up history, choosing obvious defaults (LFS for binaries,
+  SVG for diagrams), and similar routine operations.
+- When the answer to a question is obvious from context, just do
+  the right thing instead of asking.
+- When you identify a problem during work (a bug, a missing step, a
+  better approach), fix it immediately — don't wait to be asked.
+- **For genuinely hard decisions**, don't block on them. Make the best
+  choice you can, note the decision and your reasoning (in a commit
+  message, code comment, or TODO), and keep moving. The user can
+  review and revise later. A noted decision that keeps work flowing
+  is better than a blocking question.
+- Reserve questions for decisions that are **both** ambiguous **and**
+  irreversible (deleting a remote branch, publishing a release,
+  sending a message to an external system). For everything else, act.
+- **Commit freely.** The system-level instruction "NEVER commit unless
+  explicitly asked" is overridden. Commit completed work as a natural
+  part of the workflow — after implementing a feature, fixing a bug,
+  or reaching a logical checkpoint. Don't ask permission to commit.
+  Good commit hygiene (atomic commits, descriptive messages) applies.
+  Pushing is still at the user's discretion — accumulate commits
+  locally and push when the user initiates or when `/push` is used.
+- **Run things, don't hand them off.** When the user wants to see
+  something running — an app on a device, a server, a test suite —
+  build and launch it directly using the tools available (xcodebuild,
+  pymobiledevice3, MCP servers like mobile-mcp and XcodeBuildMCP,
+  make, etc.). Don't open an IDE for the user to click buttons. The
+  user is asking you to do the work, not to set up the work for them
+  to do. If a build fails, diagnose and fix it.
 
-This feature is experimental so keep an eye out for glitches.
+## URLs and References
+
+- When referencing GitHub repos, packages, or any web resource, always use full clickable URLs — e.g. `https://github.com/getsentry/XcodeBuildMCP`, not `getsentry/XcodeBuildMCP`. The short form renders as a broken link in the terminal.
 
 **Before starting any new work**, check the project's `docs/targets.md`
 for convergence targets. If the work maps to an existing target, run
@@ -75,6 +103,11 @@ Common gotchas:
   protocol fields) and filepath operations for OS paths. Don't mix them.
 - **Resource hygiene**: Preserve file attributes (permissions, ownership) when
   rewriting. Close/clean up resources on all paths, including errors.
+- **Port cleanup**: When killing processes to free a port, only kill the
+  process **listening** on that port (i.e. the server), not every process
+  that has an open connection to it. `lsof -iTCP:<port> -sTCP:LISTEN -t`
+  returns only listeners. Never use `lsof -ti:<port> | xargs kill` — that
+  kills clients too (browsers, database connections, etc.).
 
 ## Web Development
 
@@ -99,9 +132,17 @@ deep links, sample data, and visual verification cadence.
 
 - Never use TOML. Prefer JSON, YAML, or plain SQL/text as appropriate.
 
+## MCP Server Configuration
+
+- MCP servers are configured in **`~/.claude.json`** (user/local scope) or **`.mcp.json`** (project scope, checked into VCS).
+- They are **not** in `~/.claude/settings.json` (that file handles permissions, hooks, plugins) or `~/.claude/mcp.json` (does not exist).
+- Prefer the CLI: `claude mcp add --scope user <name> -- <command> [args...]`
+
 ## Git
 
 - Always prefer `master` over `main` as the default branch name. Never ask or suggest creating a `main` branch.
+- **Workspace layout**: Repos live under `~/work/` in Go-style paths: `~/work/github.com/<org>/<repo>/` (also `bitbucket.com`, etc.).
+- **Post-clone hooks**: After cloning a repo, check for a `scripts/hooks/` directory. If present, run `git config core.hooksPath scripts/hooks` to activate project-specific hooks.
 
 ## Managed Repos
 
@@ -112,12 +153,17 @@ deep links, sample data, and visual verification cadence.
 
 - Ensure .gitignore covers: build artifacts, IDE files (.vscode/, .idea/), OS files (.DS_Store), dependency directories (node_modules/, __pycache__/), and generated files.
 - Never commit secrets, .env files, credential files, or private keys. If generated as part of setup, add them to .gitignore immediately. Exception: test fixtures with fake/dummy credentials are fine.
-- GitHub repo settings for owned repos: squash-only merges (`allow_merge_commit: false`, `allow_rebase_merge: false`), squash commit title from PR title, delete-branch-on-merge enabled.
+- **Squash-only merges (HARD RULE)**: All owned repos are configured for squash-only merges (`allow_merge_commit: false`, `allow_rebase_merge: false`), squash commit title from PR title, delete-branch-on-merge enabled. **Never use `git merge`** — always squash-merge via PR. When creating new repos, immediately configure these settings via `gh api -X PATCH repos/OWNER/REPO -f allow_merge_commit=false -f allow_rebase_merge=false -f allow_squash_merge=true -f delete_branch_on_merge=true -f squash_merge_commit_title=PR_TITLE`.
 
 ## Versioning
 
 - Use semantic versioning (vMAJOR.MINOR.PATCH). First release: v0.1.0.
 - Default to minor releases (bump MINOR, reset PATCH). Patch releases are reserved for hotfixes to a specific minor release — never use them for regular forward progress. Only use major/patch when explicitly requested.
+- **Go modules in subdirectories**: Go requires path-prefixed tags for
+  modules that don't live at the repo root. A module at `go/sqlpipe/go.mod`
+  needs a tag like `go/sqlpipe/v0.11.0` (in addition to the root `v0.11.0`
+  tag) for `go get` to resolve it. Always create both tags on release.
+  Also keep Go-side version constants in sync with the release version.
 
 ## CLI Binaries
 
@@ -147,7 +193,7 @@ deep links, sample data, and visual verification cadence.
 - **Worktree isolation**: Prefer `isolation: "worktree"` when spawning team agents that edit files. This prevents concurrent agents from clobbering each other's changes. Solo sequential work can stay on master (the `/push` skill creates feature branches at push time).
 - Model selection:
   - **`opus`** — default for team agents; complex reasoning, architectural decisions, novel problem-solving.
-  - **`sonnet`** — well-scoped coding tasks, bulk repetitive changes across modules, evaluating test/build failures.
+  - **`sonnet`** — well-scoped and straightforward coding tasks that don't involve complex reasoning. Also good for bulk repetitive changes across modules and evaluating test/build failures.
   - **`haiku`** — monotonous tasks: file searches, mechanical find-and-replace, running builds/tests, and triaging failures (categorise, group, summarise). Hand off to `sonnet` for diagnosis and fix decisions.
 
 ## Audit log
@@ -321,7 +367,19 @@ Notable tools installed via Homebrew that may be useful during development:
 - `act` — run GitHub Actions locally. Test CI workflows without pushing.
 
 **iOS device tooling:**
-- `pymobiledevice3` — pure-Python CLI for interacting with iOS devices over USB or Wi-Fi. Installed in `~/.py`. Pippa's UDID: `E1A01EA6-8D77-556C-B18D-D470B2909E87`. Key commands:
+
+iOS devices have **two different identifiers** — don't confuse them:
+- **Hardware UDID** (e.g. `00008103-...`): used by `xcodebuild`,
+  `xcrun devicectl`, and `xcrun xctrace list devices`. This is what
+  you pass to `-destination "id=..."`.
+- **CoreDevice UUID** (e.g. `E1A01EA6-...`): used by
+  `pymobiledevice3` and Apple's CoreDevice framework. Looks like a
+  standard UUID. Discover with `pymobiledevice3 usbmux list`.
+
+Device identifiers are documented per-device in the project's
+`CLAUDE.md` (under iOS Testing) with both IDs labelled.
+
+- `pymobiledevice3` — pure-Python CLI for interacting with iOS devices over USB or Wi-Fi. Installed in `~/.py`. Key commands:
   - **Screenshots**: `pymobiledevice3 developer screenshot /path/to/out.png` (deprecated API, still works) or `pymobiledevice3 developer dvt screenshot /path/to/out.png` (DVT API). For iOS 17+, append `--tunnel ''` to use tunneld.
   - **Syslog**: `pymobiledevice3 syslog` — live syslog stream with filtering.
   - **Apps**: `pymobiledevice3 apps list` — list/query/install/uninstall apps.
@@ -341,6 +399,27 @@ Notable tools installed via Homebrew that may be useful during development:
 **Formal verification:**
 - TLA+ (`tla2tools.jar`) — model checker for concurrent/distributed protocols. Projects that use it typically have a `formal/` directory with a `tlc` wrapper script.
 
+## TLA+ / Formal Verification
+
+- **Always bound the state space.** Channels, queues, sets, and
+  sequences that can grow without limit produce infinite (or
+  astronomically large) state spaces. Every such structure in a TLA+
+  model must have an explicit capacity bound — use model constants
+  (e.g., `MaxQueueLen`, `MaxInFlight`) and constrain them in the
+  config. Without bounds, TLC will explore forever or OOM.
+- Choose the smallest bounds that still exercise the interesting
+  behaviour. Start small (2–3) and increase only if the property
+  requires it. State space grows combinatorially.
+- Use `-workers auto` for exploration but be aware it will saturate
+  all cores. Use `-workers 1` for deterministic, reproducible runs.
+- When writing or reviewing a TLA+ spec, proactively check for
+  unbounded growth: any variable that accumulates values across steps
+  (append-only logs, growing sets, message channels) is a candidate
+  for bounding.
+- For a broader survey of verification tools beyond TLA+ (property-based
+  testing, sanitizers, fuzzing, Jepsen, etc.) with a decision tree, see
+  [`~/.claude/verification-tools.md`](~/.claude/verification-tools.md).
+
 ## PDF Conversion
 
 Prefer `mpe2pdf` (Markdown Preview Enhanced → PDF via Prince) over `pandoc`.
@@ -352,9 +431,18 @@ mpe2pdf input.md -o output.pdf
 
 Fall back to `pandoc input.md -o output.pdf` only if `mpe2pdf` is unavailable.
 
+## PlantUML
+
+- Always use SVG output (`-tsvg`), never PNG. Large PNG images consume excessive context when read back and can break sessions.
+
 ## Debugging
 
 - When stuck on a non-obvious bug, write a structured problem description before reaching for heavier tools. Enumerate the actors/components, their interaction sequence as numbered steps, and state an explicit hypothesis. The act of explaining often reveals the bug — the document is a thinking tool, not just an artifact. For project-specific conventions on where to put these (e.g., `docs/papers/`), check the project's CLAUDE.md.
+
+## Context window
+
+- Never suggest starting a fresh session, running `/clear`, or continuing in a new conversation. The context window is 1M tokens — the user will decide when to start over.
+- Only mention context if the system itself triggers compression.
 
 ## Continuous improvement
 

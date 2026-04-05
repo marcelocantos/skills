@@ -57,20 +57,7 @@ Apply fixes for issues identified in the audit.
 
 5. **Add third-party attribution**: If the audit found vendored or copied dependencies without proper attribution, create a NOTICES or THIRD_PARTY file listing each dependency with its licence.
 
-6. **Fix CLI flags** (if the project produces standalone binaries):
-
-   - **`--version`**: Prefer build-time injection from the git tag (e.g., `-ldflags -X main.version=$VERSION` for Go, `-DVERSION=` for C/C++) so the version stays in sync with releases automatically. If build-time injection isn't practical, add a hardcoded version constant and note that it must be updated each release.
-   - **`--help`**: If the project doesn't use a CLI framework that provides this automatically, add basic usage output.
-   - **`--help-agent`**: Add a flag that prints the `--help` usage text followed by the project's agent guide to stdout. For Go programs, embed the markdown file with `go:embed`:
-     ```go
-     import _ "embed"
-
-     //go:embed agents-guide.md
-     var agentGuide string
-     ```
-     Then capture `flag.PrintDefaults()` into a `bytes.Buffer` (via `flag.CommandLine.SetOutput`) and print the buffer followed by `agentGuide`. For other languages, use the equivalent embedding mechanism or bundle the content as a string constant.
-
-     **Important**: If the agent guide lives at the repo root (e.g., `agents-guide.md`) but `go:embed` is in a subdirectory package, `go:embed` cannot reference parent directories. Use a Makefile copy step (e.g., `cp agents-guide.md internal/cli/help_agent.md`) with the copy gitignored. This keeps the repo-root file as the single source of truth. Remember to replicate this copy step in CI workflows — `go build` outside of `make` will fail without it.
+6. **CLI flags**: Do not fix CLI flags (`--version`, `--help`, `--help-agent`) in this phase. The `/release` skill (Phase 5) performs a thorough CLI flag audit with discovery and handles all flag gaps. Fixing them here creates overlap and risks inconsistency.
 
 7. **Address remaining findings**: Work through other audit findings the user confirmed, in priority order.
 
@@ -101,7 +88,9 @@ Create the GitHub repository and push.
 
 ### Phase 5: Release (optional)
 
-Ask if the user wants to create an initial release. If yes, delegate to the `/release` skill, which handles versioning, release notes, CI workflow setup (including mk installation for mk-based projects), Homebrew tap configuration, tagging, and GitHub release creation.
+Ask if the user wants to create an initial release. If yes, **invoke the `/release` skill and follow its full workflow** — discovery script, all phases, gate checks, everything. Do not hand-roll release workflows, CI configurations, or Homebrew setup. The `/release` skill encodes institutional knowledge (asset naming conventions, homebrew-releaser configuration, HOMEBREW_TAP_TOKEN setup instructions with specific URLs, STABILITY.md for pre-1.0 projects, binary naming as `<project>-<version>-<os>-<arch>.tar.gz`, etc.) that is easy to get wrong when reimplemented from memory.
+
+**This is not a suggestion — it is a hard delegation.** The only acceptable path for creating a release is through `/release`.
 
 ## Audit log
 
