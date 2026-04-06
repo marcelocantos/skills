@@ -65,18 +65,26 @@ This script gathers all Phase 1 data in one invocation (tags, releases, build sy
 
    Also verify that the README mentions the agent guide for discoverability (e.g., "If you use an agentic coding tool, include `agents-guide.md` in your project context").
 
-   **MCP servers** (detected by MCP dependencies in the manifest, a `serve` subcommand, or "MCP" in the project description): The agents-guide and README must include complete installation instructions:
+   **MCP servers** (detected by MCP dependencies in the manifest, a `serve` subcommand, or "MCP" in the project description): The agents-guide and README must include complete installation instructions. The agents-guide must explicitly frame installation as a **multi-step process** and state that installation is not complete until all steps succeed — agents that see only `brew install` will stop there.
+
+   Required steps (all must be documented):
 
    - Binary install command (e.g., `brew install marcelocantos/tap/<project>`)
-   - Claude Code one-liner: `claude mcp add --scope user <name> -- <binary> serve` (global install to `~/.claude.json`)
+   - **Service start command** (e.g., `brew services start <project>`) — if the server runs as a persistent daemon, a Homebrew service definition is required (see Phase 4 step 3). Flag if the project listens on a port but has no service definition.
+   - Claude Code one-liner: `claude mcp add --scope user --transport http <name> http://localhost:<port>/mcp` (global install to `~/.claude.json`)
    - Generic MCP client JSON config block for other tools
    - Explicit note that the agent session must be restarted after registration
+   - **Verification steps** — how to confirm the server is running:
+     - Pre-restart: `lsof -iTCP:<port> -sTCP:LISTEN` to confirm the process is listening. Include an explicit warning **not to use `curl`** — MCP endpoints only respond to POST requests with a JSON-RPC body, so a plain GET or empty POST returns nothing, which agents misread as "server not ready" and enter unnecessary diagnostic loops.
+     - Post-restart: call a lightweight MCP tool (e.g., a stats or ping tool) to confirm end-to-end integration.
 
-   These instructions must be specific and exact — not vague pointers. Agents that lack precise commands will improvise incorrect paths (wrong config files, wrong scope flags, wrong binary names). Flag any missing or imprecise steps.
+   These instructions must be specific and exact — not vague pointers. Agents that lack precise commands will improvise incorrect paths (wrong config files, wrong scope flags, wrong binary names, plain HTTP health checks). Flag any missing or imprecise steps.
 
 9. **README**: Check that a `README.md` (or `README`) exists in the repo root and covers the essentials: what the project is, how to install or build it, how to use it, and a licence mention. A missing README is a blocker — every public release needs one. Flag if missing or if key sections (install/build, usage) are absent.
 
    **Content freshness**: Compare the README's feature/syntax documentation against the current codebase (CLAUDE.md syntax section, agent guide, or equivalent authoritative source). Flag any features present in the agent guide or CLAUDE.md that are missing from the README. New features being released should be documented in the README before tagging.
+
+   **Quick start for agent-installed tools**: If the project is an MCP server or agent tool, the README should include a "Quick start" section with a copy-pasteable prompt that users can give their agent (e.g., *"Install X from &lt;repo URL&gt; — brew install, start the service, register it as an MCP server, and restart the session. Follow the agents-guide.md in the repo."*). This is distinct from the agents-guide (which the agent reads) — it's for the human who wants to say "install this" without spelling out every step. A fenced code block is ideal since GitHub renders a copy button on them. Flag if missing.
 
 10. **Third-party licence attribution**: Scan the project for vendored or bundled third-party code — check `vendor/`, `third_party/`, `extern/`, or similar directories, and any headers/sources copied into the project. For each dependency found:
    - Identify its licence (MIT, BSD, Apache 2.0, etc.)
@@ -287,7 +295,23 @@ Draft release notes from git history.
    - **Formula description truncation.** homebrew-releaser truncates the repo description to fit Homebrew's field limit (~80 chars). Keep repo descriptions concise to avoid mid-word cutoffs.
    - **Version detection from arch-specific URLs.** Without an explicit `version` input, homebrew-releaser auto-detects the version from download URLs. Platform-specific URLs like `foo-1.0.0-darwin-arm64.tar.gz` can confuse the parser — it may extract "64" from "arm64" instead of "1.0.0". Always set `version: ${{ github.event.release.tag_name }}` to override auto-detection.
 
-3. **Verify**: Show the workflow file to the user for review. Commit it to `master` and push before tagging.
+3. **Homebrew service definition** (conditional — persistent servers only): If the project is a long-running server (detected by: listening on a port, `--addr` flag, `serve` subcommand, MCP server), the Homebrew formula needs a service definition so `brew services start <project>` works. There are two approaches:
+
+   - **`formula_includes`** in homebrew-releaser: Add a `formula_includes` field with a Ruby `service` block that configures launchd (macOS) and systemd (Linux). Example:
+     ```yaml
+     formula_includes: |
+       service do
+         run [opt_bin/"<project>"]
+         keep_alive true
+         log_path var/"log/<project>.log"
+         error_log_path var/"log/<project>.log"
+       end
+     ```
+   - **Manual formula edit**: If homebrew-releaser doesn't support the needed service options, edit the formula in `marcelocantos/homebrew-tap` directly after the first release.
+
+   The agents-guide should document both macOS (`brew services start`) and Linux (`systemd --user` unit file) setup. Flag if the project is a persistent server but has no service definition.
+
+4. **Verify**: Show the workflow file to the user for review. Commit it to `master` and push before tagging.
 
 ### Phase 4.5: Gate check
 
