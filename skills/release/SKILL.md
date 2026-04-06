@@ -65,6 +65,15 @@ This script gathers all Phase 1 data in one invocation (tags, releases, build sy
 
    Also verify that the README mentions the agent guide for discoverability (e.g., "If you use an agentic coding tool, include `agents-guide.md` in your project context").
 
+   **MCP servers** (detected by MCP dependencies in the manifest, a `serve` subcommand, or "MCP" in the project description): The agents-guide and README must include complete installation instructions:
+
+   - Binary install command (e.g., `brew install marcelocantos/tap/<project>`)
+   - Claude Code one-liner: `claude mcp add --scope user <name> -- <binary> serve` (global install to `~/.claude.json`)
+   - Generic MCP client JSON config block for other tools
+   - Explicit note that the agent session must be restarted after registration
+
+   These instructions must be specific and exact — not vague pointers. Agents that lack precise commands will improvise incorrect paths (wrong config files, wrong scope flags, wrong binary names). Flag any missing or imprecise steps.
+
 9. **README**: Check that a `README.md` (or `README`) exists in the repo root and covers the essentials: what the project is, how to install or build it, how to use it, and a licence mention. A missing README is a blocker — every public release needs one. Flag if missing or if key sections (install/build, usage) are absent.
 
    **Content freshness**: Compare the README's feature/syntax documentation against the current codebase (CLAUDE.md syntax section, agent guide, or equivalent authoritative source). Flag any features present in the agent guide or CLAUDE.md that are missing from the README. New features being released should be documented in the README before tagging.

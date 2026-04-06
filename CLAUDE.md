@@ -140,6 +140,7 @@ deep links, sample data, and visual verification cadence.
 
 ## Git
 
+- **`git reset --hard` is user-only.** Never run `git reset --hard` directly. Instead, ask the user to run it (e.g., "Please run `git reset --hard v0.13.0`"). The sandbox blocks it anyway, and round-tripping approval is slower than just asking.
 - Always prefer `master` over `main` as the default branch name. Never ask or suggest creating a `main` branch.
 - **Workspace layout**: Repos live under `~/work/` in Go-style paths: `~/work/github.com/<org>/<repo>/` (also `bitbucket.com`, etc.).
 - **Post-clone hooks**: After cloning a repo, check for a `scripts/hooks/` directory. If present, run `git config core.hooksPath scripts/hooks` to activate project-specific hooks.
