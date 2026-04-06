@@ -233,6 +233,8 @@ Draft release notes from git history.
    - Package each binary as `<project>-<version>-<os>-<arch>.tar.gz`
    - Upload tarballs to the **existing** release with `gh release upload`
 
+   **Cross-platform builds with CGO**: When the project requires CGO (e.g., for SQLite via `go-sqlite3`), cross-compilation is painful. Prefer **native ARM runners** (`ubuntu-24.04-arm`) for linux-arm64 builds over installing a cross-compiler (`gcc-aarch64-linux-gnu`). Native runners are simpler and more reliable. Use `runs-on: ${{ matrix.os }}` with per-target runner entries in the matrix. macOS arm64 builds on `macos-latest` (Apple Silicon) natively.
+
    **Generated/embedded files**: If the Makefile has copy or generate steps that feed `go:embed` (or similar compile-time embedding), CI must replicate those steps before building. For example, if the Makefile copies `agents-guide.md` to `internal/cli/help_agent.md` for `go:embed`, add an explicit step in the workflow (e.g., `cp agents-guide.md internal/cli/help_agent.md`) before the build step. Check for Makefile prerequisites of the `build` target that produce files listed in `.gitignore` — these are generated files that CI won't have.
 
    **mk-based projects**: If the project uses `mkfile` instead of `Makefile`, CI must install mk before building. Fetch the appropriate binary from `https://github.com/marcelocantos/mk/releases`. Example step:

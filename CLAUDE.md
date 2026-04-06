@@ -61,24 +61,11 @@ not enter plan mode until convergence is assessed. See
   (without `uv` prefix). These are not installed and should not be
   reintroduced.
 
-## Dependencies
+## C++ Style and Dependencies
 
-- Favour header-only libraries over compiled ones when a suitable option exists.
-- Prefer vendored submodules over homebrew installs where practicable.
-- When bringing in third-party repos, submodule them into `vendor/github.com/<org>/<repo>` (or `bitbucket.com`, etc).
-- When bringing in single `.h` libraries, put them in `vendor/include`.
-- If there's an associated `.c`/`.cpp`, put it in `vendor/src`.
-- Use spdlog for logging. Never use printf/fprintf for diagnostic output. Prefer the `SPDLOG_INFO`, `SPDLOG_WARN`, `SPDLOG_ERROR`, etc. macros over direct `spdlog::info`/`spdlog::error` calls, as the macros automatically include source file and line information.
-- Preferred libraries (use these unless there is a strong reason not to):
-  - **Rendering**: bgfx (with bx/bimg utilities)
-  - **Windowing/input**: SDL3 (+ SDL3_image, SDL3_ttf)
-  - **Logging**: spdlog (header-only)
-  - **Linear algebra**: linalg.h (header-only)
-  - **Testing**: doctest (header-only)
-  - **Image I/O**: stb_image / stb_image_write (header-only)
-  - **Triangulation**: earcut.hpp (header-only), Triangle (C library for quality meshes)
-  - **Database**: SQLite3
-- When vendoring third-party code, always include the dependency's original LICENSE file alongside it. For distributed projects, maintain a NOTICES file (or THIRD_PARTY if one already exists) with attribution for all bundled dependencies.
+When working with C++ or adding dependencies, read
+[`~/.claude/cpp.md`](~/.claude/cpp.md) for style conventions,
+vendoring rules, and preferred libraries.
 
 ## Licensing
 
@@ -87,10 +74,6 @@ not enter plan mode until convergence is assessed. See
 - For source files, use the short-form SPDX header when licence headers are needed:
   `// Copyright <year> Marcelo Cantos`
   `// SPDX-License-Identifier: Apache-2.0`
-
-## C++ Style
-
-- Make effective use of the pImpl idiom: `struct M; std::shared_ptr<M> m;` (or `unique_ptr`).
 
 ## Code Organisation
 
@@ -321,118 +304,16 @@ deep links, sample data, and visual verification cadence.
 
 ## Available Tools (Homebrew)
 
-Notable tools installed via Homebrew that may be useful during development:
-
-**WebSocket / Network testing:**
-- `websocat` — WebSocket client/server CLI. Use for testing WebSocket endpoints (e.g. `websocat ws://localhost:42069/path`).
-- `websocketd` — turn any CLI program into a WebSocket server.
-- `grpcurl` — `curl` for gRPC services.
-- `httpie` (`http`) — user-friendly HTTP client (aliased to `h` with `--check-status --follow`).
-- `nmap` — network scanning and port discovery.
-
-**C/C++ build tooling:**
-- `cmake`, `ninja` — build system generators.
-- `ccache` — compiler cache (speeds up rebuilds).
-- `bear` — generates `compile_commands.json` from build commands (for clangd/LSP).
-- `compiledb` — alternative `compile_commands.json` generator from make.
-- `clang-format` — C/C++ code formatter.
-- `include-what-you-use` — header dependency analysis.
-- `conan` — C/C++ package manager (prefer vendoring per Dependencies policy, but available).
-
-**Languages / Runtimes (beyond C++):**
-- `go` (1.25), `rust`, `zig` (0.15), `node`, `python` (3.9–3.14 via pyenv), `ruby`, `kotlin`, `elixir`/`erlang`, `ocaml`, `lua`, `dotnet`.
-- `emcc` (Emscripten) — compile C/C++ to WebAssembly.
-- `uv` — fast Python package/project manager.
-
-**VCS:**
-- `jj` (Jujutsu) — Git-compatible VCS with simpler mental model. Available alongside `git`.
-- `gh` — GitHub CLI.
-- `difftastic` (`difft`) — syntax-aware structural diffs. Shows what changed semantically, not just line-by-line.
-
-**Shell / File utilities:**
-- `bat` — `cat` with syntax highlighting.
-- `fd` — fast `find` alternative.
-- `entr` — run commands when files change (e.g. `fd .cpp | entr make`).
-- `tokei` — code statistics (lines of code by language).
-- `dust` — disk usage visualiser.
-- `parallel` — GNU parallel for parallelising shell commands.
-- `shellcheck`, `shfmt` — shell script linting and formatting.
-- `pandoc` — universal document converter.
-- `hyperfine` — precise CLI benchmarking (e.g. `hyperfine 'make' 'make -B'`).
-- `hexyl` — hex viewer for binary file inspection (mesh packs, wire protocol dumps, texture data).
-
-**AI / ML (local):**
-- `ollama` — run local LLMs. Use for testing AI integrations without API calls.
-- `llama.cpp` — direct LLM inference engine.
-
-**Media:**
-- `ffmpeg` — audio/video transcoding and manipulation.
-- `imagemagick` — image conversion and manipulation from CLI.
-
-**JSON / Data:**
-- `jq` — JSON processor (installed via zerobrew at `/opt/zerobrew/prefix/bin/jq`).
-- `yq` — YAML/JSON/XML processor.
-
-**Containers / Cloud:**
-- OrbStack — Docker Desktop replacement (see Shell Startup Scripts in `~/CLAUDE.md`).
-- `k9s`, `kubectl`, `skaffold` — Kubernetes management.
-- `gcloud` — Google Cloud CLI.
-- `qemu` — hardware virtualisation / emulation.
-- `act` — run GitHub Actions locally. Test CI workflows without pushing.
-
-**iOS device tooling:**
-
-iOS devices have **two different identifiers** — don't confuse them:
-- **Hardware UDID** (e.g. `00008103-...`): used by `xcodebuild`,
-  `xcrun devicectl`, and `xcrun xctrace list devices`. This is what
-  you pass to `-destination "id=..."`.
-- **CoreDevice UUID** (e.g. `E1A01EA6-...`): used by
-  `pymobiledevice3` and Apple's CoreDevice framework. Looks like a
-  standard UUID. Discover with `pymobiledevice3 usbmux list`.
-
-Device identifiers are documented per-device in the project's
-`CLAUDE.md` (under iOS Testing) with both IDs labelled.
-
-- `pymobiledevice3` — pure-Python CLI for interacting with iOS devices over USB or Wi-Fi. Installed in `~/.py`. Key commands:
-  - **Screenshots**: `pymobiledevice3 developer screenshot /path/to/out.png` (deprecated API, still works) or `pymobiledevice3 developer dvt screenshot /path/to/out.png` (DVT API). For iOS 17+, append `--tunnel ''` to use tunneld.
-  - **Syslog**: `pymobiledevice3 syslog` — live syslog stream with filtering.
-  - **Apps**: `pymobiledevice3 apps list` — list/query/install/uninstall apps.
-  - **Files**: `pymobiledevice3 afc` — browse/push/pull files in `/var/mobile/Media`.
-  - **Process control**: `pymobiledevice3 developer dvt proclist`, `kill`, `launch`, `pkill`.
-  - **Location simulation**: `pymobiledevice3 developer simulate-location` — set/clear/replay GPX routes.
-  - **Network capture**: `pymobiledevice3 pcap` — sniff device traffic.
-  - **Crash reports**: `pymobiledevice3 crash` — pull crash logs.
-  - **Diagnostics**: `pymobiledevice3 diagnostics` — reboot, shutdown, battery/IO info.
-  - **Backup**: `pymobiledevice3 backup2` — create/restore MobileBackup2 backups.
-  - **System monitor**: `pymobiledevice3 developer dvt sysmon` — top-like monitoring.
-  - **Energy**: `pymobiledevice3 developer dvt energy <PID>` — per-process energy consumption.
-  - **WebInspector**: `pymobiledevice3 springboard` — UI interaction, orientation.
-  - **Developer mode**: `pymobiledevice3 amfi` — enable/query developer mode; `pymobiledevice3 mounter mount` — mount DeveloperDiskImage (prerequisite for `developer` commands).
-  - For iOS 17+, create a tunnel first: `sudo pymobiledevice3 remote start-tunnel`, then pass `--tunnel ''` to commands.
-
-**Formal verification:**
-- TLA+ (`tla2tools.jar`) — model checker for concurrent/distributed protocols. Projects that use it typically have a `formal/` directory with a `tlc` wrapper script.
+When you need to check what CLI tools are available, read
+[`~/.claude/tools.md`](~/.claude/tools.md). Covers network testing,
+C/C++ build tooling, languages/runtimes, shell utilities, AI/ML,
+media, containers/cloud, iOS device tooling, and formal verification.
 
 ## TLA+ / Formal Verification
 
-- **Always bound the state space.** Channels, queues, sets, and
-  sequences that can grow without limit produce infinite (or
-  astronomically large) state spaces. Every such structure in a TLA+
-  model must have an explicit capacity bound — use model constants
-  (e.g., `MaxQueueLen`, `MaxInFlight`) and constrain them in the
-  config. Without bounds, TLC will explore forever or OOM.
-- Choose the smallest bounds that still exercise the interesting
-  behaviour. Start small (2–3) and increase only if the property
-  requires it. State space grows combinatorially.
-- Use `-workers auto` for exploration but be aware it will saturate
-  all cores. Use `-workers 1` for deterministic, reproducible runs.
-- When writing or reviewing a TLA+ spec, proactively check for
-  unbounded growth: any variable that accumulates values across steps
-  (append-only logs, growing sets, message channels) is a candidate
-  for bounding.
-- For a broader survey of verification tools beyond TLA+ (property-based
-  testing, sanitizers, fuzzing, Jepsen, etc.) with a decision tree, see
-  [`~/.claude/verification-tools.md`](~/.claude/verification-tools.md).
+When working on TLA+ specs or formal verification, read
+[`~/.claude/tlaplus.md`](~/.claude/tlaplus.md) for state-space
+bounding rules and verification tool guidance.
 
 ## PDF Conversion
 
