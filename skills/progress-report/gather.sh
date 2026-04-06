@@ -113,3 +113,58 @@ if [[ -n "$AUTHOR" ]]; then
 else
     echo "Author filter: (all authors)"
 fi
+
+# Daily active repo counts.
+# For each day from SINCE to today, count how many repos had at least one commit.
+echo ""
+echo "# daily_active_repos"
+
+# Resolve SINCE to a date. GNU date and BSD date differ; try both.
+if start_epoch="$(date -j -f "%Y-%m-%d" "$SINCE" "+%s" 2>/dev/null)"; then
+    date_cmd="bsd"
+elif start_epoch="$(date -d "$SINCE" "+%s" 2>/dev/null)"; then
+    date_cmd="gnu"
+else
+    # Fall back: try interpreting as a relative expression.
+    if start_epoch="$(date -d "$SINCE" "+%s" 2>/dev/null)"; then
+        date_cmd="gnu"
+    else
+        echo "# (could not parse start date for daily breakdown)"
+        exit 0
+    fi
+fi
+
+end_epoch="$(date "+%s")"
+
+cur_epoch="$start_epoch"
+while [[ "$cur_epoch" -le "$end_epoch" ]]; do
+    if [[ "$date_cmd" == "bsd" ]]; then
+        day_str="$(date -j -f "%s" "$cur_epoch" "+%Y-%m-%d")"
+        dow="$(date -j -f "%s" "$cur_epoch" "+%a")"
+        next_epoch="$(( cur_epoch + 86400 ))"
+    else
+        day_str="$(date -d "@$cur_epoch" "+%Y-%m-%d")"
+        dow="$(date -d "@$cur_epoch" "+%a")"
+        next_epoch="$(( cur_epoch + 86400 ))"
+    fi
+
+    day_repos=0
+    while IFS= read -r gitdir; do
+        repo_dir="$(dirname "$gitdir")"
+        author_args=()
+        if [[ -n "$AUTHOR" ]]; then
+            author_args=(--author="$AUTHOR")
+        fi
+        count="$(git -C "$repo_dir" log --oneline \
+            --since="$day_str" --until="$(date -j -f "%s" "$next_epoch" "+%Y-%m-%d" 2>/dev/null || date -d "@$next_epoch" "+%Y-%m-%d")" \
+            "${author_args[@]}" --all 2>/dev/null | wc -l | tr -d ' ')"
+        if [[ "$count" -gt 0 ]]; then
+            day_repos=$((day_repos + 1))
+        fi
+    done < <(find "$WORK_ROOT" \
+        \( -name vendor -o -name node_modules -o -name .build -o -name build \) -prune -o \
+        -name .git -type d -print 2>/dev/null | sort)
+
+    echo "$dow $day_str $day_repos"
+    cur_epoch="$next_epoch"
+done

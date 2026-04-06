@@ -72,4 +72,27 @@ Follow guide sections 2, 3, and 4 to write `weekly-report-<YYYY-MM-DD>.md` (date
 
 Read the previous report first to understand what projects have already been introduced and avoid re-explaining them (guide section 5).
 
+### Daily activity chart
+
+Generate the daily activity SVG chart from the `# daily_active_repos` section of the `gather.sh` output. Extract those lines and pipe them to the chart script:
+
+```sh
+echo "<daily_active_repos lines>" | ~/.claude/skills/progress-report/daily-chart.py \
+    -o ~/work/github.com/marcelocantos/progress-reports/daily-activity-<YYYY-MM-DD>.svg
+```
+
+Embed the chart in the report's Metrics section (after Testing, before Ideas & Innovations) per guide section 3.7.
+
+### Timeline chart
+
+Regenerate the full-history timeline chart (guide section 6, step 3):
+
+```sh
+~/.claude/skills/progress-report/timeline-chart.py \
+    --since 2026-01-19 \
+    -o ~/work/github.com/marcelocantos/progress-reports/timeline.svg
+```
+
+This updates the top-level chart embedded in the README.
+
 Return the full draft report text as your result.
