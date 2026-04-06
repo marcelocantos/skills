@@ -18,6 +18,8 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+import yaml
+
 import matplotlib
 matplotlib.use("svg")
 import matplotlib.pyplot as plt
@@ -81,6 +83,14 @@ def main():
         help="Output SVG path"
     )
     parser.add_argument(
+        "--weekly-dir",
+        help="Also emit per-week SVGs (daily-activity-<date>.svg) into this directory"
+    )
+    parser.add_argument(
+        "--cache",
+        help="YAML cache file for daily repo counts (read/write)"
+    )
+    parser.add_argument(
         "--work-root",
         default=os.path.expanduser("~/work"),
         help="Root directory to scan for repos (default: ~/work)"
@@ -91,31 +101,75 @@ def main():
     until_date = date.fromisoformat(args.until) if args.until else date.today()
     work_root = Path(args.work_root)
 
-    author = subprocess.run(
-        ["git", "config", "--global", "user.name"],
-        capture_output=True, text=True
-    ).stdout.strip() or None
+    # Load cache if available.
+    cached: dict[date, int] = {}
+    cache_cutoff = date.min  # scan everything by default
+    if args.cache and os.path.exists(args.cache):
+        with open(args.cache) as f:
+            raw = yaml.safe_load(f) or {}
+        for d_str, count in (raw.get("dates") or {}).items():
+            d = date.fromisoformat(str(d_str))
+            cached[d] = count
+        if cached:
+            cache_cutoff = max(cached) + timedelta(days=1)
+            print(f"Cache hit: {len(cached)} days through "
+                  f"{max(cached)}, scanning from {cache_cutoff}...",
+                  file=sys.stderr)
 
-    repos = find_repos(work_root)
-    print(f"Scanning {len(repos)} repos since {since_date}...", file=sys.stderr)
+    # Determine the scan window: from cache_cutoff (or since) to until.
+    scan_since = max(since_date, cache_cutoff)
 
-    # For each day, collect which repos were active.
     daily_repos: dict[date, int] = defaultdict(int)
 
-    for repo in repos:
-        dates = get_commit_dates(repo, args.since, author)
-        for d in dates:
-            if since_date <= d <= until_date:
-                daily_repos[d] += 1
+    if scan_since <= until_date:
+        author = subprocess.run(
+            ["git", "config", "--global", "user.name"],
+            capture_output=True, text=True
+        ).stdout.strip() or None
 
-    # Build full date range.
-    all_dates = []
-    all_counts = []
+        repos = find_repos(work_root)
+        print(f"Scanning {len(repos)} repos from {scan_since}...",
+              file=sys.stderr)
+
+        for repo in repos:
+            dates = get_commit_dates(repo, str(scan_since), author)
+            for d in dates:
+                if scan_since <= d <= until_date:
+                    daily_repos[d] += 1
+    else:
+        print("Cache covers entire range, no scan needed.", file=sys.stderr)
+
+    # Merge cached + freshly scanned data.
+    merged: dict[date, int] = {}
     d = since_date
     while d <= until_date:
-        all_dates.append(d)
-        all_counts.append(daily_repos.get(d, 0))
+        if d in daily_repos:
+            merged[d] = daily_repos[d]
+        elif d in cached:
+            merged[d] = cached[d]
+        else:
+            merged[d] = 0
         d += timedelta(days=1)
+
+    # Write cache. Only cache dates 2+ days old to avoid timezone edge cases.
+    if args.cache:
+        cache_horizon = date.today() - timedelta(days=2)
+        cache_data = {
+            "since": since_date.isoformat(),
+            "dates": {
+                d.isoformat(): c
+                for d, c in sorted(merged.items())
+                if d <= cache_horizon
+            },
+        }
+        with open(args.cache, "w") as f:
+            yaml.dump(cache_data, f, default_flow_style=False, sort_keys=False)
+        print(f"Cache written: {len(cache_data['dates'])} days "
+              f"(through {cache_horizon})", file=sys.stderr)
+
+    # Build full date range.
+    all_dates = sorted(merged.keys())
+    all_counts = [merged[d] for d in all_dates]
 
     if not all_dates:
         print("No data to chart.", file=sys.stderr)
@@ -167,6 +221,69 @@ def main():
     fig.savefig(args.output, format="svg", transparent=True)
     plt.close(fig)
     print(f"Wrote {args.output}", file=sys.stderr)
+
+    # Per-week charts.
+    if args.weekly_dir:
+        _generate_weekly_charts(args.weekly_dir, all_dates, all_counts)
+
+
+def _generate_weekly_charts(
+    output_dir: str,
+    all_dates: list[date],
+    all_counts: list[int],
+) -> None:
+    """Slice daily data into Mon-Sun weeks and emit per-week bar charts."""
+    # Build a date->count lookup.
+    by_date = dict(zip(all_dates, all_counts))
+
+    # Find all Mondays in the range.
+    mondays = [d for d in all_dates if d.weekday() == 0]
+
+    for monday in mondays:
+        sunday = monday + timedelta(days=6)
+        week_dates = []
+        week_counts = []
+        d = monday
+        while d <= sunday:
+            week_dates.append(d)
+            week_counts.append(by_date.get(d, 0))
+            d += timedelta(days=1)
+
+        if not any(c > 0 for c in week_counts):
+            continue
+
+        labels = [f"{d.strftime('%a')} {d.day}" for d in week_dates]
+
+        fig, ax = plt.subplots(figsize=(7, 3))
+        bars = ax.bar(range(len(week_counts)), week_counts,
+                      color="#2563eb", width=0.6)
+
+        for bar, count in zip(bars, week_counts):
+            if count > 0:
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    bar.get_height() + 0.15,
+                    str(count),
+                    ha="center", va="bottom",
+                    fontsize=9, fontweight="bold",
+                )
+
+        ax.set_xticks(range(len(labels)))
+        ax.set_xticklabels(labels, fontsize=8)
+        ax.set_ylabel("Active repos", fontsize=9)
+        ax.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        ax.set_ylim(0, max(week_counts) * 1.25 if week_counts else 1)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.set_title("Daily Active Repositories", fontsize=11,
+                     fontweight="bold", pad=10)
+
+        fig.tight_layout()
+        svg_path = os.path.join(output_dir,
+                                f"daily-activity-{sunday.isoformat()}.svg")
+        fig.savefig(svg_path, format="svg", transparent=True)
+        plt.close(fig)
+        print(f"Wrote {svg_path}", file=sys.stderr)
 
 
 if __name__ == "__main__":

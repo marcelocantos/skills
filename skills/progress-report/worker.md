@@ -85,14 +85,16 @@ Embed the chart in the report's Metrics section (after Testing, before Ideas & I
 
 ### Timeline chart
 
-Regenerate the full-history timeline chart (guide section 6, step 3):
+Regenerate the full-history timeline chart and per-week charts (guide section 6, step 3):
 
 ```sh
 ~/.claude/skills/progress-report/timeline-chart.py \
     --since 2026-01-19 \
+    --cache ~/work/github.com/marcelocantos/progress-reports/data/daily-repos.yaml \
+    --weekly-dir ~/work/github.com/marcelocantos/progress-reports/ \
     -o ~/work/github.com/marcelocantos/progress-reports/timeline.svg
 ```
 
-This updates the top-level chart embedded in the README.
+This updates the top-level timeline in the README, regenerates the per-week chart for the current report, and updates the cache. Commit the updated cache alongside the charts.
 
 Return the full draft report text as your result.

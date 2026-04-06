@@ -48,6 +48,19 @@ for convergence targets. If the work maps to an existing target, run
 not enter plan mode until convergence is assessed. See
 [Convergence targets](#convergence-targets) for the full protocol.
 
+## Python
+
+- **`uv`** is the sole Python tool manager. Use it for everything:
+  - `uv pip install <pkg>` — install into `~/.py` (the active venv)
+  - `uv tool install <tool>` — install isolated CLI tools (replaces pipx)
+  - `uv venv` — create per-project venvs with any Python version
+- **`~/.py`** is the global daily-driver venv, activated in `~/.zshrc`.
+  Its Python is uv-managed (lives in `~/.local/share/uv/python/`),
+  not Homebrew — so `brew upgrade` can't break it.
+- **Never use** pyenv, pipx, `brew install python`, or bare `pip install`
+  (without `uv` prefix). These are not installed and should not be
+  reintroduced.
+
 ## Dependencies
 
 - Favour header-only libraries over compiled ones when a suitable option exists.
