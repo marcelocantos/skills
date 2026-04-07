@@ -67,6 +67,11 @@ When working with C++ or adding dependencies, read
 [`~/.claude/cpp.md`](~/.claude/cpp.md) for style conventions,
 vendoring rules, and preferred libraries.
 
+## JSON in C/C++
+
+- **cJSON** for C and simple C++ JSON. Vendor as `vendor/cjson/`.
+- **nlohmann/json** only when C++ ergonomics justify the compile cost.
+
 ## Licensing
 
 - Always use Apache 2.0. Never generate MIT, BSD, or other licences unless explicitly asked.
@@ -182,7 +187,17 @@ deep links, sample data, and visual verification cadence.
 
 ## Teams
 
-- Proactively use teams when a task has 2+ substantial independent workstreams that can be parallelised.
+- **Default to parallel.** Before starting any multi-step task, actively
+  scan for independent workstreams. If two things don't depend on each
+  other, run them in parallel — don't serialize. The cost of spawning
+  an extra agent is far lower than the cost of sequential execution.
+- **Recognition triggers** — if you see any of these, parallelise:
+  - Multiple files/modules need the same kind of change
+  - Research across 2+ independent areas (repos, docs, APIs)
+  - A task has both investigation and implementation that can overlap
+  - Tests/builds can run while you continue editing
+  - Multiple independent subtasks in a plan
+  - Reading/exploring several unrelated parts of a codebase
 - Also use teams for:
   - **Bulk similar work** — when the same change pattern applies across multiple directories, modules, or files, fan out agents to handle subsets in parallel.
   - **Context isolation** — when heavy exploratory reads (audits, deep research) would bloat the main conversation context.
@@ -202,6 +217,20 @@ deep links, sample data, and visual verification cadence.
 ## Task tracking
 
 - Projects track TODOs in `docs/TODO.md` (all-caps `TODO`). When you discover a new TODO item during work (a bug to fix later, a feature idea, a cleanup opportunity), check the repo-local `CLAUDE.md` for the TODO file location and append the item there. If the repo has no TODO file or `CLAUDE.md` doesn't mention one, create `docs/TODO.md`.
+
+## Session context via mnemo
+
+The `mnemo` MCP server indexes all Claude Code session transcripts.
+When you need context about recent work — what repos have been
+active, what was discussed, what decisions were made — use
+`mnemo_status` or `mnemo_search` rather than guessing or asking the
+user. Good moments to reach for mnemo:
+- The user references prior work ("that thing we discussed", "the
+  approach from last session", "continue where I left off")
+- You need to understand the broader context of a project before
+  making architectural decisions
+- `/waw` or `/cv` needs recent activity data
+- The user asks what's been happening across repos
 
 ## Convergence targets
 

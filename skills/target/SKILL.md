@@ -1,11 +1,51 @@
 ---
 name: target
-description: Manage convergence targets — desired states for the project.
+description: Manage targets — desired states for the project.
 user-invocable: true
 ---
 
-Manage convergence targets for this project. Targets are desired states
-expressed as testable properties, not tasks.
+Manage targets for this project. Targets are desired states expressed
+as testable properties, not tasks.
+
+## Dual-write (bullseye)
+
+When the bullseye MCP server is available (check if `bullseye_list` is
+in the tool list), **every mutation** must land in both systems:
+
+- **Add**: After writing to targets.md, call `bullseye_add` with the
+  same data (name, value, cost, acceptance, context, parent, tags).
+- **Retire**: After moving to `## Achieved` in markdown, call
+  `bullseye_retire` with the target ID and actual_cost.
+- **Update** (status, weight, name, etc.): After editing targets.md,
+  call `bullseye_update` with the changed fields.
+- **Conformance fixes**: After fixing targets.md, call `bullseye_update`
+  for any targets whose fields changed.
+
+If bullseye is not available, proceed with markdown-only — the
+dual-write is best-effort, not a hard requirement.
+
+The `cwd` parameter for all bullseye calls should be the project's
+working directory (derive from the targets file path).
+
+### Bootstrap (first run in a repo)
+
+After gathering, if bullseye is available and `docs/targets.md` exists
+but `bullseye_list(cwd)` returns an error (no targets.yaml), bulk-import
+all existing markdown targets into bullseye:
+
+1. Parse every target from `## Active` and `## Achieved` in the
+   markdown file.
+2. For each target, call `bullseye_add` with all available fields
+   (name, value, cost, acceptance, context, parent, kind, tags).
+3. For achieved targets, immediately call `bullseye_retire` with the
+   target ID and actual_cost (if recorded).
+4. For targets with status `converging`, call `bullseye_update` to set
+   the status.
+5. Report: "Bootstrapped N targets into bullseye from targets.md."
+
+This is a one-time operation — subsequent runs will find targets.yaml
+and skip this step. The bootstrap preserves all target data including
+IDs, so the two systems stay in sync from the start.
 
 ## Step 1 — Gather
 
@@ -267,7 +307,7 @@ outside the parent tree with explicit criticality.
 ### 🎯T<N> <Desired state as short assertion>
 - **Weight**: <integer> (value <v> / cost <c>)
 - **Estimated-cost**: <fibonacci score>
-- **Acceptance**: <How to verify convergence — concrete, testable>
+- **Acceptance**: <How to verify the target is achieved — concrete, testable>
 - **Context**: <Why it matters, how discovered, what prompted it>
 - **Parent**: 🎯T<N> (optional)
 - **Gates**: 🎯T<N> (<criticality>%), 🎯T<M> (optional — targets this one enables; criticality defaults to 100% if omitted)
@@ -322,7 +362,7 @@ reference.
   the active recommendation.
 - Three tracking systems, one flow: **TODOs** are the inbox (low-
   friction capture), **targets** are the backlog (desired states the
-  agent converges toward), **GitHub issues** are the public interface
+  agent works toward), **GitHub issues** are the public interface
   (collaborative, tied to CI/PRs). Items flow upward — TODOs get
   triaged into targets or issues, and the TODO file drains toward
   empty. When summarising or adding targets, check `docs/TODO.md`

@@ -229,7 +229,7 @@ Draft release notes from git history.
 
    Don't force categories — if there are only a few changes, a simple bullet list is fine.
 
-3. **Review**: Present the draft to the user. Incorporate feedback before proceeding.
+3. **Display**: Print the draft release notes in the transcript so the user can see them. Do not wait for approval — proceed immediately. (The `changelog-reviewed` gate is automated, not manual.)
 
 ### Phase 4: CI setup (conditional)
 
@@ -281,7 +281,11 @@ Draft release notes from git history.
 
    Key setup requirements:
    - **`HOMEBREW_TAP_TOKEN` secret**: Each source repo that publishes to the tap needs its own PAT and secret. Create a separate token per repo:
-     1. Create a **fine-grained** PAT at https://github.com/settings/personal-access-tokens/new — name it after the source repo (e.g., `<repo>-homebrew-tap`). **Important**: if the target repo is in an org, change the **Resource owner** dropdown from the user's personal account to the org — otherwise the org's repos won't appear in "Repository access". Select **only** `homebrew-tap` under "Repository access" (don't paste `<owner>/homebrew-tap` — it won't match), and grant **Contents → Read and write** permission.
+     1. Create a **fine-grained** PAT at https://github.com/settings/personal-access-tokens/new with these settings (present each field on its own line when relaying to the user — do not compress into a single sentence):
+        - **Name**: `<repo>-homebrew-tap`
+        - **Resource owner**: `marcelocantos` (if the target repo is in an org, select the org — otherwise its repos won't appear in "Repository access")
+        - **Repository access**: select **only** `homebrew-tap` (don't paste `<owner>/homebrew-tap` — it won't match)
+        - **Permissions**: **Contents → Read and write**
      2. Add the PAT as a secret named `HOMEBREW_TAP_TOKEN` at `https://github.com/<owner>/<repo>/settings/secrets/actions/new`.
      3. Provide these URLs to the user so they can complete the setup (secrets cannot be created via API without the token value).
    - The `homebrew-tap` repo must exist at `marcelocantos/homebrew-tap` with a `Formula/` directory.
@@ -395,7 +399,7 @@ The entry should include the version released, platforms, and any issues noted. 
 - If the working tree is dirty, ask the user to commit or stash before proceeding.
 - If CI workflow fails after tagging, help diagnose — do not delete the tag without asking.
 - Never force-push or rewrite history.
-- Never proceed past a phase without user confirmation.
+- Never proceed past a phase without user confirmation, except where a gate is automated (e.g., release notes display).
 
 ## Skill improvement
 

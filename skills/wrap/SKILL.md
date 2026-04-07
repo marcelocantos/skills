@@ -4,9 +4,24 @@ description: Pre-clear housekeeping — update targets, capture learnings, prepa
 user-invocable: true
 ---
 
-Prepare convergence state for a clean `/clear`. This is the closing
-half of the `/clear` → `/cv` cycle: update targets so the next
-session's `/cv` starts from accurate state.
+Prepare target state for a clean `/clear`. This is the closing half
+of the `/clear` → `/cv` cycle: update targets so the next session's
+`/cv` starts from accurate state.
+
+## Dual-write (bullseye)
+
+When the bullseye MCP server is available (check if `bullseye_update`
+is in the tool list), mirror all target mutations to bullseye:
+
+- **Status changes**: call `bullseye_update(cwd, id, status)`.
+- **New targets**: call `bullseye_add(cwd, ...)` with full target data.
+- **Retirements**: call `bullseye_retire(cwd, id)`.
+- **Reframings**: call `bullseye_update(cwd, id, name, acceptance, ...)`.
+- **Weight changes**: call `bullseye_update(cwd, id, value, cost)`.
+
+If bullseye is not available, proceed with markdown-only.
+
+The `cwd` parameter should be the project's working directory.
 
 ## Steps
 

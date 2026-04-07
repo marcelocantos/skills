@@ -423,3 +423,89 @@ action crosses a delivery boundary:
 - **Skill publish** → suggest running `/republish-skills`.
 - **Never** suggest raw `git push`, `git merge`, `gh pr merge`, or
   `gh release create` as a suggested action.
+
+## Step 7 — Bullseye evaluation
+
+**Skip this step** if the bullseye MCP server is not available (no
+`bullseye_rank` in the tool list).
+
+### Bootstrap (first run in a repo)
+
+Before evaluating, check if bullseye has data for this repo: call
+`bullseye_list(cwd)`. If it errors (no targets.yaml), bulk-import
+from the markdown targets parsed in Step 2:
+
+1. For each active target, call `bullseye_add` with all fields (name,
+   value, cost, acceptance, context, parent, kind, verifies, tags).
+2. For achieved targets, call `bullseye_add` then `bullseye_retire`.
+3. For converging targets, call `bullseye_update(cwd, id, status: "converging")`.
+4. Report: "Bootstrapped N targets into bullseye from targets.md."
+
+This is a one-time operation — skip on subsequent runs when
+targets.yaml already exists.
+
+### Evaluate
+
+When bullseye is available:
+
+1. Call `bullseye_rank(cwd)` to get bullseye's WSJF ranking.
+2. Call `bullseye_frontier(cwd)` to get bullseye's frontier (unblocked
+   targets ready for work).
+3. Compare bullseye's top recommendation against the markdown-based
+   recommendation from Step 4.
+
+### Synthesis
+
+Produce a single unified recommendation. Rules:
+
+- If both systems agree on the top target, state the recommendation
+  with confidence: "Both systems agree: work on 🎯T<N>."
+- If they disagree, explain the difference (e.g., different weights,
+  different blocking analysis, targets present in one but not the
+  other) and make a judgement call. Prefer the recommendation that
+  has better reasoning, not necessarily the one from either specific
+  system.
+- If bullseye has targets that markdown doesn't (or vice versa), note
+  the gap — this is a sync issue.
+
+### Bullseye scorecard
+
+Add this section at the end of the report (after the recommendation
+and suggested action):
+
+```
+## Bullseye scorecard
+
+**Ranking**:        <-3 to +3>
+**Blocking**:       <-3 to +3>
+**Data quality**:   <-3 to +3>
+**Overall**:        <-3 to +3>
+**Markdown rec**:   🎯T<N> <name>
+**Bullseye rec**:   🎯T<N> <name>
+**Notes**: <brief, specific assessment>
+```
+
+Score semantics (-3 = much worse, 0 = equivalent, +3 = much better
+than the markdown system):
+- **Ranking**: Did bullseye's WSJF ordering make sense? Did it
+  surface the right top target?
+- **Blocking**: Did bullseye's dependency/blocking analysis match
+  reality? Did it correctly identify what's blocked and what's free?
+- **Data quality**: Is the targets.yaml in good shape? Missing
+  targets, stale fields, missing edges?
+- **Overall**: Holistic judgement — would you trust bullseye's
+  recommendation over markdown's?
+
+Be honest and specific in Notes. Good examples:
+- "Ranking +1: bullseye correctly prioritised T3 over T2 due to
+  lower cost. Blocking 0: same results. Data quality -1: T5 missing
+  depends_on edge that markdown has. Overall 0: equivalent this run."
+- "Ranking -2: bullseye recommended T4 which is blocked by T1 in
+  markdown but the dependency isn't recorded in targets.yaml."
+
+### Persist
+
+Include the bullseye scorecard in both:
+- The visible report (the section above)
+- The machine-readable appendix (add a `bullseye:` block with the
+  four scores and recommendations)

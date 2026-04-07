@@ -86,9 +86,9 @@ Create the GitHub repository and push.
 
 4. **Report**: Print the repo URL and a summary of what was published.
 
-### Phase 5: Release (optional)
+### Phase 5: Release
 
-Ask if the user wants to create an initial release. If yes, **invoke the `/release` skill and follow its full workflow** — discovery script, all phases, gate checks, everything. Do not hand-roll release workflows, CI configurations, or Homebrew setup. The `/release` skill encodes institutional knowledge (asset naming conventions, homebrew-releaser configuration, HOMEBREW_TAP_TOKEN setup instructions with specific URLs, STABILITY.md for pre-1.0 projects, binary naming as `<project>-<version>-<os>-<arch>.tar.gz`, etc.) that is easy to get wrong when reimplemented from memory.
+Invoke the `/release` skill and follow its full workflow — discovery script, all phases, gate checks, everything. Do not hand-roll release workflows, CI configurations, or Homebrew setup. The `/release` skill encodes institutional knowledge (asset naming conventions, homebrew-releaser configuration, HOMEBREW_TAP_TOKEN setup instructions with specific URLs, STABILITY.md for pre-1.0 projects, binary naming as `<project>-<version>-<os>-<arch>.tar.gz`, etc.) that is easy to get wrong when reimplemented from memory.
 
 **This is not a suggestion — it is a hard delegation.** The only acceptable path for creating a release is through `/release`.
 
