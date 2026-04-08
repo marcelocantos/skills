@@ -42,11 +42,12 @@
 
 - When referencing GitHub repos, packages, or any web resource, always use full clickable URLs — e.g. `https://github.com/getsentry/XcodeBuildMCP`, not `getsentry/XcodeBuildMCP`. The short form renders as a broken link in the terminal.
 
-**Before starting any new work**, check the project's `docs/targets.md`
-for convergence targets. If the work maps to an existing target, run
-`/cv` before planning. If no target exists, create one first. Do
-not enter plan mode until convergence is assessed. See
-[Convergence targets](#convergence-targets) for the full protocol.
+**Before starting any new work**, check the project's targets via
+`bullseye_frontier` and `bullseye_list`. If the work maps to an
+existing target, run `/cv` before planning. If no target exists,
+create one with `bullseye_add`. Do not enter plan mode until
+convergence is assessed. See [Convergence targets](#convergence-targets)
+for the full protocol.
 
 ## Python
 
@@ -234,13 +235,22 @@ user. Good moments to reach for mnemo:
 
 ## Convergence targets
 
-- Targets are numbered 🎯T1, 🎯T2, … (sub-targets: 🎯T1.1, 🎯T1.2, …).
-  Always use the 🎯T*N* prefix when referring to targets — in files,
-  reports, and conversation. No space between 🎯 and T.
-- Projects track desired states in `docs/targets.md`. When you discover
-  something during work that doesn't belong in the current task — a
-  quality issue, a missing capability, an inconsistency — add it as a
-  target rather than fixing it inline or dropping a bare TODO.
+- Targets are managed via the **bullseye** MCP server. The source of
+  truth is `docs/targets.yaml`; `docs/targets.md` is an auto-rendered
+  view. Use bullseye tools for all target operations:
+  - `bullseye_frontier(cwd)` — unblocked targets ready for work
+  - `bullseye_list(cwd)` — all targets with status
+  - `bullseye_add(cwd, ...)` — create a new target
+  - `bullseye_update(cwd, id, ...)` — change status or fields
+  - `bullseye_retire(cwd, id)` — mark achieved
+  - `bullseye_validate(cwd)` — check graph integrity
+- Targets are numbered 🎯T1, 🎯T2, … (🎯T1.1, 🎯T1.2, … for related
+  targets). Always use the 🎯T*N* prefix when referring to targets —
+  in files, reports, and conversation. No space between 🎯 and T.
+- When you discover something during work that doesn't belong in the
+  current task — a quality issue, a missing capability, an
+  inconsistency — add it as a target via `bullseye_add` rather than
+  fixing it inline or dropping a bare TODO.
 - A target is a desired state, not a task. Write it as an assertion:
   "All tests pass on Windows" not "Fix Windows tests."
 - Include enough context that a future agent in a fresh session can
@@ -248,24 +258,23 @@ user. Good moments to reach for mnemo:
 - Mark the origin if it was discovered while working on another target
   (forked-from).
 - When finishing a task, plan, or session, check whether any active
-  targets were affected. Update status if a target moved closer to or
-  achieved its desired state. Don't leave stale targets.
+  targets were affected. Update status via `bullseye_update` if a
+  target moved closer to or achieved its desired state.
 - If execution reveals that a target is wrong — misframed, incomplete,
   or pointing at the wrong thing — update the target first, then decide
   whether to continue, revise, or abandon the current plan. The target
   is the source of truth, not the plan.
 - Broad targets decompose into sub-targets. Don't plan against a
   composite target directly — decompose until each sub-target is
-  independently achievable, then converge leaf-first. The hierarchy
-  emerges as you understand the problem; you don't need the full tree
-  upfront. See [`~/.claude/convergence.md`](~/.claude/convergence.md)
-  for the full decomposition model.
+  independently achievable, then converge leaf-first. See
+  [`~/.claude/convergence.md`](~/.claude/convergence.md) for the
+  full decomposition model.
 - Plans converge toward targets. If `/cv` suggests different work
   than an active plan, trust the convergence assessment.
 - Evaluate convergence at decision boundaries (session start, run
   completion, blockage), not continuously. Within a coherent stretch of
   work toward a single target, don't re-evaluate — just work. After
-  completing a small piece of work, update the target's status field if
+  completing a small piece of work, update the target's status if
   appropriate; don't run a full `/cv` for every commit.
 - **After achieving a target**: Run `/cv` to pick up the next piece of
   work. If the remaining context window is too small for a full
@@ -277,12 +286,11 @@ user. Good moments to reach for mnemo:
   before state is lost. After `/wrap` completes, recommend `/clear`
   to start a fresh session.
 - **Workflow**: When starting new work (user request, session start, or
-  picking up where you left off), check `docs/targets.md` first. If the
-  work maps to an existing target, evaluate convergence before planning.
-  If no target exists, create one. Do not enter plan mode until the
-  target is established and convergence is assessed. This is a hard
-  prerequisite — convergence determines whether planning is even the
-  right next action.
+  picking up where you left off), call `bullseye_frontier` or
+  `bullseye_list` first. If the work maps to an existing target,
+  evaluate convergence before planning. If no target exists, create
+  one with `bullseye_add`. Do not enter plan mode until the target is
+  established and convergence is assessed.
 
 ## Delivery
 

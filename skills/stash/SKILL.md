@@ -22,12 +22,13 @@ Save the current conversation state so it survives a `/clear`.
      findings, gotchas, values, paths, error messages discovered during
      exploration.
 
-2. **Check convergence targets.** If `docs/targets.md` (or the project's
-   configured targets file) exists, check whether any active targets were
-   affected during this session. If so, prompt the user:
+2. **Check convergence targets.** Call `bullseye_list(cwd)` (where `cwd`
+   is the project's working directory) to retrieve active targets. Check
+   whether any were affected during this session. If so, prompt the user:
    "These targets may have changed status during this session: [list].
-   Update before stashing?" If the user confirms, update the targets
-   file. If they decline or there are no changes, proceed.
+   Update before stashing?" If the user confirms, call the appropriate
+   bullseye tools (`bullseye_update`, `bullseye_add`, `bullseye_retire`)
+   to apply the changes. If they decline or there are no changes, proceed.
 
 3. **Write the snapshot.** Write the snapshot as markdown to
    `stash-context.md` inside your auto-memory directory (the path is in

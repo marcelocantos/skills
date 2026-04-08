@@ -280,14 +280,9 @@ Draft release notes from git history.
    ```
 
    Key setup requirements:
-   - **`HOMEBREW_TAP_TOKEN` secret**: Each source repo that publishes to the tap needs its own PAT and secret. Create a separate token per repo:
-     1. Create a **fine-grained** PAT at https://github.com/settings/personal-access-tokens/new with these settings (present each field on its own line when relaying to the user — do not compress into a single sentence):
-        - **Name**: `<repo>-homebrew-tap`
-        - **Resource owner**: `marcelocantos` (if the target repo is in an org, select the org — otherwise its repos won't appear in "Repository access")
-        - **Repository access**: select **only** `homebrew-tap` (don't paste `<owner>/homebrew-tap` — it won't match)
-        - **Permissions**: **Contents → Read and write**
-     2. Add the PAT as a secret named `HOMEBREW_TAP_TOKEN` at `https://github.com/<owner>/<repo>/settings/secrets/actions/new`.
-     3. Provide these URLs to the user so they can complete the setup (secrets cannot be created via API without the token value).
+   - **`HOMEBREW_TAP_TOKEN` secret**: A shared PAT for all repos is stored in 1Password. To add it to a new repo:
+     1. Retrieve the token: `op read "op://Personal/GitHub Homebrew Tap PAT/token"`
+     2. Set the secret: `gh secret set HOMEBREW_TAP_TOKEN --repo <owner>/<repo>` and paste the token value.
    - The `homebrew-tap` repo must exist at `marcelocantos/homebrew-tap` with a `Formula/` directory.
    - Binary tarballs must follow the naming convention `<project>-<version>-<os>-<arch>.tar.gz` where `<version>` has **no `v` prefix** (e.g., `myapp-1.2.0-darwin-arm64.tar.gz`). homebrew-releaser strips the `v` from the tag when searching for assets.
    - The `install` and `test` fields must match the project's actual binary name and CLI interface.

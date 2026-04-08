@@ -84,17 +84,22 @@ Include its output as this section.
 
 ## Target status
 
-If the gather output's `targets` section contains target data (not
-"(not found)"), present a convergence summary:
+Call `bullseye_list(cwd)` and `bullseye_frontier(cwd)` (where `cwd`
+is the project's working directory) to get current target data. If
+bullseye returns no results, skip this section.
+
+Present a convergence summary:
 
 - List active targets grouped by priority (critical → high → medium → low).
 - For each target, show name, status, and a one-line gap assessment based
-  on what you know from the session context and gather data.
+  on what you know from the session context.
 - For targets with sub-targets, show a rollup count (e.g., "2/3 achieved").
+- Highlight the frontier targets returned by `bullseye_frontier` — these
+  are the unblocked leaves ready to be worked.
 - If any targets appear stale (status doesn't match apparent state), flag them.
 - End with: "Run `/cv` for full gap analysis and recommendations."
 
-Skip this section if no targets file exists.
+Skip this section if bullseye returns no targets.
 
 ## Maintenance status
 

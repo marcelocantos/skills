@@ -50,32 +50,6 @@ else
     echo "(none)"
 fi
 
-# --- Convergence targets ---
-section "targets"
-TARGETS_PATH=""
-for candidate in docs/targets.md targets.md; do
-    if [ -f "$candidate" ]; then
-        TARGETS_PATH="$candidate"
-        break
-    fi
-done
-
-# If CLAUDE.md mentions a specific path, try that too
-if [ -z "$TARGETS_PATH" ] && [ -f CLAUDE.md ]; then
-    hint=$(grep -o -i -E '[A-Za-z0-9_/.-]*targets[A-Za-z0-9_/.-]*\.md' CLAUDE.md 2>/dev/null | head -1)
-    if [ -n "$hint" ] && [ -f "$hint" ]; then
-        TARGETS_PATH="$hint"
-    fi
-fi
-
-if [ -n "$TARGETS_PATH" ]; then
-    echo "path: $TARGETS_PATH"
-    echo "---"
-    cat "$TARGETS_PATH"
-else
-    echo "(not found)"
-fi
-
 # --- GSD/planning state ---
 section "planning"
 if [ -d .planning ]; then

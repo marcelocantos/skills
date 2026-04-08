@@ -8,18 +8,17 @@ Prepare target state for a clean `/clear`. This is the closing half
 of the `/clear` → `/cv` cycle: update targets so the next session's
 `/cv` starts from accurate state.
 
-## Dual-write (bullseye)
+## Bullseye
 
-When the bullseye MCP server is available (check if `bullseye_update`
-is in the tool list), mirror all target mutations to bullseye:
+All target mutations go through bullseye MCP tools. Bullseye is the
+single source of truth and auto-renders the markdown view — do not
+write `docs/targets.md` directly.
 
 - **Status changes**: call `bullseye_update(cwd, id, status)`.
 - **New targets**: call `bullseye_add(cwd, ...)` with full target data.
 - **Retirements**: call `bullseye_retire(cwd, id)`.
 - **Reframings**: call `bullseye_update(cwd, id, name, acceptance, ...)`.
 - **Weight changes**: call `bullseye_update(cwd, id, value, cost)`.
-
-If bullseye is not available, proceed with markdown-only.
 
 The `cwd` parameter should be the project's working directory.
 
@@ -127,11 +126,11 @@ summary of what was written, grouped by type:
 **No changes:** 🎯T7, 🎯T8
 ```
 
-### 3. Write target updates
+### 3. Apply target updates via bullseye
 
-Apply changes to `docs/targets.md` (or the project's configured
-targets path). Move achieved targets to the `## Achieved` section.
-Add new targets to `## Active`.
+Call the appropriate bullseye tools for each change identified in
+Step 2. Bullseye automatically re-renders `docs/targets.md` — do not
+edit that file directly.
 
 ### 4. Save residual context
 
