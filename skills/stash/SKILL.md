@@ -23,8 +23,17 @@ Save the current conversation state so it survives a `/clear`.
      exploration.
 
 2. **Check convergence targets.** Call `bullseye_list(cwd)` (where `cwd`
-   is the project's working directory) to retrieve active targets. Check
-   whether any were affected during this session. If so, prompt the user:
+   is the project's working directory) to retrieve active targets. If the
+   bullseye MCP server is not registered (tool not found), **stop and
+   report**:
+
+   > **Error: bullseye MCP server is not registered.**
+   > Add it via `claude mcp add` or check `~/.claude.json`. /stash
+   > needs bullseye to check target state before stashing.
+
+   If the tool exists but returns no targets (empty project), skip
+   target checking and proceed. Otherwise, check whether any targets
+   were affected during this session. If so, prompt the user:
    "These targets may have changed status during this session: [list].
    Update before stashing?" If the user confirms, call the appropriate
    bullseye tools (`bullseye_update`, `bullseye_add`, `bullseye_retire`)

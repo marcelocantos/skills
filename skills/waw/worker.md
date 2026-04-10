@@ -47,10 +47,15 @@ report.
 ## Summary
 
 Include the current repository name in the heading, e.g.
-"## Summary — myproject". Then one or two sentences covering what was
-accomplished in this session and where things stand right now. If
-conversation context has been compacted, note this and flag that details
-from before the compaction boundary may be approximate.
+"## Summary — myproject". Call
+`mnemo_recent_activity(repo=<current_repo>)` first — its output is the
+primary source for the session narrative. Use it for what happened, when,
+and which targets were touched. Fall back to the git log from
+`gather.sh` only if mnemo returns nothing or is unavailable. Then write
+one or two sentences covering what was accomplished and where things
+stand right now. If conversation context has been compacted, note this
+and flag that details from before the compaction boundary may be
+approximate.
 
 ## Working tree state
 
@@ -66,10 +71,12 @@ look). One line each — hash and message.
 
 ## Key decisions
 
+Call `mnemo_search(query="decision OR decided OR trade-off OR chose",
+repo=<current_repo>, limit=10)` to surface recent decisions from session
+transcripts. Combine with auto-memory for stable cross-session facts.
 If the session involved design discussions, trade-off decisions, or
 explicit choices to do or not do something, summarise them briefly.
-This helps the user remember *why* things are the way they are. Use the
-auto-memory and conversation context to inform this section.
+This helps the user remember *why* things are the way they are.
 
 ## Build / test status
 
@@ -84,22 +91,24 @@ Include its output as this section.
 
 ## Target status
 
-Call `bullseye_list(cwd)` and `bullseye_frontier(cwd)` (where `cwd`
-is the project's working directory) to get current target data. If
-bullseye returns no results, skip this section.
+Call `bullseye_summary(cwd)` (where `cwd` is the project's working
+directory). This single call returns grouped targets with rollup counts,
+frontier, blocked targets, stale targets, and WSJF ranking. If
+`bullseye_summary` is not available, fall back to `bullseye_list(cwd)`
+and `bullseye_frontier(cwd)`.
 
-Present a convergence summary:
+If the bullseye MCP server is not registered (tool not found), **stop
+and report**:
 
-- List active targets grouped by priority (critical → high → medium → low).
-- For each target, show name, status, and a one-line gap assessment based
-  on what you know from the session context.
-- For targets with sub-targets, show a rollup count (e.g., "2/3 achieved").
-- Highlight the frontier targets returned by `bullseye_frontier` — these
-  are the unblocked leaves ready to be worked.
-- If any targets appear stale (status doesn't match apparent state), flag them.
-- End with: "Run `/cv` for full gap analysis and recommendations."
+> **Error: bullseye MCP server is not registered.**
+> Add it via `claude mcp add` or check `~/.claude.json`. /waw needs
+> bullseye for the target status section.
 
-Skip this section if bullseye returns no targets.
+If bullseye returns no targets (empty project), skip this section.
+
+Relay the summary output, adding a one-line gap assessment per target
+based on session context (what you know from mnemo and the conversation).
+End with: "Run `/cv` for full gap analysis and recommendations."
 
 ## Maintenance status
 
@@ -123,8 +132,11 @@ healthy.
 
 ## What's next?
 
-Based on the session context, infer what was likely to happen next.
-Present one or more concrete continuation options for the user to pick
-from. Frame these as actionable choices, not open-ended questions.
+Check `mnemo_recent_activity(repo=<current_repo>)` for in-flight work
+patterns — if the last session was actively working on a specific target
+or feature, suggest continuing it. Combine with the working tree state
+and frontier targets to infer what was likely to happen next. Present
+one or more concrete continuation options for the user to pick from.
+Frame these as actionable choices, not open-ended questions.
 
 Return the full briefing as your result.

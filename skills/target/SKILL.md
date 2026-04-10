@@ -9,6 +9,19 @@ Targets are desired states expressed as testable properties, not tasks.
 The source of truth is `docs/targets.yaml`; `docs/targets.md` is an
 auto-rendered view updated by bullseye after every mutation.
 
+## Prerequisite — bullseye MCP server
+
+Before doing anything else, verify the bullseye MCP server is available
+by calling `bullseye_list(cwd)`. If the tool does not exist (i.e. the
+call fails with a "tool not found" or "unknown tool" error, NOT a
+targets.yaml-not-found error), **stop immediately** and report:
+
+> **Error: bullseye MCP server is not registered.**
+> Add it via `claude mcp add` or check `~/.claude.json`. /target cannot
+> operate without it.
+
+Do not fall back to reading `docs/targets.md` directly.
+
 ## Step 1 — Gather context
 
 Call `bullseye_list(cwd)` to get all active targets. If that fails
@@ -24,12 +37,14 @@ Behaviour depends on arguments provided after `/target`.
 
 ### `/target` (no arguments) — Summarise
 
-Call `bullseye_list(cwd)` and `bullseye_frontier(cwd)`. Present:
+Call `bullseye_summary(cwd)`. This returns grouped targets with rollup
+counts, frontier, blocked, stale, and WSJF ranking in one call. If
+`bullseye_summary` is not available, fall back to `bullseye_list(cwd)`
+and `bullseye_frontier(cwd)`.
 
-- All active targets sorted by ID
-- For each: name, status, value, cost, one-line gap assessment
-- Frontier targets highlighted as ready for work
-- Count of active targets
+Present the summary output directly — it already includes everything
+the user needs: active targets grouped by parent, frontier highlighted,
+blocked targets with blockers, and WSJF ranking.
 
 ### `/target <text>` — Add a new target
 

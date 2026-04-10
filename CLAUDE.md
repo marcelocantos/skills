@@ -222,10 +222,34 @@ deep links, sample data, and visual verification cadence.
 ## Session context via mnemo
 
 The `mnemo` MCP server indexes all Claude Code session transcripts.
-When you need context about recent work — what repos have been
-active, what was discussed, what decisions were made — use
-`mnemo_status` or `mnemo_search` rather than guessing or asking the
-user. Good moments to reach for mnemo:
+It is the **primary source for session history** — what was worked on,
+when, what decisions were made, and what was discussed. Skills should
+prefer mnemo over reconstructing narrative from git log or auto-memory.
+
+- **bullseye** owns target state (desired states, gap assessments,
+  convergence). **mnemo** owns session history (what actually happened,
+  decisions, context). They complement each other — don't use one to
+  replace the other.
+- `/waw` uses `mnemo_recent_activity` for its summary narrative and
+  `mnemo_search` for key decisions, falling back to git log only if
+  mnemo is unavailable.
+- `/cv` uses `mnemo_recent_activity` to understand recent movement
+  before evaluating gaps, reducing expensive codebase reads.
+- `/wrap` writes only forward-looking context to MEMORY.md (targets
+  affected, in-flight work, user preferences) — session narrative
+  lives in mnemo, not auto-memory.
+- Auto-memory (`MEMORY.md`, topic files) stores **stable facts** and
+  **context mnemo cannot provide** (user preferences, architectural
+  decisions that shape future work, external constraints). Don't
+  duplicate session logs there.
+
+Key tools:
+- `mnemo_recent_activity(repo=..., days=N)` — recent work on a repo
+- `mnemo_search(query=..., repo=..., limit=N)` — full-text search
+- `mnemo_status` — server health and indexing state
+- `mnemo_sessions`, `mnemo_read_session` — browse specific sessions
+
+Good moments to reach for mnemo:
 - The user references prior work ("that thing we discussed", "the
   approach from last session", "continue where I left off")
 - You need to understand the broader context of a project before
@@ -244,6 +268,7 @@ user. Good moments to reach for mnemo:
   - `bullseye_update(cwd, id, ...)` — change status or fields
   - `bullseye_retire(cwd, id)` — mark achieved
   - `bullseye_validate(cwd)` — check graph integrity
+  - `bullseye_startup_context(cwd)` — session start context
 - Targets are numbered 🎯T1, 🎯T2, … (🎯T1.1, 🎯T1.2, … for related
   targets). Always use the 🎯T*N* prefix when referring to targets —
   in files, reports, and conversation. No space between 🎯 and T.
@@ -285,6 +310,13 @@ user. Good moments to reach for mnemo:
   immediately run `/wrap` to update targets and capture learnings
   before state is lost. After `/wrap` completes, recommend `/clear`
   to start a fresh session.
+- **Session startup**: At the start of every session, if the project
+  has a `docs/targets.yaml`, call `bullseye_startup_context(cwd)` to
+  load project context (frontier targets, recent achievements,
+  warnings). For cross-project context, also call
+  `mnemo_recent_activity()` to see recent session activity. Present
+  a brief summary only if there's something actionable — don't dump
+  raw output.
 - **Workflow**: When starting new work (user request, session start, or
   picking up where you left off), call `bullseye_frontier` or
   `bullseye_list` first. If the work maps to an existing target,
