@@ -76,7 +76,58 @@ repo_name
 # 2. Tags
 # ---------------------------------------------------------------------------
 echo "# tags"
-git tag --sort=-v:refname 2>/dev/null || echo "(no tags)"
+all_tags=$(git tag --sort=-v:refname 2>/dev/null || true)
+if [[ -n "$all_tags" ]]; then
+    echo "$all_tags"
+else
+    echo "(no tags)"
+fi
+
+# ---------------------------------------------------------------------------
+# 2a. Latest semver tag
+# ---------------------------------------------------------------------------
+echo "# latest_tag"
+latest_tag=$(echo "$all_tags" | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
+if [[ -n "$latest_tag" ]]; then
+    echo "$latest_tag"
+else
+    echo "(none)"
+fi
+
+# ---------------------------------------------------------------------------
+# 2b. Commits since last tag (or all commits if no tags)
+# ---------------------------------------------------------------------------
+echo "# commits_since_last_tag"
+if [[ -n "$latest_tag" ]]; then
+    git log --oneline "$latest_tag..HEAD" 2>/dev/null || echo "(git log failed)"
+else
+    git log --oneline 2>/dev/null | head -50 || echo "(no commits)"
+fi
+
+# ---------------------------------------------------------------------------
+# 2c. Version era (pre-1.0 vs post-1.0) — routes Phase 1.5 vs 1.6
+# ---------------------------------------------------------------------------
+echo "# version_era"
+if [[ -z "$latest_tag" ]]; then
+    echo "pre-1.0"
+else
+    major=$(echo "${latest_tag#v}" | cut -d. -f1)
+    if [[ "$major" =~ ^[0-9]+$ ]] && (( major >= 1 )); then
+        echo "post-1.0"
+    else
+        echo "pre-1.0"
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# 2d. STABILITY.md (complement to version_era)
+# ---------------------------------------------------------------------------
+echo "# stability_md"
+if [[ -f STABILITY.md ]]; then
+    echo "exists"
+else
+    echo "missing"
+fi
 
 # ---------------------------------------------------------------------------
 # 3. Releases (requires gh)
@@ -89,11 +140,16 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 4. Description (requires gh)
+# 4. Description (requires gh) — reports "null" if unset, else the description
 # ---------------------------------------------------------------------------
 echo "# description"
 if has_cmd gh; then
-    gh repo view --json description -q '.description' 2>/dev/null || echo "(unavailable)"
+    desc=$(gh repo view --json description -q '.description' 2>/dev/null) || desc=""
+    if [[ -z "$desc" || "$desc" == "null" ]]; then
+        echo "null"
+    else
+        echo "$desc"
+    fi
 else
     echo "(gh not installed)"
 fi
@@ -231,22 +287,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 10. Description check
-# ---------------------------------------------------------------------------
-echo "# description_check"
-if has_cmd gh; then
-    desc=$(gh repo view --json description -q '.description' 2>/dev/null) || desc=""
-    if [[ -z "$desc" || "$desc" == "null" ]]; then
-        echo "null"
-    else
-        echo "set"
-    fi
-else
-    echo "(gh not installed)"
-fi
-
-# ---------------------------------------------------------------------------
-# 11. Version macros
+# 10. Version macros
 # ---------------------------------------------------------------------------
 echo "# version_macros"
 # Search for VERSION defines/constants in source files, excluding vendor/

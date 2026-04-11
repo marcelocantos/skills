@@ -36,9 +36,9 @@ Assess the project's current release state. **Start by running the companion dis
 
 (It is already `chmod +x` — do **not** wrap it in `bash`, just invoke the path as the command.)
 
-This script gathers all Phase 1 data in one invocation (tags, releases, build system, project type, CI workflows, Homebrew tap, repo description, version macros, vendored dependency licences, and working tree status). Parse its output, then verify or supplement the following items as needed:
+This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (latest tag, commits since last tag, version era, STABILITY.md existence, build system, project type, CI workflows, Homebrew tap, repo description, version macros, vendored dependency licences, working tree status) in one invocation. Do **not** separately run `git tag`, `git log <last-tag>..HEAD`, or `gh release list` — the script already emits that data. Parse its output, then verify or supplement the following items as needed:
 
-1. **Existing releases**: List existing tags and GitHub releases (`git tag --sort=-v:refname`, `gh release list`). Identify the latest version.
+1. **Existing releases**: The script's `# tags`, `# latest_tag`, and `# releases` sections cover this. `# latest_tag` is the most recent semver tag — use it directly for subsequent phases.
 
 2. **Build system**: Determine how the project builds — mkfile, Makefile, go build, cargo, cmake, etc. If the project has a `mkfile`, run `mk --help-agent` to get build instructions and understand the mk syntax. mk binaries are available from https://github.com/marcelocantos/mk. Check for a distribution generation target (e.g., `make dist`, `mk dist`) that produces release artifacts (amalgamated headers, bundled files, etc.) that are checked into the repo. Note the target name for Phase 5.
 
@@ -103,7 +103,7 @@ Present a summary of findings and confirm before proceeding.
 
 ### Phase 1.5: Stability tracking (pre-1.0 projects only)
 
-**Skip this phase** if the project is already at v1.0.0 or later.
+**Skip this phase** if discover.sh's `# version_era` reports `post-1.0`.
 
 For pre-1.0 projects, create or update a `STABILITY.md` file in the repo root. This document tracks the project's readiness for a 1.0 release — the point at which backwards compatibility becomes a binding commitment.
 
@@ -167,7 +167,7 @@ Commit and push the `STABILITY.md` changes before proceeding to Phase 2.
 
 ### Phase 1.6: Breaking change audit (post-1.0 projects only)
 
-**Skip this phase** if the project is pre-1.0 (below v1.0.0).
+**Skip this phase** if discover.sh's `# version_era` reports `pre-1.0`.
 
 For post-1.0 projects, audit all changes since the last release for backwards-incompatible changes. This is a **hard gate** — if breaking changes are found, the release **must not proceed**.
 
@@ -201,9 +201,9 @@ For post-1.0 projects, audit all changes since the last release for backwards-in
 
 Determine the next version number. **Do not ask for confirmation** — just use the version determined below.
 
-1. **Changes since last release**: Run `git log --oneline <last-tag>..HEAD` (or full log if no prior tags) and summarise the changes.
+1. **Changes since last release**: Use the `# commits_since_last_tag` output already produced by discover.sh — do not re-run `git log`. Summarise the changes.
 
-2. **Determine version**: If there are no prior releases, use `v0.1.0`. Otherwise, bump MINOR and reset PATCH to 0 (e.g., `v0.1.0` → `v0.2.0`, `v1.3.0` → `v1.4.0`). Only use a different bump if the user explicitly requested one.
+2. **Determine version**: If `# latest_tag` is `(none)`, use `v0.1.0`. Otherwise, bump MINOR and reset PATCH to 0 (e.g., `v0.1.0` → `v0.2.0`, `v1.3.0` → `v1.4.0`). Only use a different bump if the user explicitly requested one.
 
 3. **Update version string**: If the project has a hardcoded version string (found in Phase 1 step 7), update it to match the new version. Commit the change before proceeding. If the version is injected at build time (e.g., via `-ldflags` or CI env vars), verify the injection mechanism uses the tag correctly and no manual update is needed.
 
@@ -221,7 +221,7 @@ Determine the next version number. **Do not ask for confirmation** — just use 
 
 Draft release notes from git history.
 
-1. **Gather material**: Read commit messages and any merged PRs since the last tag.
+1. **Gather material**: Use the `# commits_since_last_tag` output from discover.sh — do not re-run `git log`. Read the commit subjects (and look up merged PRs if needed).
 
 2. **Draft**: Write concise release notes. Group changes by category where natural:
    - Added (new features)
