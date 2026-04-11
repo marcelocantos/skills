@@ -14,11 +14,15 @@ All target mutations go through bullseye MCP tools. Bullseye is the
 single source of truth and auto-renders the markdown view — do not
 write `docs/targets.md` directly.
 
-- **Status changes**: call `bullseye_update(cwd, id, status)`.
-- **New targets**: call `bullseye_add(cwd, ...)` with full target data.
+- **Status changes**: call `bullseye_assert(cwd, id, status)`.
+- **New targets**: call `bullseye_assert(cwd, ...)` without an `id` (auto-assign).
 - **Retirements**: call `bullseye_retire(cwd, id)`.
-- **Reframings**: call `bullseye_update(cwd, id, name, acceptance, ...)`.
-- **Weight changes**: call `bullseye_update(cwd, id, value, cost)`.
+- **Reframings**: call `bullseye_assert(cwd, id, name, acceptance, ...)`.
+- **Weight changes**: call `bullseye_assert(cwd, id, value, cost)`.
+
+`bullseye_assert` is an upsert — omit `id` to create a new target with
+an auto-assigned ID, or provide `id` to patch (or create at a specific
+ID for sub-targets like `T1.2`). Only provided fields change on patch.
 
 The `cwd` parameter should be the project's working directory.
 

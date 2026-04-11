@@ -148,8 +148,8 @@ A concrete next step — not a full plan, just the first actionable thing.
 ## Step 4 — Update last_evaluated
 
 If any target's status changed based on the evaluation, call
-`bullseye_update` to update it. Then record the current git SHA
-in the targets file's `last_evaluated` field.
+`bullseye_assert(cwd, id, status)` to update it. Then record the
+current git SHA in the targets file's `last_evaluated` field.
 
 ## Gate enforcement
 

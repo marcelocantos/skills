@@ -367,11 +367,30 @@ Create the GitHub release and let CI handle the rest.
 7. **Verify**: Confirm:
    - The release appears on GitHub with correct notes and artifacts
    - Binary tarballs are attached for each platform
-   - The Homebrew formula was updated in `marcelocantos/homebrew-tap` (check the tap repo's recent commits)
+   - The Homebrew formula was updated in `marcelocantos/homebrew-tap` (check the tap repo's recent commits). If the workflow includes a homebrew-releaser job, wait for it to finish (`gh run watch`) before proceeding — the tap commit must exist before the local install in step 8 will pick up the new version.
 
-8. **Report**: Print:
+8. **Install locally**: Install the released version onto the laptop so the user can use it immediately. This step is **mandatory** for projects with a Homebrew tap — do not skip it and do not ask for permission.
+
+   ```bash
+   brew update
+   brew upgrade marcelocantos/tap/<project> || brew install marcelocantos/tap/<project>
+   ```
+
+   `brew update` is required to pull the fresh formula from the tap — without it, Homebrew uses its cached copy and reinstalls the previous version. Use `upgrade || install` so the command works whether or not the formula is already installed.
+
+   **Persistent services**: If the project is a long-running server with a Homebrew service definition (detected in Phase 4 step 3), restart the service so the new binary takes effect:
+   ```bash
+   brew services restart <project>
+   ```
+
+   **Verify the install**: Run `<project> --version` (or the equivalent) and confirm the output matches the released version. If it doesn't match, diagnose — common causes are a stale `brew update`, a PATH shadowing issue, or the homebrew-releaser job not having completed.
+
+   **Non-Homebrew projects**: If the project has no Homebrew tap (e.g., a library, or a binary distributed another way), skip this step and note it in the Phase 5 report.
+
+9. **Report**: Print:
    - Release URL
    - Homebrew install command (if tap was set up): `brew install marcelocantos/tap/<project>`
+   - Confirmation that the new version is installed locally (include the `--version` output)
 
 ## Audit log
 

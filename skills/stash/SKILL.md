@@ -36,7 +36,7 @@ Save the current conversation state so it survives a `/clear`.
    were affected during this session. If so, prompt the user:
    "These targets may have changed status during this session: [list].
    Update before stashing?" If the user confirms, call the appropriate
-   bullseye tools (`bullseye_update`, `bullseye_add`, `bullseye_retire`)
+   bullseye tools (`bullseye_assert`, `bullseye_retire`)
    to apply the changes. If they decline or there are no changes, proceed.
 
 3. **Write the snapshot.** Write the snapshot as markdown to
