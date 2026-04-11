@@ -14,23 +14,24 @@ pr="$1"
 default_branch="$2"
 feature_branch="$3"
 
-# 1. Detach HEAD before invoking gh pr merge.
-#    Otherwise gh runs a post-merge `git pull --ff-only` on whatever
-#    named branch we're on. Since the squash rewrote our local commits
-#    into a single origin commit with a different SHA, that FF attempt
-#    always fails in the diverging-but-already-squashed case and gh
-#    emits a noisy "! warning: not possible to fast-forward" that looks
-#    like an error. Detaching HEAD gives gh no named branch to sync, so
-#    it skips the auto-update entirely. The hard reset on step 4 is the
-#    actual sync.
-git checkout --detach HEAD >/dev/null 2>&1
+# 1. Squash-merge on GitHub (also deletes remote branch).
+#    gh runs a post-merge `git pull --ff-only` on whatever named branch
+#    we're on, which always fails in the diverging-but-already-squashed
+#    case (the squash rewrote local commits into a single origin commit
+#    with a different SHA). The failure is harmless — step 4 resets to
+#    origin authoritatively — but gh emits a noisy
+#        "! warning: not possible to fast-forward"
+#    plus the full git hint block that looks like an error. Filter
+#    those specific lines from stderr so the output stays clean. Other
+#    gh errors still surface through set -euo pipefail.
+gh pr merge "$pr" --squash --delete-branch 2> >(
+    grep -Ev '^(hint:|fatal: Not possible to fast-forward|! warning: not possible to fast-forward|Disable this message)' >&2
+)
 
-# 2. Squash-merge on GitHub (also deletes remote branch).
-gh pr merge "$pr" --squash --delete-branch
-
-# 3. Fetch the updated remote (prune stale remote-tracking refs), then
-#    switch to the default branch.
+# 2. Fetch the updated remote (prune stale remote-tracking refs).
 git fetch origin --prune
+
+# 3. Switch to the default branch.
 git checkout "$default_branch"
 
 # 4. Hard-reset to the squash-merged remote.
