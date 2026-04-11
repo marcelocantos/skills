@@ -47,7 +47,7 @@ The text describes the desired state. From the description:
    Let the user confirm or adjust. Estimate cost from the codebase
    and show reasoning.
 3. **Draft the target** and show it to the user for confirmation.
-4. Call `bullseye_assert(cwd, name, value, cost, acceptance, context, ...)`.
+4. Call `bullseye_put(cwd, name, value, cost, acceptance, context, ...)`.
    Omit `id` to auto-assign. Set `depends_on` for upstream blockers, or
    `blocks` to inject the new target into other targets' `depends_on`
    lists (useful when the new target is a newly-discovered prerequisite
@@ -73,7 +73,7 @@ Ask the user how the cost estimate compared to reality and pass
 
 ## Target numbering
 
-Bullseye assigns IDs automatically via `bullseye_assert` (when `id` is
+Bullseye assigns IDs automatically via `bullseye_put` (when `id` is
 omitted). The convention:
 
 - **Top-level targets**: 🎯T1, 🎯T2, 🎯T3, ...

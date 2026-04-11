@@ -62,7 +62,7 @@ topic.
 **Before starting any new work**, check the project's targets via
 `bullseye_frontier` and `bullseye_list`. If the work maps to an
 existing target, run `/cv` before planning. If no target exists,
-create one with `bullseye_assert`. Do not enter plan mode until
+create one with `bullseye_put`. Do not enter plan mode until
 convergence is assessed. See [Convergence targets](#convergence-targets)
 for the full protocol.
 
@@ -287,7 +287,7 @@ Good moments to reach for mnemo:
 - Use bullseye tools for all target operations:
   - `bullseye_frontier(cwd)` — unblocked targets ready for work
   - `bullseye_list(cwd)` — all targets with status
-  - `bullseye_assert(cwd, ...)` — upsert a target (omit `id` to create
+  - `bullseye_put(cwd, ...)` — upsert a target (omit `id` to create
     with auto-assigned ID; provide `id` to patch or create at a specific
     ID like `T1.2`). Supports `depends_on` and `blocks` (sugar for
     injecting this target into other targets' `depends_on`).
@@ -299,7 +299,7 @@ Good moments to reach for mnemo:
   in files, reports, and conversation. No space between 🎯 and T.
 - When you discover something during work that doesn't belong in the
   current task — a quality issue, a missing capability, an
-  inconsistency — add it as a target via `bullseye_assert` rather than
+  inconsistency — add it as a target via `bullseye_put` rather than
   fixing it inline or dropping a bare TODO.
 - A target is a desired state, not a task. Write it as an assertion:
   "All tests pass on Windows" not "Fix Windows tests."
@@ -308,7 +308,7 @@ Good moments to reach for mnemo:
 - Mark the origin if it was discovered while working on another target
   (forked-from).
 - When finishing a task, plan, or session, check whether any active
-  targets were affected. Update status via `bullseye_assert` if a
+  targets were affected. Update status via `bullseye_put` if a
   target moved closer to or achieved its desired state.
 - If execution reveals that a target is wrong — misframed, incomplete,
   or pointing at the wrong thing — update the target first, then decide
@@ -346,7 +346,7 @@ Good moments to reach for mnemo:
   picking up where you left off), call `bullseye_frontier` or
   `bullseye_list` first. If the work maps to an existing target,
   evaluate convergence before planning. If no target exists, create
-  one with `bullseye_assert`. Do not enter plan mode until the target is
+  one with `bullseye_put`. Do not enter plan mode until the target is
   established and convergence is assessed.
 
 ## Delivery
