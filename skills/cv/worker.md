@@ -33,6 +33,43 @@ Check once globally using available data:
 If any invariant is violated, the recommendation must prioritise
 fixing those over any explicit target work.
 
+## Step 0.5 — Unreleased bug fixes check
+
+Bug fixes that exist on master but haven't shipped are a **high-priority
+signal**. Users running the installed version are still hitting the bug;
+shipping the fix is almost always higher leverage than starting new work.
+
+Check for unreleased fixes:
+
+1. Get the latest release tag:
+   `git describe --tags --abbrev=0` (or `gh release list --limit 1`).
+   If the project has no releases yet, skip this step.
+2. List commits since that tag: `git log --oneline <tag>..HEAD`.
+3. If no commits, skip this step — everything is released.
+4. Scan the commit subjects for bug-fix markers: `fix:`, `fix(`, `bugfix`,
+   `hotfix`, `revert`, "fix ", "fixes #", "correct", or similar. Also
+   check for commits that touch code but not just docs/tests/CI.
+5. If any bug-fix commits are found, **mark "unreleased fixes" as a
+   candidate recommendation** with high priority. Carry this into
+   Step 3 — it may outrank frontier target work.
+
+Exceptions — **don't** prioritise a release when:
+- The only unreleased commits are docs, comments, CI tweaks, or
+  refactors with no user-visible effect.
+- A release is already in flight (open release PR, pending tag, CI run
+  of `release.yml` in progress).
+- Frontier work is mid-flight and the next commit will be another fix —
+  batching fixes into one release is usually better than releasing each
+  one individually. Use judgement: if recent sessions have been actively
+  committing fixes (check mnemo in Step 1.5), wait; if the fix is
+  several days old and nothing is in flight, ship it.
+- The project has no release mechanism at all (no `release.yml`, no
+  tags, no Homebrew tap). Note it but don't recommend a release.
+
+If unreleased fixes are found and none of the exceptions apply, the
+suggested action in Step 3 should be `/release` (routed via the release
+gate — never suggest `gh release create` directly).
+
 ## Step 1 — Gather targets
 
 Call `bullseye_summary(cwd)`. This single call returns active targets
@@ -124,9 +161,16 @@ Status: identified
 
 ### Recommendation
 
-Pick the highest-leverage frontier target. Since all frontier targets
-can be worked in parallel, the judgement is: what's most actionable,
-what unblocks the most downstream work, what has the smallest gap.
+Pick the highest-leverage next action. Priority order:
+
+1. **Standing invariant violations** (from Step 0) — fix first.
+2. **Unreleased bug fixes** (from Step 0.5) — ship them via `/release`
+   unless an exception applies. Explain briefly why releasing beats
+   new target work in the current state.
+3. **Frontier targets** — highest-leverage unblocked target. Since
+   frontier targets can be worked in parallel, the judgement is:
+   what's most actionable, what unblocks the most downstream work,
+   what has the smallest gap.
 
 ```
 ## Recommendation

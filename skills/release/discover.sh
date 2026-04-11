@@ -303,7 +303,7 @@ fi
 # ---------------------------------------------------------------------------
 echo "# agent_guide"
 found_agent_guide=false
-for f in agents-guide.md AGENTS-GUIDE.md dist/agents-guide.md; do
+for f in agents-guide.md AGENTS-GUIDE.md docs/agents-guide.md docs/AGENTS-GUIDE.md dist/agents-guide.md; do
     if [[ -f "$f" ]]; then
         echo "exists: $f"
         found_agent_guide=true

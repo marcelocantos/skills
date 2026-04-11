@@ -56,19 +56,75 @@ dominating.
   `Deserialize` for hot paths.
 - Ensure proc macros are compiled once, not rebuilt.
 
-### sccache not configured
-**Symptom**: First-time builds of common deps slow.
+### sccache not configured (for shared / multi-machine caches)
+**Symptom**: First-time builds of common deps slow across a team or
+self-hosted runner pool where `rust-cache` can't reach.
 **Detection**: `which sccache; cat ~/.cargo/config.toml | grep rustc-wrapper`.
 **Fix**: install sccache, set `[build] rustc-wrapper = "sccache"` in
-`~/.cargo/config.toml` or the project's `.cargo/config.toml`.
+`~/.cargo/config.toml` or the project's `.cargo/config.toml`. Point
+it at a shared backend (S3, Redis, GCS) via `SCCACHE_*` env vars.
 **Risk**: Low — sccache is well-tested with cargo.
 
-### `cargo clean` in scripts or CI
-**Symptom**: CI always does clean builds.
-**Detection**: grep CI config for `cargo clean`.
-**Fix**: use `actions/cache` keyed on `Cargo.lock` to cache `target/`.
-Rust-specific cache actions like `Swatinem/rust-cache` handle this
-well.
+**When to prefer sccache over `Swatinem/rust-cache`**:
+- Cross-machine caches (team dev boxes, self-hosted runner pools).
+- Local dev where you regularly blow away `target/` or switch between
+  many branches that each trigger dep rebuilds.
+
+For single-repo GitHub Actions CI, prefer `Swatinem/rust-cache@v2`
+(see "No build cache in CI") — simpler, no external backend needed.
+
+### No build cache in CI (or `cargo clean` in scripts)
+**Symptom**: CI always does clean builds. Every run recompiles the
+entire dependency graph (tokio, serde, regex, proc-macro stack, etc.)
+from scratch, even when nothing in those deps changed. This is often
+the single largest CI wall-time win on a cargo project.
+
+**Detection**:
+- grep CI config for `cargo clean`, missing cache steps, or the
+  absence of any `Cache*` / `cache:` / `rust-cache` action before the
+  first cargo invocation.
+- Compare two back-to-back CI runs; if both are the same duration,
+  there's no cache.
+
+**Fix**: on GitHub Actions, add `Swatinem/rust-cache@v2` as a step
+after `rustup toolchain install` but before the first cargo
+invocation. It's the de-facto standard Rust cache action — keys on
+`Cargo.lock` content + toolchain version, caches `~/.cargo/registry`,
+`~/.cargo/git`, `~/.cargo/bin`, and `target/`, and auto-invalidates on
+dep changes. For matrix builds (multi-target releases), pass
+`with: { key: ${{ matrix.target }} }` so per-target caches don't
+clobber each other.
+
+```yaml
+- name: Install Rust toolchain
+  run: rustup toolchain install stable --profile minimal
+- name: Cache cargo registry and build artifacts
+  uses: Swatinem/rust-cache@v2
+- run: cargo test
+```
+
+For GitLab CI or other runners without a dedicated action, use
+`actions/cache`-equivalent keyed on `Cargo.lock` to cache `~/.cargo`
+and `target/`.
+
+**Expected impact on bullseye-sized projects** (~20 direct deps, one
+binary): warm-cache CI wall drops from ~50s to ~20s, with clippy and
+test compile each dropping ~78% (from ~17-19s to ~4s). Measured on
+linux-amd64 ubuntu-latest on 2026-04-11.
+
+**Risk**: Low. Rust-cache fails closed (forces rebuild) if the cache
+is unusable, and cargo's fingerprint tracking means a stale cache
+produces extra compile work, not wrong artifacts. Verify with one cold
+run (populate) + one warm run (restore) and check both produce green
+tests.
+
+**Not a fit for rust-cache**:
+- **Multi-machine shared caches** (e.g., a team dev-box or self-hosted
+  runner pool). `rust-cache` is per-repo on GitHub Actions; use
+  `sccache` with a shared S3 or Redis backend for cross-machine hits.
+- **Local dev**: cargo's own incremental cache already handles this.
+  sccache adds value locally only when you're regularly blowing away
+  `target/` or jumping between many branches that each rebuild deps.
 
 ### Workspace without `resolver = "2"`
 **Symptom**: Feature unification causes unnecessary recompiles.

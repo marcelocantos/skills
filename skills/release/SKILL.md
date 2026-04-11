@@ -330,6 +330,13 @@ Enforce the project's delivery gates before releasing.
 4. If any gate fails, **stop**. Report which gate failed and why.
    Do not proceed to Phase 5.
 
+**Expect two PRs.** The `pr-workflow` pre-merge gate means release-skill work routes through a feature branch and PR, not a direct push to master. Combined with the audit-log chicken-and-egg (see **Audit log** section below), the typical release flow produces **two sequential PRs**:
+
+1. **Release PR** — version bump, STABILITY.md updates, doc changes, and the audit-log entry with `Commit: pending`. CI must go green before squash-merge.
+2. **Audit-log-hash PR** — a tiny docs-only follow-up that rewrites `pending` to the real merge-commit hash from PR #1. Also requires CI green before merge, then tag from the resulting master commit.
+
+This is by design. Tell the user upfront at the start of Phase 4.5 so the second PR isn't a surprise. If the project has no CI, the `pr-workflow` gate still applies — you still need to go through a PR, but CI waits are zero.
+
 ### Phase 5: Release
 
 Create the GitHub release and let CI handle the rest.
@@ -394,7 +401,7 @@ Create the GitHub release and let CI handle the rest.
 
 ## Audit log
 
-Before the Phase 5 push (step 2), append an entry to `docs/audit-log.md` (create the file with the standard header if it doesn't exist — see `~/.claude/skills/audit-log-convention.md` for the format), commit it, and include it in the push. This ensures the log entry is part of the tagged release commit.
+Append an entry to `docs/audit-log.md` as part of the release-prep commits (create the file with the standard header if it doesn't exist — see `~/.claude/skills/audit-log-convention.md` for the format).
 
 The entry should include the version released, platforms, and any issues noted. Example:
 
@@ -404,6 +411,14 @@ The entry should include the version released, platforms, and any issues noted. 
 - **Commit**: `a1b2c3d`
 - **Outcome**: Released v0.2.0 (darwin-arm64, linux-amd64, linux-arm64). Homebrew formula updated.
 ```
+
+**The commit hash chicken-and-egg.** The `Commit` field wants the final merge commit hash on master, but squash-merging a PR produces that hash *after* the PR merges — which is after the audit-log commit has already been made. Two accepted approaches:
+
+1. **Placeholder + follow-up PR** (current pattern for this workflow). Write the audit log entry with `Commit: pending` in the release PR, let it merge, then open a tiny docs-only follow-up PR that rewrites `pending` to the real merge commit hash. Merge that second PR before tagging. This is how v0.7.0 and v0.8.0 of bullseye were done.
+
+2. **Record the PR number instead**. Change the convention to `PR: #123` and drop the commit hash. The PR number is known at commit time, so no follow-up is needed. Trade-off: PR numbers are less useful than commit hashes for `git show` / blame lookups, but they round-trip through GitHub links.
+
+Either is fine; pick one per-project and stick with it. The skill currently assumes approach 1.
 
 **Skip this step** if invoked as part of another skill (e.g., `/open-source`) — the parent skill will log a summary entry.
 
