@@ -353,7 +353,25 @@ Create the GitHub release and let CI handle the rest.
    ```
    This triggers the `release.yml` workflow, which builds binaries, uploads them, and (if configured) runs homebrew-releaser to update the tap formula automatically.
 
-5. **Go module tags**: If the project contains Go modules in subdirectories
+5. **Sync local tags with the remote**: `gh release create` creates the
+   tag on the remote but does **not** update the local `.git/refs/tags/`.
+   Any tool that reads local tags immediately after a release (another
+   `/cv` run, a manual `git describe`, a subagent spawned for follow-up
+   work) will see the previous tag as the latest, re-detect the
+   already-shipped commits as unreleased, and potentially recommend
+   shipping them again. Close the gap here:
+   ```bash
+   git fetch --tags
+   ```
+   This is a git-protocol round-trip, not a `gh` API call — fast and
+   cheap. Run it unconditionally after every `gh release create`. The
+   downstream invariant this enforces is: *"after /release returns,
+   local tags reflect reality."* Several other skills (notably `/cv`'s
+   Step 0.5 "unreleased fixes" check) rely on that invariant holding
+   and explicitly do **not** call `gh` for latency reasons, so it must
+   be the release skill that keeps local state in sync.
+
+6. **Go module tags**: If the project contains Go modules in subdirectories
    (e.g., `go/sqlpipe/go.mod`), create subdirectory-prefixed tags for each
    Go module so that `go get` can resolve them. For a module at path
    `go/sqlpipe` and release version `v0.11.0`, create and push:
@@ -364,19 +382,19 @@ Create the GitHub release and let CI handle the rest.
    Also update the Go module's version constants (if any) to match the
    release version during the Phase 2 version bump.
 
-6. **Monitor CI**: Wait for the release workflow to complete:
+7. **Monitor CI**: Wait for the release workflow to complete:
    ```bash
    gh run list --workflow=release.yml --limit=1
    gh run watch <run-id>
    ```
    If it fails, help diagnose — do not delete the release or tag without asking.
 
-7. **Verify**: Confirm:
+8. **Verify**: Confirm:
    - The release appears on GitHub with correct notes and artifacts
    - Binary tarballs are attached for each platform
-   - The Homebrew formula was updated in `marcelocantos/homebrew-tap` (check the tap repo's recent commits). If the workflow includes a homebrew-releaser job, wait for it to finish (`gh run watch`) before proceeding — the tap commit must exist before the local install in step 8 will pick up the new version.
+   - The Homebrew formula was updated in `marcelocantos/homebrew-tap` (check the tap repo's recent commits). If the workflow includes a homebrew-releaser job, wait for it to finish (`gh run watch`) before proceeding — the tap commit must exist before the local install in step 9 will pick up the new version.
 
-8. **Install locally**: Install the released version onto the laptop so the user can use it immediately. This step is **mandatory** for projects with a Homebrew tap — do not skip it and do not ask for permission.
+9. **Install locally**: Install the released version onto the laptop so the user can use it immediately. This step is **mandatory** for projects with a Homebrew tap — do not skip it and do not ask for permission.
 
    ```bash
    brew update
@@ -394,10 +412,10 @@ Create the GitHub release and let CI handle the rest.
 
    **Non-Homebrew projects**: If the project has no Homebrew tap (e.g., a library, or a binary distributed another way), skip this step and note it in the Phase 5 report.
 
-9. **Report**: Print:
-   - Release URL
-   - Homebrew install command (if tap was set up): `brew install marcelocantos/tap/<project>`
-   - Confirmation that the new version is installed locally (include the `--version` output)
+10. **Report**: Print:
+    - Release URL
+    - Homebrew install command (if tap was set up): `brew install marcelocantos/tap/<project>`
+    - Confirmation that the new version is installed locally (include the `--version` output)
 
 ## Audit log
 
