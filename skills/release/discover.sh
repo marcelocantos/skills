@@ -138,8 +138,31 @@ fi
 # ---------------------------------------------------------------------------
 echo "# project_type"
 is_binary=false
-# Go: cmd/ or main package
-if [[ -d cmd ]] || [[ -f main.go ]]; then
+# Go: a project is a library if the module root directory contains any
+# .go file declaring a non-main package — that non-main root package is
+# the importable surface consumers depend on. The presence of cmd/
+# alongside such a root package just means the repo also ships
+# diagnostic tools, examples, or ancillary binaries (e.g. claudia's
+# cmd/probe-ready), not that the project's primary product is a
+# binary. Only classify as binary if there is NO non-main root
+# package AND a main package exists (at the root or under cmd/).
+if [[ -f go.mod ]]; then
+    root_has_library=false
+    shopt -s nullglob
+    for f in *.go; do
+        [[ "$f" == *_test.go ]] && continue
+        pkg=$(grep -E '^package[[:space:]]+[A-Za-z_][A-Za-z0-9_]*' "$f" 2>/dev/null | head -1 | awk '{print $2}')
+        if [[ -n "$pkg" && "$pkg" != "main" ]]; then
+            root_has_library=true
+            break
+        fi
+    done
+    shopt -u nullglob
+    if [[ "$root_has_library" == false ]] && { [[ -d cmd ]] || [[ -f main.go ]]; }; then
+        is_binary=true
+    fi
+elif [[ -d cmd ]] || [[ -f main.go ]]; then
+    # Non-Go project with cmd/ or main.go — probably a binary.
     is_binary=true
 fi
 # Rust: check for [[bin]] in Cargo.toml or src/main.rs
@@ -182,6 +205,27 @@ fi
 echo "# homebrew_tap"
 if has_cmd gh; then
     gh api repos/marcelocantos/homebrew-tap/contents/Formula --jq '.[].name' 2>/dev/null || echo "(no tap or no Formula/ directory)"
+else
+    echo "(gh not installed)"
+fi
+
+# ---------------------------------------------------------------------------
+# 9b. Homebrew tap token secret (needed by homebrew-releaser)
+# ---------------------------------------------------------------------------
+# homebrew-releaser reads HOMEBREW_TAP_TOKEN from the repo's action
+# secrets to authenticate its push to marcelocantos/homebrew-tap. A
+# new repo won't have it set, and the error when it's missing is
+# opaque ("You must provide all necessary environment variables").
+# Catching it in Phase 1 saves a failed release-workflow run after
+# the tag has already been created and the homebrew-releaser job
+# has to be re-run by hand.
+echo "# homebrew_tap_token_secret"
+if has_cmd gh; then
+    if gh secret list 2>/dev/null | awk '{print $1}' | grep -qx 'HOMEBREW_TAP_TOKEN'; then
+        echo "set"
+    else
+        echo "missing"
+    fi
 else
     echo "(gh not installed)"
 fi

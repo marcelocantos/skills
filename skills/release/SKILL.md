@@ -46,7 +46,7 @@ This script gathers all Phase 1 data in one invocation (tags, releases, build sy
 
 4. **CI workflows**: Check for existing `.github/workflows/` files, especially any release-related workflows.
 
-5. **Homebrew tap**: Check if `marcelocantos/homebrew-tap` exists and whether it already has a formula for this project.
+5. **Homebrew tap**: Check if `marcelocantos/homebrew-tap` exists and whether it already has a formula for this project. Also check that the **`HOMEBREW_TAP_TOKEN` action secret is set on this repo** — `discover.sh` reports this as `homebrew_tap_token_secret` (`set` / `missing`). homebrew-releaser reads this secret to push the generated formula into the tap; when it's missing, the job fails with the unhelpful error *"You must provide all necessary environment variables."* on the first release. First-release-of-a-new-repo is the common case — resolve it now from 1Password (see Phase 4 step 2 for the `op read` + `gh secret set` commands) rather than discovering it post-tag and having to re-run the failed homebrew-releaser job by hand.
 
 6. **Repo description**: Check that the GitHub repo has a description set (`gh repo view --json description`). homebrew-releaser crashes on null descriptions. If missing, set one with `gh repo edit --description "..."`. Also verify the description is **accurate and up to date** — stale descriptions (e.g., referencing renamed concepts) should be updated.
 
@@ -64,6 +64,8 @@ This script gathers all Phase 1 data in one invocation (tags, releases, build sy
    - **Standalone binaries**: Should also have `agents-guide.md` as the source for `--help-agent` output (checked in step 7 above). If `--help-agent` exists but there's no standalone `agents-guide.md`, that's acceptable. If neither exists, flag both.
 
    Also verify that the README mentions the agent guide for discoverability (e.g., "If you use an agentic coding tool, include `agents-guide.md` in your project context").
+
+   **Gotcha staleness check**: If the agent guide contains a "Gotchas" section (or equivalent list of known caveats), read each gotcha against the commits in this release. A release that *fixes* a behaviour previously described as a gotcha leaves a stale entry behind — future agents reading the guide will work around a problem that no longer exists, or worse, re-introduce it defensively. Look especially for commits whose messages mention parity fixes, removed workarounds, or "no longer needed" language. For each stale gotcha, either delete it, or rewrite it to reflect the new behaviour (e.g., a "was a hazard, now fixed" note if the historical context is useful). Flag any you find as a release-PR change rather than silently merging release notes over a stale guide.
 
    **MCP servers** (detected by MCP dependencies in the manifest, a `serve` subcommand, or "MCP" in the project description): The agents-guide and README must include complete installation instructions. The agents-guide must explicitly frame installation as a **multi-step process** and state that installation is not complete until all steps succeed — agents that see only `brew install` will stop there.
 
@@ -329,6 +331,31 @@ Enforce the project's delivery gates before releasing.
      explicit approval**. Do not proceed until the user confirms.
 4. If any gate fails, **stop**. Report which gate failed and why.
    Do not proceed to Phase 5.
+
+**Run env-gated live tests as part of the `tests-exist` check.** Many
+projects gate expensive or API-costing tests behind an environment
+variable (`CLAUDIA_LIVE=1`, `RUN_LIVE_TESTS=1`, etc.) so they don't
+run during routine local development or in contributor CI. These
+tests are the exact ones that exercise the user-facing flow —
+skipping them at the release gate defeats the whole point of gating
+them separately. When running the test suite to verify
+`tests-exist`, inspect the project for such env var conventions
+(grep `t.Skip.*Getenv\|os.Getenv.*== ""` in `_test.go` files, or
+check README/CONTRIBUTING for a "how to run live tests" section) and
+re-run the suite with those variables set. Do not rely on the
+default `go test ./...` / `cargo test` / equivalent to exercise
+API-costing tests — its silence on those tests is by design, and
+also silent about whether the user-facing flow works.
+
+If no such gating convention exists, the default run is sufficient.
+If the project has a specific command for live tests (e.g., a
+Makefile target like `make test-live`), prefer that over
+reconstructing the env vars by hand.
+
+This check is part of the `tests-exist` gate in spirit even if the
+gate yaml doesn't mention it explicitly. A "tests exist" pass that
+only ran the non-live subset leaves the user-facing flow unverified
+and is not sufficient for a release.
 
 **Expect two PRs.** The `pr-workflow` pre-merge gate means release-skill work routes through a feature branch and PR, not a direct push to master. Combined with the audit-log chicken-and-egg (see **Audit log** section below), the typical release flow produces **two sequential PRs**:
 
