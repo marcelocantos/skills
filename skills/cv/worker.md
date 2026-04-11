@@ -39,11 +39,15 @@ Bug fixes that exist on master but haven't shipped are a **high-priority
 signal**. Users running the installed version are still hitting the bug;
 shipping the fix is almost always higher leverage than starting new work.
 
-Check for unreleased fixes:
+Check for unreleased fixes. **Use local git only — do not call `gh`.**
+The local repo is the source of truth for tags and commits; `gh` round-
+trips to GitHub and adds seconds of latency per /cv run for no benefit.
+If you suspect the local tags are stale, note it but still proceed with
+what git knows.
 
-1. Get the latest release tag:
-   `git describe --tags --abbrev=0` (or `gh release list --limit 1`).
-   If the project has no releases yet, skip this step.
+1. Get the latest release tag: `git describe --tags --abbrev=0`.
+   If the command fails (no tags exist), skip this step — the project
+   has no releases yet.
 2. List commits since that tag: `git log --oneline <tag>..HEAD`.
 3. If no commits, skip this step — everything is released.
 4. Scan the commit subjects for bug-fix markers: `fix:`, `fix(`, `bugfix`,
