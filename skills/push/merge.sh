@@ -14,13 +14,23 @@ pr="$1"
 default_branch="$2"
 feature_branch="$3"
 
-# 1. Squash-merge on GitHub (also deletes remote branch).
+# 1. Detach HEAD before invoking gh pr merge.
+#    Otherwise gh runs a post-merge `git pull --ff-only` on whatever
+#    named branch we're on. Since the squash rewrote our local commits
+#    into a single origin commit with a different SHA, that FF attempt
+#    always fails in the diverging-but-already-squashed case and gh
+#    emits a noisy "! warning: not possible to fast-forward" that looks
+#    like an error. Detaching HEAD gives gh no named branch to sync, so
+#    it skips the auto-update entirely. The hard reset on step 4 is the
+#    actual sync.
+git checkout --detach HEAD >/dev/null 2>&1
+
+# 2. Squash-merge on GitHub (also deletes remote branch).
 gh pr merge "$pr" --squash --delete-branch
 
-# 2. Fetch the updated remote (prune stale remote-tracking refs).
+# 3. Fetch the updated remote (prune stale remote-tracking refs), then
+#    switch to the default branch.
 git fetch origin --prune
-
-# 3. Switch to the default branch.
 git checkout "$default_branch"
 
 # 4. Hard-reset to the squash-merged remote.
