@@ -7,7 +7,7 @@ End-to-end logic for generating a weekly progress report for Marcelo Cantos. Sca
 - **Report repo**: `~/work/github.com/marcelocantos/progress-reports`
 - **Repos root**: `~/work/github.com/`
 - **Organisations**: `squz`, `marcelocantos`, `arr-ai`, `anz-bank`
-- **Guide**: `weekly-report-guide.md` in the report repo — read it in full before starting
+- **Guide**: `docs/guide.md` in the report repo — read it in full before starting
 
 ## Progress reporting
 
@@ -38,7 +38,7 @@ The period ends on the most recent Sunday. If today is Sunday, confirm with the 
 
 To find the start date:
 
-1. Find the most recent `weekly-report-*.md` file in the report repo.
+1. Find the most recent `reports/weekly-report-*.md` file in the report repo.
 2. Extract the end date from its title (the date after the `…`).
 3. The new period starts the day after that end date.
 
@@ -68,7 +68,7 @@ Present a summary of active repos, commit counts, and key themes before proceedi
 
 ## Phase 2: Write the report
 
-Follow guide sections 2, 3, and 4 to write `weekly-report-<YYYY-MM-DD>.md` (date = last day of period) in the report repo.
+Follow guide sections 2, 3, and 4 to write `reports/weekly-report-<YYYY-MM-DD>.md` (date = last day of period) in the report repo.
 
 Read the previous report first to understand what projects have already been introduced and avoid re-explaining them (guide section 5).
 
@@ -78,7 +78,7 @@ Generate the daily activity SVG chart from the `# daily_active_repos` section of
 
 ```sh
 echo "<daily_active_repos lines>" | ~/.claude/skills/progress-report/daily-chart.py \
-    -o ~/work/github.com/marcelocantos/progress-reports/daily-activity-<YYYY-MM-DD>.svg
+    -o ~/work/github.com/marcelocantos/progress-reports/reports/daily-activity-<YYYY-MM-DD>.svg
 ```
 
 Embed the chart in the report's Metrics section (after Testing, before Ideas & Innovations) per guide section 3.7.
@@ -91,8 +91,8 @@ Regenerate the full-history timeline chart and per-week charts (guide section 6,
 ~/.claude/skills/progress-report/timeline-chart.py \
     --since 2026-01-19 \
     --cache ~/work/github.com/marcelocantos/progress-reports/data/daily-repos.yaml \
-    --weekly-dir ~/work/github.com/marcelocantos/progress-reports/ \
-    -o ~/work/github.com/marcelocantos/progress-reports/timeline.svg
+    --weekly-dir ~/work/github.com/marcelocantos/progress-reports/reports/ \
+    -o ~/work/github.com/marcelocantos/progress-reports/reports/timeline.svg
 ```
 
 This updates the top-level timeline in the README, regenerates the per-week chart for the current report, and updates the cache. Commit the updated cache alongside the charts.

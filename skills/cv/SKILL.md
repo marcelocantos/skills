@@ -4,19 +4,6 @@ description: Evaluate convergence gaps on active targets and recommend next work
 user-invocable: true
 ---
 
-## Prerequisite — bullseye MCP server
-
-Before spawning the worker agent, verify that `bullseye_list` is a
-known tool (check the deferred tool list in system reminders, or try
-calling it). If the bullseye MCP server is not registered, **stop
-immediately** and report:
-
-> **Error: bullseye MCP server is not registered.**
-> Add it via `claude mcp add` or check `~/.claude.json`. /cv cannot
-> operate without it.
-
-Do not spawn the worker agent — it will waste context on a doomed run.
-
 ## Delegation
 
 **DELEGATE VIA AGENT.** Spawn an Agent (subagent_type: general-purpose,

@@ -4,20 +4,6 @@ Evaluate all active targets via bullseye and recommend what to work on
 next. Bullseye is the sole target system — `docs/targets.yaml` is the
 source of truth.
 
-## Prerequisite — bullseye MCP server
-
-Before doing anything else, verify the bullseye MCP server is available
-by calling `bullseye_list(cwd)`. If the tool does not exist (i.e. the
-call fails with a "tool not found" or "unknown tool" error, NOT a
-targets.yaml-not-found error), **stop immediately** and report:
-
-> **Error: bullseye MCP server is not registered.**
-> Add it via `claude mcp add` or check `~/.claude.json`. /cv cannot
-> operate without it.
-
-Do not fall back to reading `docs/targets.md` directly — bullseye is
-the sole interface.
-
 ## Evaluation tiers
 
 | Tier       | When to use                          | Cost        |

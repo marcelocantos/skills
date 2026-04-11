@@ -14,17 +14,6 @@ All target mutations go through bullseye MCP tools. Bullseye is the
 single source of truth and auto-renders the markdown view — do not
 write `docs/targets.md` directly.
 
-**Prerequisite**: Before calling any bullseye tool, verify the server
-is available by calling `bullseye_list(cwd)`. If the tool does not
-exist (i.e. "tool not found" / "unknown tool" error, NOT a
-targets.yaml-not-found error), **stop immediately** and report:
-
-> **Error: bullseye MCP server is not registered.**
-> Add it via `claude mcp add` or check `~/.claude.json`. /wrap cannot
-> operate without it.
-
-Do not fall back to reading or writing `docs/targets.md` directly.
-
 - **Status changes**: call `bullseye_update(cwd, id, status)`.
 - **New targets**: call `bullseye_add(cwd, ...)` with full target data.
 - **Retirements**: call `bullseye_retire(cwd, id)`.

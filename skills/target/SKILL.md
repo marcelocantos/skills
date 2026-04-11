@@ -9,19 +9,6 @@ Targets are desired states expressed as testable properties, not tasks.
 The source of truth is `docs/targets.yaml`; `docs/targets.md` is an
 auto-rendered view updated by bullseye after every mutation.
 
-## Prerequisite — bullseye MCP server
-
-Before doing anything else, verify the bullseye MCP server is available
-by calling `bullseye_list(cwd)`. If the tool does not exist (i.e. the
-call fails with a "tool not found" or "unknown tool" error, NOT a
-targets.yaml-not-found error), **stop immediately** and report:
-
-> **Error: bullseye MCP server is not registered.**
-> Add it via `claude mcp add` or check `~/.claude.json`. /target cannot
-> operate without it.
-
-Do not fall back to reading `docs/targets.md` directly.
-
 ## Step 1 — Gather context
 
 Call `bullseye_list(cwd)` to get all active targets. If that fails
