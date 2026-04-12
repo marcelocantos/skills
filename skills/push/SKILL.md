@@ -13,18 +13,24 @@ branch and PR if they don't already exist.
 
 ### 1. Preflight
 
-- Run `git status --short --branch` and `git log --oneline -5`.
-- If the working tree is dirty (uncommitted changes), **stop** and tell the
-  user to commit first.
-- Determine the current branch name and whether it tracks a remote.
-- Identify the default branch (`master` unless the repo uses something else).
+Run `~/.claude/skills/push/preflight.sh` and parse its output. It is
+already `chmod +x` — do **not** wrap it in `bash`, just invoke the path
+as the command.
+
+- Check `# working-tree`: if `dirty`, **stop** and tell the user to
+  commit first.
+- Use `# branch`, `# default-branch`, and `# on-default-branch` to
+  understand where HEAD is and route the next step.
+- Use `# upstream` to determine whether the branch already tracks a
+  remote.
 
 ### 2. Ensure a feature branch
 
 - If already on a non-default branch, use it as-is.
 - If on the default branch with commits ahead of the remote, create a feature
   branch:
-  1. Run `git log --oneline origin/master..HEAD` to see all unpushed commits.
+  1. Read the unpushed commits from `# unpushed-commits` in the preflight
+     output — do **not** re-run `git log`.
   2. Derive a branch name from those commits — lowercase, hyphenated, max
      ~50 chars (e.g., `add-github-actions-ci`). If there's a single commit,
      use its message. If there are multiple, summarise the theme. Strip
@@ -43,9 +49,9 @@ branch and PR if they don't already exist.
 
 ### 4. Create or locate PR
 
-- Check for an existing open PR from this branch:
-  `gh pr list --head <branch> --state open --json number,url --jq '.[0]'`
-- If no PR exists, create one:
+- Read `# existing-pr` from the preflight output — do **not** re-run
+  `gh pr list`.
+- If `# existing-pr` is `(none)`, create a PR:
   - **Single commit**: use `gh pr create --fill` (commit message becomes title
     and body).
   - **Multiple commits**: use `gh pr create --title <title> --body <body>`.
@@ -117,11 +123,11 @@ Once all gates pass:
 
 After merge completes and local master is synced:
 
-1. Check for uncommitted docs-only changes on local master (files
-   matching `docs/**` or `*.md` in the repo root). Use
-   `git status --short` and filter for these paths.
-2. If there are no such changes, skip this step.
-3. Commit them with a message like
+1. Run `~/.claude/skills/push/pending-docs.sh`. It is already
+   `chmod +x` — do **not** wrap it in `bash`, just invoke the path as
+   the command.
+2. If the output is empty, skip this step.
+3. Commit the listed files with a message like
    "Update docs for <context>" (e.g., "Update targets for 🎯T2 achieved").
 4. Create a branch, push, and open a PR using `gh pr create --fill`.
 5. Watch CI with `gh pr checks <number> --watch`.

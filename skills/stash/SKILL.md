@@ -39,11 +39,13 @@ Save the current conversation state so it survives a `/clear`.
    bullseye tools (`bullseye_put`, `bullseye_retire`)
    to apply the changes. If they decline or there are no changes, proceed.
 
-3. **Write the snapshot.** Write the snapshot as markdown to
-   `stash-context.md` inside your auto-memory directory (the path is in
-   your system prompt). Use this format:
+3. **Write the snapshot.** Pipe the snapshot markdown into
+   `~/.claude/skills/stash/save.sh` — it derives the auto-memory
+   directory via the shared `_shared/memory-path.sh` helper and writes
+   the file to `<dir>/stash-context.md`. Use this format:
 
-   ```
+   ```bash
+   ~/.claude/skills/stash/save.sh <<'EOF'
    # Saved Context
    **Saved**: {YYYY-MM-DD HH:MM}
 
@@ -61,6 +63,7 @@ Save the current conversation state so it survives a `/clear`.
 
    ## Important Context
    ...
+   EOF
    ```
 
 4. **Prompt the user.** Output:

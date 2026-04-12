@@ -19,33 +19,35 @@ Replaces the manual cycle of status/diff/log/add/commit/verify.
 
 ## Steps
 
-### 1. Survey changes
+### 1. Gather repo state
 
-Run in parallel:
-- `git status --short --branch` (never `-uall`)
-- `git diff --stat` and `git diff --cached --stat`
-- `git log --oneline -5` (for message style reference)
+Run `~/.claude/skills/commit/gather.sh` from the project root. It
+emits labelled sections — parse each section by its `# <name>` header:
 
-If there are no changes (no modified, staged, or untracked files),
-report "nothing to commit" and stop.
+| Section | Contents | How to use |
+|---|---|---|
+| `# status` | `git status --short --branch` output | Detect branch, staged/unstaged/untracked counts |
+| `# log` | Last 5 commits (oneline) | Infer commit message style for the project |
+| `# staged-stat` | `git diff --cached --stat` | Quick overview of what's already staged |
+| `# unstaged-stat` | `git diff --stat` | Quick overview of what's modified but not staged |
+| `# staged-diff` | Full `git diff --cached` | Understand staged changes in detail |
+| `# unstaged-diff` | Full `git diff` | Understand unstaged changes in detail |
+| `# untracked` | Each untracked text file: `FILE: <path>` header + first 100 lines, then blank line; binary files noted but skipped | Understand the purpose of new files |
+| `# secret-candidates` | Full paths of changed/untracked files whose **basename** matches `.env`, `.env.*`, `*credential*`, `*secret*`, `*_key`, `*.pem`, `*.key`, `*token*` (case-insensitive) | First pass of files to exclude from staging |
+| `# nothing-to-commit` | `true` or `false` | If `true`, report "nothing to commit" and stop |
 
-### 2. Read diffs
+If the script exits non-zero (e.g., not a git repo), report the error
+and stop.
 
-Read the actual diffs to understand what changed:
-- `git diff` for unstaged changes
-- `git diff --cached` for already-staged changes
-- For untracked files, read them (or at least their first ~100 lines
-  for large files) to understand their purpose.
+### 2. Filter files
 
-### 3. Filter files
+Using the gathered data, identify files to stage. **Exclude** by default:
 
-Identify files to stage. **Exclude** by default:
-- `.env`, `.env.*` files
-- Files matching `*credential*`, `*secret*`, `*_key`, `*.pem`,
-  `*.key`, `*token*` (case-insensitive, in filename not path
-  components like `pkg/token/`)
-- Any file that appears to contain secrets (API keys, passwords,
-  private keys) based on content inspection
+- Everything listed under `# secret-candidates` (filename-pattern matches)
+- Any file whose **content** appears to contain secrets (API keys,
+  passwords, private keys) — inspect `# staged-diff`, `# unstaged-diff`,
+  and `# untracked` content for patterns like `sk-`, `-----BEGIN`,
+  `password =`, `api_key =`, etc.
 
 If any excluded files are found, warn the user and list them. If
 the user's explicit message or prior instruction includes those

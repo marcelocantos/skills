@@ -445,11 +445,25 @@ git status --short --branch 2>/dev/null || echo "(not a git repo)"
 # ---------------------------------------------------------------------------
 # 18. Unpushed commits
 # ---------------------------------------------------------------------------
+# Emit both the count and the one-line log so the skill can reason about
+# whether the unpushed commits represent meaningful atomic history (which
+# would be destroyed by a squash-merge of the release PR) vs. WIP scratch
+# (which should be committed or discarded before proceeding). The skill's
+# Phase 1 handling compares the count against a threshold and, if
+# exceeded, presents the master-fast-forward vs. PR-squash choice
+# explicitly.
 echo "# unpushed"
 tracking=$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null) || true
 if [[ -n "$tracking" ]]; then
     count=$(git rev-list --count "$tracking..HEAD" 2>/dev/null) || count=0
     echo "$count"
+else
+    echo "(no upstream tracking branch)"
+fi
+
+echo "# unpushed_log"
+if [[ -n "$tracking" ]]; then
+    git log --oneline "$tracking..HEAD" 2>/dev/null | head -20 || echo "(git log failed)"
 else
     echo "(no upstream tracking branch)"
 fi

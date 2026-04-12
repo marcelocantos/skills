@@ -16,12 +16,22 @@ requests it:
 
 ## Step 6: Fix mode (if requested)
 
-For each repo with issues, `cd` into it and apply fixes:
-- **Missing/wrong license**: Write the correct LICENSE file (Apache 2.0 with correct copyright)
-- **Missing SPDX headers**: Add 2-line SPDX header to all source files
-- **Missing .gitignore**: Create one appropriate for the language
-- **Missing NOTICE**: Create if Apache 2.0 and not present
+For each repo with issues, invoke `~/.claude/skills/sync-globals/fix-repo.sh <repo-path>` with the relevant flags — pass only what the audit flagged:
 
-After fixing, commit changes to a branch and use `/push` if the user wants PRs.
+- `--license` — write Apache 2.0 LICENSE (skips if already present)
+- `--spdx` — prepend two-line SPDX header to all unlicensed source files
+- `--gitignore` — write minimal .gitignore (skips if already present)
+- `--notice` — write NOTICE file (skips if already present)
+
+Override `--year` and `--holder` when the repo uses a non-default copyright holder. The script reports each file it modifies to stdout and skips files that already exist (with a stderr message).
+
+Example invocation:
+
+```sh
+~/.claude/skills/sync-globals/fix-repo.sh ~/work/github.com/marcelocantos/myrepo \
+    --license --spdx --gitignore --notice
+```
+
+After fixing, review the diffs, commit to a branch, and use `/push` if the user wants PRs.
 
 IMPORTANT: Never push directly to master. Always confirm before committing.

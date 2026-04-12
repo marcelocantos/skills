@@ -37,6 +37,54 @@
   make, etc.). Don't open an IDE for the user to click buttons. The
   user is asking you to do the work, not to set up the work for them
   to do. If a build fails, diagnose and fix it.
+- **Delegate freely — spawning a subagent is an action, not a
+  special tool.** Spawning a Sonnet subagent is cheap, reversible, and
+  usually the *correct* action bias for routine work. The main-context
+  cost of doing mechanical work on Opus (raw tool output, repeated
+  reads, bulk edits) is almost always worse than the cost of a
+  subagent round-trip. Ask "would I be embarrassed to have Opus do
+  this?" — if yes, delegate. If you can't articulate why Opus is
+  needed, use Sonnet.
+- **Default to parallel.** Before starting any multi-step task,
+  actively scan for independent workstreams. If two things don't
+  depend on each other, run them in parallel — don't serialize.
+  Recognition triggers that should auto-fire a fan-out:
+  - Multiple files/modules need the same kind of change
+  - Research across 2+ independent areas (repos, docs, APIs)
+  - A task has both investigation and implementation that can overlap
+  - Tests/builds can run while you continue editing
+  - Multiple independent subtasks in a plan
+  - Reading/exploring several unrelated parts of a codebase
+- **Pre-action delegation checklist** — flip to a Sonnet subagent when:
+  - About to read >500 lines just to build context → delegate, ask
+    for a <200-word digest.
+  - The same edit pattern repeats across files → fan out, even for 3
+    files.
+  - Running builds/tests and triaging output → Sonnet kicks off and
+    categorises; Opus re-engages only for the fix decision.
+  - Searching/grepping and classifying call sites → Sonnet returns
+    the digest.
+  - Writing boilerplate from a decided spec (tests, configs, CI YAML,
+    docs mirroring code) → Sonnet fills in instances.
+  - Drafting commit messages or PR bodies from a known diff.
+  - The work is **investigation** rather than **decision** —
+    investigation fans out, decisions stay with Opus.
+- **Model selection for subagents:**
+  - **`sonnet`** — **default.** Well-scoped coding tasks, bulk
+    repetitive changes, build/test runs, investigation,
+    context-gathering, boilerplate generation, doc updates, PR/commit
+    drafting.
+  - **`opus`** — reserve for complex reasoning, architectural
+    decisions, novel problem-solving, and synthesising results from
+    multiple Sonnet agents.
+  - **`haiku`** — monotonous tasks: file searches, mechanical
+    find-and-replace, running builds/tests, and triaging failures
+    (categorise, group, summarise). Hand off to `sonnet` for
+    diagnosis and fix decisions.
+- **Worktree isolation**: Prefer `isolation: "worktree"` when
+  spawning subagents that edit files. This prevents concurrent agents
+  from clobbering each other's changes. Solo sequential work can stay
+  on master (the `/push` skill creates feature branches at push time).
 
 ## Voice
 
@@ -202,29 +250,6 @@ deep links, sample data, and visual verification cadence.
 - Feature branches are deleted on merge (GitHub setting).
 - Wait for CI to pass before merging. Do not merge with failing checks.
 - **Do not push to a PR branch that has passing CI** without explicit user approval. A green CI run is valuable — pushing additional commits (even docs-only changes) resets it and forces another full cycle. If further changes are needed, create a new branch (off the green PR branch or off master) and open a separate PR.
-
-## Teams
-
-- **Default to parallel.** Before starting any multi-step task, actively
-  scan for independent workstreams. If two things don't depend on each
-  other, run them in parallel — don't serialize. The cost of spawning
-  an extra agent is far lower than the cost of sequential execution.
-- **Recognition triggers** — if you see any of these, parallelise:
-  - Multiple files/modules need the same kind of change
-  - Research across 2+ independent areas (repos, docs, APIs)
-  - A task has both investigation and implementation that can overlap
-  - Tests/builds can run while you continue editing
-  - Multiple independent subtasks in a plan
-  - Reading/exploring several unrelated parts of a codebase
-- Also use teams for:
-  - **Bulk similar work** — when the same change pattern applies across multiple directories, modules, or files, fan out agents to handle subsets in parallel.
-  - **Context isolation** — when heavy exploratory reads (audits, deep research) would bloat the main conversation context.
-  - **Research fan-out** — when investigating multiple codebase areas or external sources before synthesising.
-- **Worktree isolation**: Prefer `isolation: "worktree"` when spawning team agents that edit files. This prevents concurrent agents from clobbering each other's changes. Solo sequential work can stay on master (the `/push` skill creates feature branches at push time).
-- Model selection:
-  - **`opus`** — default for team agents; complex reasoning, architectural decisions, novel problem-solving.
-  - **`sonnet`** — well-scoped and straightforward coding tasks that don't involve complex reasoning. Also good for bulk repetitive changes across modules and evaluating test/build failures.
-  - **`haiku`** — monotonous tasks: file searches, mechanical find-and-replace, running builds/tests, and triaging failures (categorise, group, summarise). Hand off to `sonnet` for diagnosis and fix decisions.
 
 ## Audit log
 

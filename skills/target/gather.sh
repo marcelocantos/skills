@@ -1,13 +1,11 @@
 #!/bin/sh
-# DEPRECATED: Target data is now accessed via bullseye MCP tools
-# (bullseye_list, bullseye_frontier, etc.). This script is kept as a
-# placeholder to avoid breaking callers that source it.
+# Gather git state and delivery definition for the /target skill's
+# implied-target evaluation. Targets themselves come from the bullseye
+# MCP server (bullseye_list, bullseye_frontier, etc.); this script
+# gathers the surrounding context the skill needs.
 set -e
 
 section() { echo "# $1"; }
-
-section "targets-file"
-echo "(deprecated — use bullseye MCP tools)"
 
 # --- Delivery definition from CLAUDE.md ---
 section "delivery"

@@ -43,7 +43,7 @@ After all writing is done:
 
 1. **Command verification**: Run every build/test/install command mentioned in the docs to confirm they work.
 
-2. **Link check**: Verify all internal cross-references and file paths are valid.
+2. **Link check**: Run `~/.claude/skills/docs/link-check.sh` (directly — it is `chmod +x`). It walks all `*.md` files and reports broken local links in the format `<source>:<line>: broken link: <target>`. Exit code 0 means clean; non-zero means broken links. For each reported break, read the source file to understand context and fix the link (or file reference) before proceeding.
 
 3. **Consistency check**: Ensure terminology, project name, and conventions are consistent across all docs.
 

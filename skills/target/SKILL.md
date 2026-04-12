@@ -11,12 +11,16 @@ auto-rendered view updated by bullseye after every mutation.
 
 ## Step 1 — Gather context
 
-Call `bullseye_list(cwd)` to get all active targets. If that fails
-(no `targets.yaml`), call `bullseye_init(cwd)` to create one.
+Run `~/.claude/skills/target/gather.sh` directly (it is already `chmod +x`
+— do **not** wrap it in `bash`, just invoke the path as the command).
+Parse its output:
+- `# delivery` — the project's delivery definition from CLAUDE.md
+  (default: "merged to default branch")
+- `# git-state` — current branch, open PRs, recent merges on the
+  default branch, for implied target evaluation
 
-Also gather git state for implied target evaluation:
-- Current branch and recent commits
-- Open PRs and CI status (via `gh` if available)
+Then call `bullseye_list(cwd)` to get all active targets. If that fails
+(no `targets.yaml`), call `bullseye_init(cwd)` to create one.
 
 ## Step 2 — Act
 

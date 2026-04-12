@@ -34,11 +34,15 @@ The `cwd` parameter should be the project's working directory.
 is the most common `/wrap` failure mode — the agent runs out of
 context mid-analysis and nothing gets persisted.
 
-Immediately write `wrap-draft.md` to the project's auto-memory
-directory. No analysis, no user confirmation — just dump what you
-know right now from conversation context. Keep it under 60 lines.
+Immediately pipe a draft into `~/.claude/skills/wrap/save-draft.sh` —
+it derives the auto-memory directory via the shared
+`_shared/memory-path.sh` helper and writes the file to
+`<dir>/wrap-draft.md`. No analysis, no user confirmation — just dump
+what you know right now from conversation context. Keep it under 60
+lines.
 
-```markdown
+```bash
+~/.claude/skills/wrap/save-draft.sh <<'EOF'
 # Wrap draft (YYYY-MM-DD)
 
 ## Work completed
@@ -66,6 +70,7 @@ URLs discussed:
 
 Transcript excerpts (key quotes from user decisions):
 - "<verbatim user quote about a decision>" (re: <topic>)
+EOF
 ```
 
 The **Raw references** section is critical — it gives a fresh session
@@ -196,10 +201,15 @@ If Step 4 created topic files, reference them here:
 
 ### 6. Clean up and report
 
-Clean up `wrap-draft.md` by executing
-`~/.claude/skills/wrap/cleanup.sh <auto-memory-directory>`
-(pass the directory you wrote `wrap-draft.md` into in Step 0). The proper files
-(targets, MEMORY.md, topic files) now contain everything.
+Clean up `wrap-draft.md` by running:
+
+```bash
+~/.claude/skills/wrap/cleanup.sh "$(~/.claude/skills/_shared/memory-path.sh)"
+```
+
+The shared helper re-derives the auto-memory directory, so you don't
+need to pass or remember it. The proper files (targets, MEMORY.md,
+topic files) now contain everything.
 
 Output:
 
