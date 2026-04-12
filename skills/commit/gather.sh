@@ -2,7 +2,11 @@
 # Data gathering script for the /commit skill.
 # Emits labelled sections covering working-tree state, diffs, untracked
 # file contents, and secret-candidate filenames.
-# Takes no arguments — operates on the current working directory.
+#
+# Usage: gather.sh [path ...]
+#   No arguments — gather state for the entire working tree.
+#   With arguments — scope diffs, untracked listing, and secret scanning
+#   to only the given paths. Status and log are always full-tree.
 set -euo pipefail
 
 # ---------------------------------------------------------------------------
@@ -20,11 +24,26 @@ is_text_file() {
 }
 
 # ---------------------------------------------------------------------------
+# Path arguments (empty = full tree)
+# ---------------------------------------------------------------------------
+paths=("$@")
+
+# ---------------------------------------------------------------------------
 # Guard: must be inside a git repo
 # ---------------------------------------------------------------------------
 if ! git rev-parse --git-dir &>/dev/null; then
     echo "error: not a git repository" >&2
     exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# 0. Scope
+# ---------------------------------------------------------------------------
+section "scope"
+if [[ ${#paths[@]} -eq 0 ]]; then
+    echo "full-tree"
+else
+    printf '%s\n' "${paths[@]}"
 fi
 
 # ---------------------------------------------------------------------------
@@ -43,7 +62,7 @@ git log --oneline -5 2>/dev/null || echo "(no commits yet)"
 # 3. Staged diff stat
 # ---------------------------------------------------------------------------
 section "staged-stat"
-staged_stat=$(git diff --cached --stat 2>/dev/null)
+staged_stat=$(git diff --cached --stat -- "${paths[@]}" 2>/dev/null)
 if [[ -n "$staged_stat" ]]; then
     echo "$staged_stat"
 else
@@ -54,7 +73,7 @@ fi
 # 4. Unstaged diff stat
 # ---------------------------------------------------------------------------
 section "unstaged-stat"
-unstaged_stat=$(git diff --stat 2>/dev/null)
+unstaged_stat=$(git diff --stat -- "${paths[@]}" 2>/dev/null)
 if [[ -n "$unstaged_stat" ]]; then
     echo "$unstaged_stat"
 else
@@ -65,7 +84,7 @@ fi
 # 5. Staged diff (full)
 # ---------------------------------------------------------------------------
 section "staged-diff"
-staged_diff=$(git diff --cached 2>/dev/null)
+staged_diff=$(git diff --cached -- "${paths[@]}" 2>/dev/null)
 if [[ -n "$staged_diff" ]]; then
     echo "$staged_diff"
 else
@@ -76,7 +95,7 @@ fi
 # 6. Unstaged diff (full)
 # ---------------------------------------------------------------------------
 section "unstaged-diff"
-unstaged_diff=$(git diff 2>/dev/null)
+unstaged_diff=$(git diff -- "${paths[@]}" 2>/dev/null)
 if [[ -n "$unstaged_diff" ]]; then
     echo "$unstaged_diff"
 else
@@ -87,7 +106,12 @@ fi
 # 7. Untracked files (first 100 lines of each text file)
 # ---------------------------------------------------------------------------
 section "untracked"
-mapfile -t untracked_files < <(git ls-files --others --exclude-standard 2>/dev/null)
+if [[ ${#paths[@]} -eq 0 ]]; then
+    mapfile -t untracked_files < <(git ls-files --others --exclude-standard 2>/dev/null)
+else
+    # Filter untracked files to only those under the given paths.
+    mapfile -t untracked_files < <(git ls-files --others --exclude-standard -- "${paths[@]}" 2>/dev/null)
+fi
 if [[ ${#untracked_files[@]} -eq 0 ]]; then
     echo "(none)"
 else
@@ -110,9 +134,9 @@ fi
 # ---------------------------------------------------------------------------
 section "secret-candidates"
 
-# Collect tracked-with-changes files (staged + unstaged)
+# Collect tracked-with-changes files (staged + unstaged), scoped to paths
 mapfile -t changed_files < <(
-    { git diff --name-only; git diff --cached --name-only; } 2>/dev/null | sort -u
+    { git diff --name-only -- "${paths[@]}"; git diff --cached --name-only -- "${paths[@]}"; } 2>/dev/null | sort -u
 )
 
 # Combine with untracked

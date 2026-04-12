@@ -11,22 +11,31 @@ Replaces the manual cycle of status/diff/log/add/commit/verify.
 
 ## Arguments
 
-- `/commit` — auto-draft message from diff analysis.
+- `/commit` — auto-draft message from diff analysis (full tree).
 - `/commit <message>` — use the given message as-is (still adds the
   Co-Authored-By trailer).
 - `/commit --amend` — amend the previous commit instead of creating a
   new one. Only use when explicitly requested.
 
+When the user mentions specific files in their request (e.g., "commit
+foo.py" or "just commit the Makefile changes"), pass those paths to
+gather.sh to scope the output. This avoids dumping the full-tree diff
+when only a subset is relevant — critical for repos with large working
+trees.
+
 ## Steps
 
 ### 1. Gather repo state
 
-Run `~/.claude/skills/commit/gather.sh` from the project root. It
-emits labelled sections — parse each section by its `# <name>` header:
+Run `~/.claude/skills/commit/gather.sh [path ...]` from the project
+root. Pass file/directory paths to scope the output; omit for full
+tree. It emits labelled sections — parse each section by its
+`# <name>` header:
 
 | Section | Contents | How to use |
 |---|---|---|
-| `# status` | `git status --short --branch` output | Detect branch, staged/unstaged/untracked counts |
+| `# scope` | `full-tree` or a list of paths | Confirms what was scoped; if paths were given, only those paths appear in subsequent sections |
+| `# status` | `git status --short --branch` output (always full tree) | Detect branch, staged/unstaged/untracked counts |
 | `# log` | Last 5 commits (oneline) | Infer commit message style for the project |
 | `# staged-stat` | `git diff --cached --stat` | Quick overview of what's already staged |
 | `# unstaged-stat` | `git diff --stat` | Quick overview of what's modified but not staged |
