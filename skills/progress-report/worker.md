@@ -97,4 +97,17 @@ Regenerate the full-history timeline chart and per-week charts (guide section 6,
 
 This updates the top-level timeline in the README, regenerates the per-week chart for the current report, and updates the cache. Commit the updated cache alongside the charts.
 
+### Achievements update
+
+After writing the report, review `docs/achievements.md` against this
+week's work. If any achievement from this period deserves a spot in the
+top 50 (by meatiness — impact × difficulty), insert it at the
+appropriate rank and drop the lowest entry to keep the list at 50. If an
+existing entry was extended this week (e.g. more releases, broader
+scope), update its description. Use the same format: super short bullet
+(5–10 words), 1–5 🥩 ranking.
+
+Include the updated `docs/achievements.md` in the draft output so the
+user can review changes alongside the report.
+
 Return the full draft report text as your result.

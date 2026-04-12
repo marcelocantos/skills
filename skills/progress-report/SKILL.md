@@ -25,8 +25,8 @@ Follow guide section 6 for the README updates, then publish:
 1. Add a collapsible entry under `## Reports` (newest first).
 2. Add a row to the `## Metrics` table (newest first).
 3. Create a feature branch: `git checkout -b report/weekly-<YYYY-MM-DD>`.
-4. Stage the new report, updated README, charts, and cache together in
-   a single commit.
+4. Stage the new report, updated README, achievements, charts, and cache
+   together in a single commit.
 5. Push the branch: `git push -u origin report/weekly-<YYYY-MM-DD>`.
 6. Open a PR: `gh pr create --fill` (title and body from the commit).
 7. Squash-merge immediately: `gh pr merge --squash --delete-branch`.
