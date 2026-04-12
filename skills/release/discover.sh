@@ -239,6 +239,17 @@ if [[ -f pyproject.toml ]]; then
         is_binary=true
     fi
 fi
+# CMake: any add_executable(...) call means the project ships at least
+# one binary. This is a loose signal — a CMakeLists.txt that only has
+# test executables would also match — but for the common case where
+# `add_executable(<project>)` produces the release binary, it's
+# correct. Projects that are genuinely library-only will not declare
+# add_executable in their top-level CMakeLists.txt.
+if [[ -f CMakeLists.txt ]]; then
+    if grep -qE '^[[:space:]]*add_executable[[:space:]]*\(' CMakeLists.txt 2>/dev/null; then
+        is_binary=true
+    fi
+fi
 if [[ "$is_binary" == true ]]; then
     echo "binary"
 else
@@ -258,8 +269,22 @@ fi
 # ---------------------------------------------------------------------------
 # 9. Homebrew tap (requires gh)
 # ---------------------------------------------------------------------------
+# Some projects deliberately opt out of the tap — e.g., a package
+# manager that replaces Homebrew can't coherently ship via a tap.
+# The opt-out signal lives in the project's CLAUDE.md as a
+# `homebrew_tap: disabled` directive (mirroring existing directives
+# like `delivery:` and `profile:`). When set, both tap sections
+# below emit sentinel values and the skill knows to skip tap-related
+# phases instead of flagging missing secrets and an absent formula.
+homebrew_tap_disabled=false
+if [[ -f CLAUDE.md ]] && grep -qE '^[[:space:]]*homebrew_tap:[[:space:]]*disabled[[:space:]]*$' CLAUDE.md 2>/dev/null; then
+    homebrew_tap_disabled=true
+fi
+
 echo "# homebrew_tap"
-if has_cmd gh; then
+if [[ "$homebrew_tap_disabled" == true ]]; then
+    echo "(disabled — CLAUDE.md declares homebrew_tap: disabled)"
+elif has_cmd gh; then
     gh api repos/marcelocantos/homebrew-tap/contents/Formula --jq '.[].name' 2>/dev/null || echo "(no tap or no Formula/ directory)"
 else
     echo "(gh not installed)"
@@ -275,8 +300,13 @@ fi
 # Catching it in Phase 1 saves a failed release-workflow run after
 # the tag has already been created and the homebrew-releaser job
 # has to be re-run by hand.
+#
+# Tap-disabled projects don't need this secret at all; skip the
+# lookup so the skill doesn't raise a false alarm.
 echo "# homebrew_tap_token_secret"
-if has_cmd gh; then
+if [[ "$homebrew_tap_disabled" == true ]]; then
+    echo "(n/a — tap disabled)"
+elif has_cmd gh; then
     if gh secret list 2>/dev/null | awk '{print $1}' | grep -qx 'HOMEBREW_TAP_TOKEN'; then
         echo "set"
     else
