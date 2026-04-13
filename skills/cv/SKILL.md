@@ -42,6 +42,42 @@ ground deterministically. If you want deeper per-target scrutiny, do
 it by reading the acceptance criteria inline in the `## Frontier`
 section and deciding for yourself.
 
+### Global tier — `/cv global`
+
+Portfolio-level evaluation across all repos:
+
+1. **Gather momentum** (optional, best-effort): call
+   `mnemo_recent_activity(days=7)`. For each repo that appears in
+   the activity, compute a momentum multiplier for its frontier
+   targets. Heuristic: targets mentioned in recent sessions get
+   `1.5×`; targets in repos with activity but not mentioned get
+   `1.0×`; targets in repos with no recent activity get `0.7×`.
+   If mnemo is unavailable, skip momentum (all targets default to
+   `1.0×`).
+
+2. **Run portfolio scan**:
+   ```
+   bullseye_portfolio(momentum=<computed multipliers>)
+   ```
+
+3. **Present results**: relay the full portfolio output, then add a
+   brief summary:
+   - **Top repos** (up to 3): repo name, WSJF score, top frontier
+     target, and one-line reasoning for why this repo deserves
+     attention now.
+   - **Cross-repo edges**: if any cross-repo blockers or enablers
+     exist, highlight them — these are the inter-project couplings
+     that single-repo /cv can't see.
+   - **Momentum report**: list repos by activity level (active /
+     warming up / stale) based on the mnemo data. If mnemo was
+     unavailable, note "momentum data unavailable — ranking by
+     static WSJF only".
+
+4. **Do not auto-execute.** Global mode is a read-only portfolio
+   assessment. The user decides which repo to work on next. If they
+   want to proceed, they should `cd` into that repo and run `/cv`
+   for the repo-level evaluation with invariants.
+
 ## Relay the output verbatim
 
 The convergence response is formatted for direct consumption. Dump it

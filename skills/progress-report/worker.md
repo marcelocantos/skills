@@ -105,7 +105,11 @@ top 50 (by meatiness — impact × difficulty), insert it at the
 appropriate rank and drop the lowest entry to keep the list at 50. If an
 existing entry was extended this week (e.g. more releases, broader
 scope), update its description. Use the same format: super short bullet
-(5–10 words), 1–5 🥩 ranking.
+(5–10 words), 1–5 🥩 ranking. The meatiness column links to the weekly
+report where the achievement is most prominently described — use
+`[🥩...](../reports/weekly-report-<YYYY-MM-DD>.md)`. When adding or
+updating entries, set the link to the current report if this week is
+where the achievement is biggest.
 
 Include the updated `docs/achievements.md` in the draft output so the
 user can review changes alongside the report.
