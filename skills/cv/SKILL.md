@@ -92,20 +92,37 @@ After relaying the output, read the `## Next action` section and
 act on it mechanically:
 
 - **Line starts with `**Execute now**: Work on 🎯T…`** — single top
-  frontier target. Say:
+  frontier target. Before starting work, emit a brief **execution
+  preamble** so the user sees clearly what's about to happen, without
+  having to re-scan the frontier wall:
 
   ```
-  Clear next step — executing now.
+  ### Executing 🎯T<ID> — <target name>
+
+  **Acceptance (summarised):**
+  - <each bullet, one line, paraphrased if long>
+
+  **First step:** <one-sentence statement of the very first concrete
+  action you're about to take — e.g. "explore current ingest entry
+  points to scope the config surface" or "add `extra_project_dirs`
+  to the config loader">
   ```
+
+  The preamble is narration, not a decision point — do **not** stop,
+  pause, or wait for confirmation. It exists purely to tell the user
+  what you're doing clearly before you do it. Flow straight from the
+  preamble into the first step in the same turn. Keep it tight: ≤6
+  lines of acceptance summary, one line for the first step.
 
   Then begin work on that target, using the inline acceptance criteria
   and context from the `## Frontier` section.
 
 - **Line starts with `**Execute now**: Work in parallel on N frontier
-  targets…`** — tied top-focus targets. Fan out via parallel Agent
-  calls per the Teams directive in CLAUDE.md, one agent per target,
-  each agent reading its target's inline details from the frontier
-  section.
+  targets…`** — tied top-focus targets. Emit a preamble naming each
+  target in the fan-out (one line each: `🎯T<ID> — <name>`), then fan
+  out via parallel Agent calls per the Teams directive in CLAUDE.md,
+  one agent per target, each agent reading its target's inline details
+  from the frontier section.
 
 - **Line starts with `**Execute now**: Run /release…`** — unreleased
   fixes take precedence. Invoke the `/release` skill. Do NOT call

@@ -101,13 +101,13 @@ This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (lat
 
 12. **Working tree**: Verify the working tree is clean and up to date with the remote. If there are uncommitted changes or unpushed commits, flag them before proceeding. If the changes are unrelated WIP, the standard resolution is: `git stash push -u -m "WIP: ..."`, proceed with the release, then `git stash pop` at the end. Always restore the stash after the release completes.
 
-    **Ahead-N dilemma** — if `discover.sh` reports `unpushed` ≥ 2 on the default branch (not a feature branch), **stop and raise it with the user before doing anything else**. Read the `unpushed_log` entries and assess whether they're meaningful atomic history (e.g., `Update claudia to v0.5.0`, `Remove pipeline parser`, …) or WIP scratch. If the commits are meaningful, a naive release-PR squash-merge will collapse them all into a single "Prep release" commit on `master`, destroying useful bisect/blame granularity. Present the three options explicitly:
+    **Ahead-N handling** — when `discover.sh` reports `unpushed` ≥ 1 on the default branch (not a feature branch), **fast-forward push the unpushed commits to origin first**, then open the release PR containing only the release-prep commit(s). This preserves the atomic history of the unpushed commits verbatim on `master`. Do this automatically — do not ask the user.
 
-    1. **One PR, squash-merge** — strict `pr-workflow` adherence. Loses atomic history of the unpushed commits. Use when the commits are already scratch/WIP or when atomic history doesn't matter.
-    2. **Fast-forward push of local `master` first, then PR for only the new release-prep commit** — preserves the unpushed commits verbatim on `master`. Bypasses `pr-workflow` for those commits (they never hit CI on a PR), but they did pass local checks. Use when the unpushed commits are meaningful atomic history that was authored outside an `/push` flow and is effectively already-approved.
-    3. **Two PRs, sequential** — first PR contains the unpushed commits (squashed), second PR is the release prep. Same history-loss as option 1 but split into two logical chunks.
+    If the fast-forward push is **not practical** (origin has commits not in local master, i.e. `git push` would require a merge or rebase), fall back to squashing everything into a single release PR. In that case, note it in the Phase 5 report so the user knows the atomic history was collapsed. Do not ask for confirmation; pick the fallback and proceed.
 
-    The user's answer shapes Phases 4–5, so you must resolve this before committing any release-prep changes. If you just start editing files, you'll end up with a 10-commit release branch and the dilemma surfaces too late.
+    Do not use the two-PR variant (squash unpushed in one PR, release prep in another) — same history loss as the fallback with double the CI churn, no upside.
+
+    Resolve this before committing any release-prep changes so Phases 4–5 have a clean working tree to operate on.
 
 Present a summary of findings and confirm before proceeding.
 
