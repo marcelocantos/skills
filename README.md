@@ -8,6 +8,7 @@ Also includes my global [`CLAUDE.md`](CLAUDE.md) directives and the [`convergenc
 
 - **[`/audit`](skills/audit/SKILL.md)** — Comprehensive codebase audit — code quality, security, testing, performance, legal, CI/CD, documentation, and agent-friendliness.
 - **[`/build-perf-audit`](skills/build-perf-audit/SKILL.md)** — Audit a build system for performance issues — profile the build, identify hotspots, match against known anti-patterns, and propose (or apply) fixes with before/after measurements. Use when a build is slow, when CI times are creeping up, or when you suspect caching/parallelism is misconfigured.
+- **[`/c`](skills/c/SKILL.md)** — Continue — restore compacted context from this session's chain after a /clear. Short to type on purpose.
 - **[`/commit`](skills/commit/SKILL.md)** — Stage and commit changes with an auto-drafted message.
 - **[`/cv`](skills/cv/SKILL.md)** — Evaluate convergence gaps on active targets and recommend next work.
 - **[`/docs`](skills/docs/SKILL.md)** — End-to-end documentation sherpa — audit, plan, and write all project documentation.
