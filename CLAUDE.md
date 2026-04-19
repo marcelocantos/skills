@@ -127,11 +127,20 @@ for the full protocol.
   (without `uv` prefix). These are not installed and should not be
   reintroduced.
 
-## C++ Style and Dependencies
+## C/C++ Style and Dependencies
 
-When working with C++ or adding dependencies, read
+When working with C or C++ or adding native dependencies, read
 [`~/.claude/cpp.md`](~/.claude/cpp.md) for style conventions,
 vendoring rules, and preferred libraries.
+
+**Never link against Homebrew-installed C/C++ libraries.** Homebrew
+paths are machine-specific, break on `brew upgrade`, and make builds
+non-reproducible. Instead:
+- **Small libraries** (single `.c`/`.h`): vendor directly into
+  `vendor/include` and `vendor/src`.
+- **Substantial libraries** (ngtcp2, libsodium, etc.): add as a git
+  submodule under `vendor/github.com/<org>/<repo>` and build from
+  source. Include the dependency's LICENSE file.
 
 ## JSON in C/C++
 

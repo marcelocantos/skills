@@ -140,6 +140,45 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 3a. Default-branch CI status (requires gh)
+# ---------------------------------------------------------------------------
+# A red default-branch run means the next merge will inherit the same
+# failures unless the release-prep PR happens to fix them. Surface this
+# early so the skill can decide whether to pause and triage. The PR
+# created later in Phase 5 will hit the same gates the default-branch
+# run is hitting now, so a red signal here is a near-certain
+# pre-release block.
+#
+# We probe only the *latest completed* run on the default branch (push
+# event), not in-progress runs — an in-progress run tells us nothing
+# until it finishes. The conclusion field is one of: success, failure,
+# cancelled, skipped, action_required, neutral, timed_out.
+echo "# default_branch_ci_status"
+if has_cmd gh; then
+    default_branch=$(gh repo view --json defaultBranchRef -q '.defaultBranchRef.name' 2>/dev/null) || default_branch=""
+    if [[ -z "$default_branch" ]]; then
+        echo "(unknown — gh repo view failed)"
+    else
+        # Take the latest completed push run on the default branch.
+        ci_line=$(gh run list \
+                    --branch "$default_branch" \
+                    --event push \
+                    --status completed \
+                    --limit 1 \
+                    --json databaseId,conclusion,workflowName,createdAt,url \
+                    --jq '.[0] | "\(.conclusion)\t\(.workflowName)\t\(.databaseId)\t\(.url)"' \
+                  2>/dev/null) || ci_line=""
+        if [[ -z "$ci_line" ]]; then
+            echo "(no completed CI runs on $default_branch)"
+        else
+            echo "$ci_line"
+        fi
+    fi
+else
+    echo "(gh not installed)"
+fi
+
+# ---------------------------------------------------------------------------
 # 4. Description (requires gh) — reports "null" if unset, else the description
 # ---------------------------------------------------------------------------
 echo "# description"
