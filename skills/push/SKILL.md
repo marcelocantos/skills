@@ -108,10 +108,20 @@ Once CI is green, enforce the project's delivery gates before merging.
 
 Once all gates pass:
 
-1. Confirm with the user before merging (this may already be covered
+1. **Target-only PR check.** Before merging, inspect the PR's file
+   list (e.g. `git diff --name-only <base>..HEAD`). If the **only**
+   modified path is `bullseye.yaml` (across any number of commits),
+   this is a target-only PR — a raising, context patch, `cross_depends`
+   edit, status change, etc. **Stop here.** Do not run the merge
+   script. Report that the PR is left open for visibility and that it
+   will get merged naturally when the substantive work lands (or be
+   closed when superseded). This rule applies regardless of gate or
+   CI state. Target-only edits do not warrant a merge to master —
+   see the global `## Pull requests` note in `~/.claude/CLAUDE.md`.
+2. Confirm with the user before merging (this may already be covered
    by a manual gate — don't double-prompt if the user just approved
    a manual gate).
-2. Run the merge script:
+3. Run the merge script:
    ```
    ~/.claude/skills/push/merge.sh <pr-number> <default-branch> <feature-branch>
    ```
