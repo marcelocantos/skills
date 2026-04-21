@@ -94,7 +94,7 @@ Create the commit using a HEREDOC for the message:
 git commit -m "$(cat <<'EOF'
 <message>
 
-Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 EOF
 )"
 ```
@@ -104,8 +104,11 @@ do this when the user explicitly asked for amend.
 
 ### 6. Verify
 
-Run `git status --short --branch` to confirm the commit succeeded.
-Report the commit hash and summary.
+Run `git rev-parse --short HEAD` to capture the commit hash, then
+`git log -1 --pretty=format:'%s'` for the subject. Report both as
+`<hash> <subject>`. Don't assert "commit succeeded" without the
+actual hash — `git commit` exits non-zero on failure, so a hash you
+extracted post-hoc is the proof.
 
 If the commit fails due to a pre-commit hook:
 1. Read the hook output to understand the failure.

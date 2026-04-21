@@ -24,7 +24,7 @@ The user runs `/release`. No arguments needed — the skill discovers everything
 
 ## Workflow
 
-Execute these phases in order. Summarise findings at the end of each phase and confirm before proceeding.
+Execute these phases in order. At the end of each phase, summarise findings and ask the user explicitly: *"Proceed to Phase N+1?"* Wait for a yes before continuing — don't treat silence or a neutral acknowledgement as approval.
 
 ### Phase 1: Discovery
 
@@ -119,7 +119,7 @@ This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (lat
 
     Resolve this before committing any release-prep changes so Phases 4–5 have a clean working tree to operate on.
 
-Present a summary of findings and confirm before proceeding.
+Present a summary of findings and ask *"Proceed to Phase 2?"* — wait for a yes.
 
 ### Phase 1.5: Stability tracking (pre-1.0 projects only)
 

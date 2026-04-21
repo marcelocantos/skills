@@ -96,9 +96,16 @@ Once CI is green, enforce the project's delivery gates before merging.
    Merge them: profile gates add to base; `override: [gate: skip]`
    removes specific base gates.
 3. Check each `pre-merge` gate:
-   - **automated**: Verify the condition (CI green, tests exist for
-     changed code). Report pass/fail.
-   - **routed**: These are already satisfied by being inside `/push`.
+   - **automated**: Run the check that proves the condition and report
+     the extracted result. For `ci-green`, use `gh pr checks <pr> --required`
+     and require every line to end in `pass`. For `tests-exist`,
+     grep the PR diff for test files matching the project's test
+     convention (`_test.go`, `test_*.py`, `*.test.ts`, etc.) and
+     report the count. Don't report "pass" without the evidence.
+   - **routed**: If the gate routes to `/push`, it's satisfied by
+     being inside `/push`. If it routes to another skill (e.g.
+     `routed: /release`), invoke that skill now and wait for it
+     to complete before proceeding.
    - **manual**: Present the gate's prompt to the user and **wait for
      explicit approval**. Do not proceed until the user confirms.
 4. If any gate fails, **stop**. Report which gate failed and why.

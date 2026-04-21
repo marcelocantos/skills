@@ -9,7 +9,12 @@ model: opus) with the prompt `"Read and execute
 ~/.claude/skills/audit/worker.md. Return the full audit report."`.
 Relay the agent's result to the user.
 
-After presenting the report, offer to address findings by priority.
+After presenting the report, ask the user which findings to address.
+Phrase it as: *"Which findings should I fix? Reply with numbers
+(e.g. `1, 3, 7`), severity (e.g. `critical only`, `high and above`),
+or `all`."* Wait for an explicit selection — don't pick a subset on
+your own.
+
 The worker handles all audit phases including team spawning, review
 gate, and report assembly. The root session handles user interaction
 (which findings to fix, commits, etc.).
