@@ -97,6 +97,26 @@ Regenerate the full-history timeline chart and per-week charts (guide section 6,
 
 This updates the top-level timeline in the README, regenerates the per-week chart for the current report, and updates the cache. Commit the updated cache alongside the charts.
 
+### "The Journey So Far" rewrite
+
+Rewrite the `## The Journey So Far` narrative section at the top of
+the report repo's `README.md` **from scratch** each iteration. Do not
+read the existing section before drafting — write a fresh narrative
+grounded in the current totals, this week's work, the achievements
+list, and (as needed) the previous reports. The section contextualises
+the cumulative body of work: total days, commits, languages, traditional
+equivalent, the nature of the work, the human role, and what stands out.
+
+Aim for similar length and tone to what's already there (confident,
+dense, British English, no emojis), but feel free to restructure,
+re-emphasise, or change examples. It is fine — expected, even — for
+successive rewrites to converge on similar observations; don't force
+artificial differences. Just start from a blank page.
+
+Include the rewritten section in the draft output so the user can
+review it alongside the report. After approval, Phase 3 stages the
+updated README.
+
 ### Achievements update
 
 After writing the report, review `docs/achievements.md` against this
