@@ -536,3 +536,70 @@ if [[ -n "$tracking" ]]; then
 else
     echo "(no upstream tracking branch)"
 fi
+
+# ---------------------------------------------------------------------------
+# Release-workflow touch detection.
+#
+# The release CI workflow only runs end-to-end when a real release is
+# published, so bugs in it aren't caught by PR CI. When this release
+# changes the workflow itself (or adjacent packaging scripts / new
+# matrix legs / new artefact names), the risk of a mid-release failure
+# that requires tag surgery is meaningfully higher. Emit a boolean
+# plus the specific signals that fired so Phase 1 of SKILL.md can
+# suggest a prerelease dry-run.
+#
+# Triggers (any one is enough):
+#   - .github/workflows/release.yml modified in this release
+#   - New or modified packaging scripts under installer/, packaging/,
+#     or any *.iss, *.nsi, *.wxs file
+#   - Net-new matrix legs in release.yml (new `os:`/`goos:`/`goarch:`
+#     lines under a matrix include)
+#   - Net-new artefact names in release.yml upload steps
+# ---------------------------------------------------------------------------
+
+echo "# release_workflow_touched"
+if [[ -n "${latest_tag:-}" ]]; then
+    triggers=()
+    changed_files=$(git diff --name-only "$latest_tag..HEAD" 2>/dev/null) || changed_files=""
+
+    if echo "$changed_files" | grep -qE '^\.github/workflows/release\.ya?ml$'; then
+        triggers+=("release.yml")
+    fi
+    if echo "$changed_files" | grep -qE '^(installer|packaging)/|\.(iss|nsi|wxs)$'; then
+        triggers+=("packaging-scripts")
+    fi
+
+    # New matrix legs: compare `- os:` or `goos:` lines at $latest_tag vs HEAD.
+    if echo "$changed_files" | grep -qE '^\.github/workflows/release\.ya?ml$'; then
+        old_legs=$(git show "$latest_tag:.github/workflows/release.yml" 2>/dev/null \
+            | grep -cE '^\s*-\s*os:' || echo 0)
+        new_legs=$(git show "HEAD:.github/workflows/release.yml" 2>/dev/null \
+            | grep -cE '^\s*-\s*os:' || echo 0)
+        if [[ "$new_legs" -gt "$old_legs" ]]; then
+            triggers+=("new-matrix-leg")
+        fi
+
+        # Net-new artefact patterns in upload steps.
+        old_uploads=$(git show "$latest_tag:.github/workflows/release.yml" 2>/dev/null \
+            | grep -cE 'gh release upload|gh_release_upload' || echo 0)
+        new_uploads=$(git show "HEAD:.github/workflows/release.yml" 2>/dev/null \
+            | grep -cE 'gh release upload|gh_release_upload' || echo 0)
+        if [[ "$new_uploads" -gt "$old_uploads" ]]; then
+            triggers+=("new-artefact")
+        fi
+    fi
+
+    if [[ ${#triggers[@]} -gt 0 ]]; then
+        echo "yes"
+        echo "# release_workflow_triggers"
+        printf '%s\n' "${triggers[@]}"
+    else
+        echo "no"
+        echo "# release_workflow_triggers"
+        echo "(none)"
+    fi
+else
+    echo "no (no prior tag to diff against)"
+    echo "# release_workflow_triggers"
+    echo "(none)"
+fi

@@ -119,6 +119,18 @@ This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (lat
 
     Resolve this before committing any release-prep changes so Phases 4–5 have a clean working tree to operate on.
 
+13. **Release-workflow risk signal**: Read `# release_workflow_touched` and `# release_workflow_triggers` from the discover.sh output.
+
+    When `release_workflow_touched` is `yes`, this release changes code paths that *only* run end-to-end when a real release is published — PR CI never exercises them. Prior incidents under this exact pattern required multiple tag-delete-and-retag cycles (mnemo v0.22.0 shipped after three iterations: MSYS path conversion, Inno Setup relative-path resolution, `[UninstallRun]` flag restriction — none of which could be caught without a real release event).
+
+    In that case, **suggest a prerelease dry-run** before the real tag. One line in the Phase 1 summary, name the specific triggers so the user can judge the risk:
+
+    > *"This release touches release-workflow logic (triggers: `release.yml`, `new-matrix-leg`, …) that hasn't run end-to-end yet. Consider cutting `v<X.Y.Z>-rc.1` as a prerelease via `gh release create --prerelease` first to validate before the real tag. Proceed with real tag anyway, or do rc.1 first?"*
+
+    When `release_workflow_touched` is `no`, **say nothing** about prereleases — don't add noise to routine releases. The whole point of this check is that it only fires when there's a signal.
+
+    If the user opts for a prerelease, run the whole Phase 2–5 flow against `v<X.Y.Z>-rc.1` with the `--prerelease` flag on `gh release create`. If the resulting release.yml run is green, delete the prerelease tag and re-run Phase 5 for the real tag. If red, iterate on the fix exactly as you would for the real release — but the real tag is never burned in the process.
+
 Present a summary of findings and ask *"Proceed to Phase 2?"* — wait for a yes.
 
 ### Phase 1.5: Stability tracking (pre-1.0 projects only)
