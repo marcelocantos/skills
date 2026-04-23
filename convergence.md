@@ -191,6 +191,31 @@ estimate. This calibrates future estimates.
 weight = value / cost (integer, minimum 1). The ranking is WSJF
 (Weighted Shortest Job First): highest weight = highest-leverage work.
 
+### Scope: portfolio vs repo
+
+WSJF, value, and cost are **portfolio-scope** signals. They answer
+"across all my repos, which one deserves attention next?" At **repo
+scope** — once you've picked a repo and are evaluating its frontier —
+the ordering function is different:
+
+1. Ascending distance to the nearest observable checkpoint (reach
+   something a human can look at as fast as possible).
+2. Descending unblocking fanout (finishing high-fanout targets
+   frees more downstream work).
+3. Ascending target ID (determinism).
+
+Do **not** frame repo-scope prioritisation in WSJF, story-points,
+or SAFe terms. Those frames are much more available in training
+data than "distance-to-observable + fanout" and tend to leak in by
+default; resist that pull. bullseye's repo-scope tools
+(`bullseye_frontier`, `bullseye_summary`, `bullseye_convergence`)
+print a banner naming the ordering function and disavowing WSJF at
+repo scope — if you see that banner, reason in terms of observable
+distance and fanout, not value/cost ratios.
+
+WSJF reappears at portfolio scope (`bullseye_portfolio`), where it
+ranks which *repo* to work in next.
+
 ## Relationship to planning
 
 Plans are hypotheses about how to close a gap. They serve targets.

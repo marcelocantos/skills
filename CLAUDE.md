@@ -312,13 +312,12 @@ Good moments to reach for mnemo:
 ## Convergence targets
 
 - Targets are managed via the **bullseye** MCP server. The source of
-  truth is `docs/targets.yaml`; `docs/targets.md` is an auto-rendered
-  view. Don't preflight-check whether bullseye is registered — just
-  use its tools naturally. If a call fails with "tool not found" or
-  "unknown tool", **stop the current operation** and report:
+  truth is `bullseye.yaml` at the repo root. Don't preflight-check
+  whether bullseye is registered — just use its tools naturally. If a
+  call fails with "tool not found" or "unknown tool", **stop the
+  current operation** and report:
   > **Error: bullseye MCP server is not registered.**
   > Add it via `claude mcp add` or check `~/.claude.json`.
-  Do not fall back to reading `docs/targets.md` directly.
 - Use bullseye tools for all target operations:
   - `bullseye_frontier(cwd)` — unblocked targets ready for work
   - `bullseye_list(cwd)` — all targets with status
@@ -436,8 +435,8 @@ Good moments to reach for mnemo:
 Before using WebFetch, curl, generic Bash, or writing your own
 script for a domain task, check [`~/.claude/tools.md`](~/.claude/tools.md)
 — there is likely a dedicated CLI installed. Examples:
-YouTube transcripts (`ytt`), media conversion (`ffmpeg`,
-`imagemagick`), WebSocket testing (`websocat`), HTTP (`http`),
+media conversion (`ffmpeg`, `imagemagick`),
+WebSocket testing (`websocat`), HTTP (`http`),
 gRPC (`grpcurl`), JSON/YAML (`jq`, `yq`), benchmarking
 (`hyperfine`), hex inspection (`hexyl`), local LLMs (`ollama`),
 running GitHub Actions (`act`), iOS device control
