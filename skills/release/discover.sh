@@ -233,15 +233,35 @@ fi
 # ---------------------------------------------------------------------------
 echo "# project_type"
 is_binary=false
-# Go: a project is a library if the module root directory contains any
-# .go file declaring a non-main package — that non-main root package is
-# the importable surface consumers depend on. The presence of cmd/
-# alongside such a root package just means the repo also ships
-# diagnostic tools, examples, or ancillary binaries (e.g. claudia's
-# cmd/probe-ready), not that the project's primary product is a
-# binary. Only classify as binary if there is NO non-main root
-# package AND a main package exists (at the root or under cmd/).
+# Go: distinguish three cases.
+#   (a) cmd/<repo-name>/main.go — the project's primary deliverable is the
+#       binary that shares its name with the repo. A non-main root package
+#       can coexist (e.g. doit's doit.go is a go:embed scaffold so the
+#       binary can ship its own agents-guide.md), but does not override the
+#       binary classification.
+#   (b) Root main.go declaring package main — single-file binary at the
+#       module root.
+#   (c) Otherwise: if a non-main root package exists, classify as library
+#       (the importable surface consumers depend on). cmd/<other>/main.go
+#       under (c) is treated as ancillary diagnostic tooling
+#       (e.g. claudia's cmd/probe-ready), not the primary deliverable.
 if [[ -f go.mod ]]; then
+    # Derive the repo name from go.mod's module line (last path segment).
+    module_path=$(grep -E '^module[[:space:]]+' go.mod 2>/dev/null | head -1 | awk '{print $2}')
+    repo_name=${module_path##*/}
+
+    has_repo_named_cmd=false
+    if [[ -n "$repo_name" && -f "cmd/$repo_name/main.go" ]]; then
+        if grep -qE '^package[[:space:]]+main\b' "cmd/$repo_name/main.go" 2>/dev/null; then
+            has_repo_named_cmd=true
+        fi
+    fi
+
+    has_root_main=false
+    if [[ -f main.go ]] && grep -qE '^package[[:space:]]+main\b' main.go 2>/dev/null; then
+        has_root_main=true
+    fi
+
     root_has_library=false
     shopt -s nullglob
     for f in *.go; do
@@ -253,7 +273,14 @@ if [[ -f go.mod ]]; then
         fi
     done
     shopt -u nullglob
-    if [[ "$root_has_library" == false ]] && { [[ -d cmd ]] || [[ -f main.go ]]; }; then
+
+    if [[ "$has_repo_named_cmd" == true || "$has_root_main" == true ]]; then
+        # Cases (a) and (b): primary deliverable is the binary.
+        is_binary=true
+    elif [[ "$root_has_library" == false ]] && [[ -d cmd ]]; then
+        # Has cmd/ but no cmd/<repo-name>/main.go and no library root —
+        # treat as binary (single-binary project where the cmd dir is named
+        # something other than the repo).
         is_binary=true
     fi
 elif [[ -d cmd ]] || [[ -f main.go ]]; then
