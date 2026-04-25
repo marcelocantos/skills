@@ -263,7 +263,7 @@ deep links, sample data, and visual verification cadence.
 
 ## Audit log
 
-- Skills that perform maintenance work (`/audit`, `/docs`, `/release`, `/open-source`) append entries to `docs/audit-log.md` in the repo. The `/waw` skill reads this log for its maintenance status section.
+- Skills that perform maintenance work (`/docs`, `/release`, `/open-source`) append entries to `docs/audit-log.md` in the repo. The `/waw` skill reads this log for its maintenance status section.
 - Format spec: `~/.claude/skills/audit-log-convention.md`
 - When a skill invokes another skill, only the parent logs — children skip to avoid double entries.
 
@@ -287,9 +287,6 @@ prefer mnemo over reconstructing narrative from git log or auto-memory.
   mnemo is unavailable.
 - `/cv` uses `mnemo_recent_activity` to understand recent movement
   before evaluating gaps, reducing expensive codebase reads.
-- `/wrap` writes only forward-looking context to MEMORY.md (targets
-  affected, in-flight work, user preferences) — session narrative
-  lives in mnemo, not auto-memory.
 - Auto-memory (`MEMORY.md`, topic files) stores **stable facts** and
   **context mnemo cannot provide** (user preferences, architectural
   decisions that shape future work, external constraints). Don't
@@ -365,10 +362,6 @@ Good moments to reach for mnemo:
   evaluation and follow-on work, run `/cv scan` and present the
   recommendation, but suggest continuing in a fresh session rather
   than auto-executing.
-- **On context compression**: When the system compacts the conversation,
-  immediately run `/wrap` to update targets and capture learnings
-  before state is lost. After `/wrap` completes, recommend `/clear`
-  to start a fresh session.
 - **Session startup**: At the start of every session, if the project
   has a `docs/targets.yaml`, call `bullseye_startup_context(cwd)` to
   load project context (frontier targets, recent achievements,

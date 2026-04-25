@@ -27,17 +27,18 @@ The user runs `/open-source [repo-name]`. If no repo name is given, ask for one.
 
 Execute these phases in order. At the end of each phase, summarize what was done and confirm before moving to the next.
 
-### Phase 1: Audit
+### Phase 1: Pre-publication audit
 
-Delegate to the `/audit` skill for a comprehensive codebase assessment. Run the full audit — all phases are relevant when preparing a project for public release.
-
-In addition to the standard audit findings, pay special attention to:
+Audit the codebase for issues that matter when going public. Cover at least:
 
 - **Secrets in git history**: Even if secrets have been removed from the current tree, they persist in git history. Since we always keep full history (never squash), any secret that was ever committed will be public. Flag these as **Critical**.
 - **Internal references**: Company-internal hostnames, private repo URLs, issue tracker links, or TODOs marked private/internal — these are embarrassing in a public repo.
 - **Licence compatibility with Apache 2.0**: All third-party dependencies must have Apache-2.0-compatible licences. Flag GPL (non-LGPL), AGPL, or proprietary dependencies.
+- **LICENSE / NOTICES presence**: Confirm Apache 2.0 LICENSE file exists; if vendored or copied dependencies are present, confirm a NOTICES/THIRD_PARTY file lists them with their licences.
+- **`.gitignore` hygiene**: Build artifacts, IDE files, OS files, dependency directories, and any generated `.env`/credential files are ignored.
+- **README and basic docs**: A README exists and minimally covers what the project is, how to build/run it, and how to contribute.
 
-Present all findings as a checklist. Ask the user to confirm which issues to fix before proceeding.
+Present findings as a checklist. Ask the user to confirm which issues to fix before proceeding.
 
 ### Phase 2: Fixes
 
@@ -96,7 +97,7 @@ Invoke the `/release` skill and follow its full workflow — discovery script, a
 
 After all phases are complete, append a single summary entry to `docs/audit-log.md` (create the file with the standard header if it doesn't exist — see `~/.claude/skills/audit-log-convention.md` for the format). Commit and push it immediately so the entry doesn't drift into the next work cycle. (As an orchestrator spanning multiple commits, this is an exception to the "before the final commit" convention.)
 
-The entry should cover all sub-skills that ran (/audit, /docs, /release) and their outcomes. Example:
+The entry should cover all sub-skills that ran (/docs, /release) and their outcomes. Example:
 
 ```markdown
 ## 2026-02-25 — /open-source doit v0.1.0
@@ -109,7 +110,7 @@ The entry should cover all sub-skills that ran (/audit, /docs, /release) and the
   - per-project config not implemented
 ```
 
-Sub-skills (/audit, /docs, /release) skip their own audit-log entries when called from /open-source — this entry is the single record.
+Sub-skills (/docs, /release) skip their own audit-log entries when called from /open-source — this entry is the single record.
 
 ## Error handling
 

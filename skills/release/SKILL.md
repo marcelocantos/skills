@@ -111,11 +111,16 @@ This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (lat
 
 12. **Working tree**: Verify the working tree is clean and up to date with the remote. If there are uncommitted changes or unpushed commits, flag them before proceeding. If the changes are unrelated WIP, the standard resolution is: `git stash push -u -m "WIP: ..."`, proceed with the release, then `git stash pop` at the end. Always restore the stash after the release completes.
 
-    **Ahead-N handling** — when `discover.sh` reports `unpushed` ≥ 1 on the default branch (not a feature branch), **fast-forward push the unpushed commits to origin first**, then open the release PR containing only the release-prep commit(s). This preserves the atomic history of the unpushed commits verbatim on `master`. Do this automatically — do not ask the user.
+    **Ahead-N handling** — when `discover.sh` reports `unpushed` ≥ 1 on the default branch (not a feature branch), the choice between "fast-forward push then PR for release-prep" vs "single bundled PR" depends on the repo's merge strategy. Read `# merge_strategy` from the discover.sh output:
 
-    If the fast-forward push is **not practical** (origin has commits not in local master, i.e. `git push` would require a merge or rebase), fall back to squashing everything into a single release PR. In that case, note it in the Phase 5 report so the user knows the atomic history was collapsed. Do not ask for confirmation; pick the fallback and proceed.
+    - **`merge-commit-allowed`** — fast-forward push the unpushed commits to origin first, then open the release PR containing only the release-prep commit(s). The unpushed commits' atomic history survives on master verbatim. Do this automatically; don't ask the user.
+    - **`squash-only`** (the common case for owned repos under the global `~/.claude/CLAUDE.md` policy) — bundle the unpushed commits AND the release-prep commits into a single feature branch, open one PR, squash-merge to master. The squash collapses the per-commit history on master, but the per-commit detail is preserved on GitHub forever via the PR's commit list. Do not push to master directly; the global "always PR-flow" directive applies. Do this automatically; don't ask the user. Note the squash collapse in the Phase 5 report.
+    - **`rebase-allowed`** (without merge-commit) — same as `squash-only`. Rebase-merge would preserve atomic history on master, but for the release skill's purposes the bundled PR is cleaner.
+    - **`(gh api failed)` or `(gh not available...)`** — assume `squash-only` and proceed with the bundled PR. This is the safer default.
 
-    Do not use the two-PR variant (squash unpushed in one PR, release prep in another) — same history loss as the fallback with double the CI churn, no upside.
+    If the fast-forward path is selected but **not practical** (origin has commits not in local master, i.e. `git push` would require a merge or rebase), fall back to the bundled PR. Note the collapse in the Phase 5 report.
+
+    Do not use the two-PR variant (squash unpushed in one PR, release prep in another) under any merge strategy — same history loss as the bundled PR with double the CI churn, no upside.
 
     Resolve this before committing any release-prep changes so Phases 4–5 have a clean working tree to operate on.
 

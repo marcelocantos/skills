@@ -538,6 +538,28 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 18a. Merge strategy
+# ---------------------------------------------------------------------------
+# Drives the Phase 1 Ahead-N handling. When the repo is squash-only the
+# only way to land unpushed commits without losing per-commit atomic
+# history on master would be a direct push (violates pr-workflow), so
+# the correct path is bundling everything into one squash PR. When the
+# repo allows merge commits, fast-forward push of the unpushed commits
+# preserves atomic history naturally.
+echo "# merge_strategy"
+repo=$(repo_name)
+if has_cmd gh && [[ "$repo" == */* ]]; then
+    gh api "repos/$repo" --jq '
+        if .allow_merge_commit then "merge-commit-allowed"
+        elif .allow_rebase_merge then "rebase-allowed"
+        else "squash-only"
+        end
+    ' 2>/dev/null || echo "(gh api failed)"
+else
+    echo "(gh not available or non-github repo)"
+fi
+
+# ---------------------------------------------------------------------------
 # Release-workflow touch detection.
 #
 # The release CI workflow only runs end-to-end when a real release is

@@ -27,7 +27,7 @@ maintenance activities. Append-only — newest entries at the bottom.
 
 - The `## ` heading is the entry delimiter — agents parse on this.
 - Date is ISO 8601 (`YYYY-MM-DD`).
-- Skill name is the slash-command name (e.g., `/audit`, `/release`, `/docs`).
+- Skill name is the slash-command name (e.g., `/release`, `/docs`).
 - `[optional context]` is for version tags (`v0.1.0`), scope (`security only`), or parent reference (`via /open-source`).
 - **Commit** is the short SHA of HEAD when the skill started (the state that was examined), captured via `git rev-parse --short HEAD` before making any changes. If the working tree had uncommitted changes at that point, use `"working tree dirty — \`abc1234\`"` to flag this while still recording the base commit.
 - **Outcome** is a brief factual summary — finding counts, what was written, version released, etc.
@@ -42,18 +42,9 @@ Exception: orchestrator skills (e.g., `/open-source`) that delegate to sub-skill
 
 ## When NOT to log
 
-1. **Child invocation**: When a skill is invoked by another skill (e.g., `/audit` called by `/open-source`), the child skips logging. The parent logs a single summary entry covering all sub-skills.
+1. **Child invocation**: When a skill is invoked by another skill (e.g., `/docs` called by `/open-source`), the child skips logging. The parent logs a single summary entry covering all sub-skills.
 2. **Same-day dedup**: If an entry for the same skill already exists today at the same commit, skip logging.
 3. **Aborted runs**: If the user aborts mid-skill, do not log.
-
-## Staleness check (audit skill only)
-
-Before starting, `/audit` reads the log and checks the most recent `/audit` entry. If it is within the last 7 days AND at the same commit, offer the user three options:
-- **Re-audit**: Full audit from scratch
-- **Address deferred**: Focus only on previously deferred items
-- **Skip**: No audit
-
-This check is skipped when `/audit` is invoked by another skill.
 
 ## Non-agentic contributions
 

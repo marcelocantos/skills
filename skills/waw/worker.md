@@ -31,15 +31,6 @@ state, recent commits, stash list, diff stats, project CLAUDE.md,
 auto-memory files, and GSD/planning state — all in one call with
 markdown heading delimiters (`# section`).
 
-Before producing the briefing, check the auto-memory directory for
-`wrap-draft.md`. If it exists, a previous `/wrap` was interrupted
-(likely by context exhaustion). Read it and incorporate its contents
-into the briefing — especially the "In-flight work" and "Key decisions"
-sections, which represent lost context from the previous session.
-Mention the interrupted wrap prominently so the user knows context
-was recovered. After incorporating, clean it up by executing
-`~/.claude/skills/wrap/cleanup.sh <auto-memory-directory>`.
-
 Then produce a concise context-restoration briefing from that output,
 covering the following sections. Skip any section that has nothing to
 report.
@@ -126,9 +117,8 @@ An item is resolved if a subsequent entry's outcome mentions addressing
 it, or if a later entry for the same skill has no deferred items. Show
 only unresolved items, grouped by entry date. If none, say so.
 
-**Nudge** — if no audit in 30+ days, suggest `/audit`. If unresolved
-deferred items exist, mention them. Otherwise, note the project is
-healthy.
+**Nudge** — if unresolved deferred items exist, mention them.
+Otherwise, note the project is healthy.
 
 ## What's next?
 
