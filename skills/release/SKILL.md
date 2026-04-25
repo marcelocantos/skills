@@ -401,6 +401,14 @@ and is not sufficient for a release.
 
 This is by design. Tell the user upfront at the start of Phase 4.5 so the second PR isn't a surprise. If the project has no CI, the `pr-workflow` gate still applies — you still need to go through a PR, but CI waits are zero.
 
+**Always squash-merge release PRs via `~/.claude/skills/push/merge.sh`, never via raw `gh pr merge`.** After a squash-merge, local master has N pre-squash commits while origin/master has one squash commit with a different SHA — `git pull` fails to fast-forward, `rebase` re-applies already-merged content, and `merge` would create a merge commit (forbidden under squash-only). The only safe resolution is `git reset --hard origin/master`, which is normally a user-only operation. `merge.sh` bundles the squash-merge, the fetch, the checkout, the hard reset, and the local feature-branch cleanup into a single vetted script — pre-authorising the reset by virtue of being a known script. Invoke as:
+
+```
+~/.claude/skills/push/merge.sh <pr-number> master <feature-branch>
+```
+
+Calling `gh pr merge --squash` directly leaves the user staring at a diverged local master with no clean recovery — they have to run `git reset --hard origin/master` by hand every time. That is the bug `merge.sh` exists to prevent. Do this for both the release PR and the audit-log-hash PR.
+
 ### Phase 5: Release
 
 Create the GitHub release and let CI handle the rest.
