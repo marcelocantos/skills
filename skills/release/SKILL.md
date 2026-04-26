@@ -489,6 +489,14 @@ Create the GitHub release and let CI handle the rest.
     - Homebrew install command (if tap was set up): `brew install marcelocantos/tap/<project>`
     - Confirmation that the new version is installed locally (include the `--version` output)
 
+11. **Retire the release-readiness target and clean the tree**: If the
+    project uses bullseye and the release was driven by a
+    release-readiness target, retire it now via `bullseye_retire`. Then
+    run `~/.claude/skills/release/finalize.sh <version> [target-id]` to
+    commit any resulting `bullseye.yaml` diff locally (no push). This
+    enforces the invariant *"after /release returns, `bullseye.yaml` is
+    clean"* — `/cv` and other gates rely on it.
+
 ## Audit log
 
 Append an entry to `docs/audit-log.md` as part of the release-prep commits (create the file with the standard header if it doesn't exist — see `~/.claude/skills/audit-log-convention.md` for the format).
