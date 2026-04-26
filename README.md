@@ -12,6 +12,7 @@ Also includes my global [`CLAUDE.md`](CLAUDE.md) directives and the [`convergenc
 - **[`/cv`](skills/cv/SKILL.md)** — Evaluate convergence gaps on active targets and recommend next work.
 - **[`/docs`](skills/docs/SKILL.md)** — End-to-end documentation sherpa — audit, plan, and write all project documentation.
 - **[`/open-source`](skills/open-source/SKILL.md)** — Open-source a project — audit, fix, document, publish, and release.
+- **[`/pr-audit`](skills/pr-audit/SKILL.md)** — Audit open PRs across all owned repos and recommend cleanup actions (close superseded, merge ready, poke contrib reviewers, fan-in synchronized rollouts).
 - **[`/progress-report`](skills/progress-report/SKILL.md)** — Generate and publish a weekly progress report from git activity across all repos.
 - **[`/push`](skills/push/SKILL.md)** — Push current work through a PR-based CI workflow. Creates branch and PR if needed.
 - **[`/release`](skills/release/SKILL.md)** — Publish a release — version, release notes, CI, Homebrew tap, tag, and GitHub release.

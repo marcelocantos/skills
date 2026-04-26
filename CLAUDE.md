@@ -259,7 +259,6 @@ deep links, sample data, and visual verification cadence.
 - Feature branches are deleted on merge (GitHub setting).
 - Wait for CI to pass before merging. Do not merge with failing checks.
 - **Do not push to a PR branch that has passing CI** without explicit user approval. A green CI run is valuable — pushing additional commits (even docs-only changes) resets it and forces another full cycle. If further changes are needed, create a new branch (off the green PR branch or off master) and open a separate PR.
-- **Target-only edits stop at the push.** Mutations to `bullseye.yaml` — raising new targets, patching context, adding `cross_depends`, changing status — go no further than a push. Open the PR for visibility but **do not merge**. Only actual feature work and bug fixes warrant a merge. A raised target is a marker of intended future work, not a change that ships; the branch + open PR is the visibility artifact, and it'll get merged naturally when the substantive work lands (or closed when superseded). Applies across every repo that uses bullseye. `/push` auto-merges green PRs by default; override for target-only PRs — stop after the PR is open and CI is green, don't invoke `merge.sh`.
 
 ## Audit log
 
