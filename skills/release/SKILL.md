@@ -592,17 +592,20 @@ Either is fine; pick one per-project and stick with it. The skill currently assu
 
 When running `git commit` through an MCP-mediated executor (e.g. `doit_execute`, or any tool that ultimately runs the command through a single-line `sh -c` invocation), **do not use the `git commit -m "$(cat <<'EOF' ... EOF)"` heredoc pattern**. The executor serialises the entire command into a single line before passing it to `sh -c`, which collapses all the newlines in the heredoc body onto one line. The heredoc terminator then sits on the same line as the message body and `sh` fails with `syntax error near unexpected token '('`, producing an empty commit message and aborting the commit.
 
-The reliable pattern is to write the message to a temp file and pass it via `-F`:
+The reliable pattern is to write the message to a temp file and pass it via `-F`. Always use `mktemp` for the path — a fixed path like `/tmp/release-commit.txt` will collide with leftovers from a prior run, and the Write tool refuses to overwrite an existing file without first Reading it, forcing a fallback to `rm -f` that needs user approval. `mktemp` sidesteps that:
 
+```sh
+# 1. Allocate a unique temp file and arrange cleanup on exit.
+msg=$(mktemp -t release-commit.XXXXXX)
+trap 'rm -f "$msg"' EXIT
+
+# 2. Write the message to "$msg" with the Write tool (not echo/cat) to preserve formatting.
+
+# 3. Commit from the file.
+git commit -F "$msg"
 ```
-# 1. Write the message (use the Write tool, not echo/cat, to preserve formatting).
-#    /tmp/release-commit.txt contains the multi-paragraph message.
 
-# 2. Commit from the file.
-git commit -F /tmp/release-commit.txt
-```
-
-Same applies to `gh pr create --body-file ...` and `gh release create --notes-file ...` — prefer the `-file` variants over inline `--body`/`--notes` with multi-paragraph content. This pattern is MCP-safe, and it also gives you a reviewable artefact on disk before the command runs. Under a direct shell (not via an MCP-mediated executor), heredocs work fine — but the skill should default to the `-F`/`--*-file` variants so it works identically in both environments.
+Same applies to `gh pr create --body-file ...` and `gh release create --notes-file ...` — prefer the `-file` variants over inline `--body`/`--notes` with multi-paragraph content, and allocate the path via `mktemp` with a `trap` to clean it up. This pattern is MCP-safe, gives you a reviewable artefact on disk before the command runs, and avoids the stale-file collision. Under a direct shell (not via an MCP-mediated executor), heredocs work fine — but the skill should default to the `-F`/`--*-file` variants so it works identically in both environments.
 
 ## Skill improvement
 
