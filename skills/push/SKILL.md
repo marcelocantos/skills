@@ -115,9 +115,14 @@ Once CI is green, enforce the project's delivery gates before merging.
 
 Once all gates pass:
 
-1. Confirm with the user before merging (this may already be covered
-   by a manual gate — don't double-prompt if the user just approved
-   a manual gate).
+1. **This is the single approval point in the push lifecycle.** All
+   earlier steps (push to feature branch, PR creation, fix-and-repush
+   for CI failures) run autonomously without prompting — that is
+   pre-authorised by the global "Pull requests" directive in
+   `~/.claude/CLAUDE.md`. The squash-merge to the default branch is
+   the one irreversible action, so confirm with the user before
+   running it. (If a manual `pre-merge` gate has already collected
+   approval, don't double-prompt.)
 2. Run the merge script:
    ```
    ~/.claude/skills/push/merge.sh <pr-number> <default-branch> <feature-branch>
