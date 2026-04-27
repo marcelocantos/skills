@@ -114,6 +114,14 @@ create one with `bullseye_put`. Do not enter plan mode until
 convergence is assessed. See [Convergence targets](#convergence-targets)
 for the full protocol.
 
+## Background processes and waiting
+
+- **Never write `sleep N && <check>`.** The harness blocks long leading sleeps, and even when it doesn't, the pattern is the wrong shape: it burns the prompt cache, can't react to early completion, and gets blocked just often enough to be a recurring annoyance.
+- When *starting* a long-running command you want to check on later: pass `run_in_background: true` to Bash. The harness notifies you when it finishes; read output then. No sleep needed.
+- When *waiting on a condition* (log line appears, port opens, file exists): use the `Monitor` tool with an `until <check>; do sleep 2; done` loop. You get notified when the loop exits.
+- When you need to come back to a task after a real wait (minutes+): use `ScheduleWakeup`.
+- Never chain shorter sleeps to work around the block. If you catch yourself writing `sleep`, stop and pick the right primitive.
+
 ## Python
 
 - **`uv`** is the sole Python tool manager. Use it for everything:

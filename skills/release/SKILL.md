@@ -252,6 +252,15 @@ Determine the next version number. **Do not ask for confirmation** — just use 
    version constants (e.g., `Version = "x.y.z"` with `VersionMajor`,
    `VersionMinor`, `VersionPatch`), update them to match the new version.
 
+   **Top-level package `Version` constant**: Some Go libraries expose a
+   single top-level `const Version = "x.y.z"` (typically in a small
+   `version.go` at the repo root) so consumers can report the library
+   version at runtime. Detect with
+   `grep -l '^const Version = ' *.go 2>/dev/null` at the repo root —
+   if a match exists, update the quoted string value to the new version
+   with the leading `v` stripped (e.g., `v0.10.0` → `"0.10.0"`). The
+   tag itself keeps the `v` prefix; only the constant drops it.
+
    **No version macros found**: If a C/C++ library has no version macros at all, note this as a gap. For pre-1.0 projects, record it in `STABILITY.md` under gaps/prerequisites. Don't block the release — version macros are a 1.0 prerequisite, not a pre-1.0 gate.
 
 ### Phase 3: Release notes
