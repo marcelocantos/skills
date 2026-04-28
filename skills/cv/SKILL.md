@@ -131,7 +131,11 @@ act on it mechanically:
 
 - **Line starts with `**Blocked**:`** — standing invariants are
   failing, validation errors, or the frontier is empty. Do not
-  execute. Relay the block reason to the user and wait for direction.
+  execute. Relay the block reason to the user and wait for
+  direction. (Dirty `bullseye.yaml` is no longer a special case at
+  the skill layer — bullseye v0.25.0+ folds the change into git
+  itself, so a Blocked response here means a real invariant failure
+  worth surfacing.)
 
 - **Anything else** — unrecognised shape. Present to the user and
   ask for direction.
