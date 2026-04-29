@@ -122,38 +122,31 @@ for the full protocol.
 - When you need to come back to a task after a real wait (minutes+): use `ScheduleWakeup`.
 - Never chain shorter sleeps to work around the block. If you catch yourself writing `sleep`, stop and pick the right primitive.
 
-## Python
+## Language-specific instructions
 
-- **`uv`** is the sole Python tool manager. Use it for everything:
-  - `uv pip install <pkg>` — install into `~/.py` (the active venv)
-  - `uv tool install <tool>` — install isolated CLI tools (replaces pipx)
-  - `uv venv` — create per-project venvs with any Python version
-- **`~/.py`** is the global daily-driver venv, activated in `~/.zshrc`.
-  Its Python is uv-managed (lives in `~/.local/share/uv/python/`),
-  not Homebrew — so `brew upgrade` can't break it.
-- **Never use** pyenv, pipx, `brew install python`, or bare `pip install`
-  (without `uv` prefix). These are not installed and should not be
-  reintroduced.
+**HARD RULE.** Before writing, modifying, or reviewing any code in one
+of the languages below — and before answering any question that
+specifically concerns that language's idioms, tooling, or APIs —
+**read the corresponding file in full**. These files contain
+non-obvious, opinionated rules (banned patterns, required tools,
+vendoring policies) that override generic best-practice you may have
+been trained on. Do not skip the read because you "already know" the
+language; the contents drift over time and the user has been burned
+by Claude defaulting to community conventions that contradict these
+rules.
 
-## C/C++ Style and Dependencies
+If you find yourself emitting more than a one-line snippet in one of
+these languages without having read the file this session, stop and
+read it.
 
-When working with C or C++ or adding native dependencies, read
-[`~/.claude/cpp.md`](~/.claude/cpp.md) for style conventions,
-vendoring rules, and preferred libraries.
+- Python: [`~/.claude/python.md`](~/.claude/python.md)
+- Go: [`~/.claude/go.md`](~/.claude/go.md)
+- C / C++: [`~/.claude/cpp.md`](~/.claude/cpp.md)
+- TLA+ / formal verification: [`~/.claude/tlaplus.md`](~/.claude/tlaplus.md)
 
-**Never link against Homebrew-installed C/C++ libraries.** Homebrew
-paths are machine-specific, break on `brew upgrade`, and make builds
-non-reproducible. Instead:
-- **Small libraries** (single `.c`/`.h`): vendor directly into
-  `vendor/include` and `vendor/src`.
-- **Substantial libraries** (ngtcp2, libsodium, etc.): add as a git
-  submodule under `vendor/github.com/<org>/<repo>` and build from
-  source. Include the dependency's LICENSE file.
-
-## JSON in C/C++
-
-- **cJSON** for C and simple C++ JSON. Vendor as `vendor/cjson/`.
-- **nlohmann/json** only when C++ ergonomics justify the compile cost.
+When the user asks to add a new language-specific rule, write it into
+the relevant file (creating one if needed) and add the mapping above.
+Do not inline language rules into this file.
 
 ## Licensing
 
@@ -166,6 +159,13 @@ non-reproducible. Instead:
 ## Code Organisation
 
 - Keep code modular along orthogonal concerns. In particular, keep platform-specific code separate from platform-neutral logic (e.g. separate files or compilation units, not `#ifdef` blocks scattered through business logic).
+
+## Clarity over decomposition
+
+- **Avoid "Clean Code" principles like the plague.** The focus is clarity and simplicity, not maximal decomposition. Splitting a 60-line function into eight 8-line helpers named `loadX`, `parseY`, `runZ` does not make the code clearer — it fragments the narrative and forces the reader to context-switch between caller and callee to reconstruct what the program actually does. A single linear function the reader can scan top-to-bottom is almost always more readable than the same logic shattered into named pieces.
+- Extract a helper only when the same logic genuinely repeats, when a piece must be reused across goroutines/threads and *needs* its own scope, or when a self-contained chunk has earned a name that explains *why* (not just *what*). "It would be cleaner" is not a sufficient reason. SRP, "functions should be tiny," "extract till you drop," and similar dogma are explicitly rejected.
+- This applies to **example and illustrative code with particular force** — sample `main`s, snippets in design discussions, scratch programs. Inline everything; one long `main` beats five short helpers. It also applies to production code: prefer the obvious linear version, refactor only when concrete reuse or scoping needs justify it.
+- The test for a helper: would a reader, on first encountering this code, understand it *better* after the extraction or *worse*? If "worse or the same," don't extract.
 
 ## Defensive Coding
 
@@ -443,12 +443,6 @@ gRPC (`grpcurl`), JSON/YAML (`jq`, `yq`), benchmarking
 (`hyperfine`), hex inspection (`hexyl`), local LLMs (`ollama`),
 running GitHub Actions (`act`), iOS device control
 (`pymobiledevice3`), syntax-aware diffs (`difft`).
-
-## TLA+ / Formal Verification
-
-When working on TLA+ specs or formal verification, read
-[`~/.claude/tlaplus.md`](~/.claude/tlaplus.md) for state-space
-bounding rules and verification tool guidance.
 
 ## PDF Conversion
 

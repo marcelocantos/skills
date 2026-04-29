@@ -130,15 +130,67 @@ act on it mechanically:
   fire.
 
 - **Line starts with `**Blocked**:`** — standing invariants are
-  failing, validation errors, or the frontier is empty. Do not
-  execute. Relay the block reason to the user and wait for
-  direction. (Dirty `bullseye.yaml` is no longer a special case at
-  the skill layer — bullseye v0.25.0+ folds the change into git
-  itself, so a Blocked response here means a real invariant failure
-  worth surfacing.)
+  failing, validation errors, the frontier is empty, or the graph is
+  malformed. Before reporting back to the user, attempt to **auto-fix
+  mechanical issues** without asking — the user has zero patience for
+  round-trip questions on issues /cv can resolve itself. See
+  [Auto-fix on Blocked](#auto-fix-on-blocked) below for the catalogue
+  of fixable shapes. After applying fixes, re-run convergence and act
+  on the new recommendation. Only surface the block to the user if
+  none of the fixable shapes apply or if a fix needs information you
+  don't have.
 
 - **Anything else** — unrecognised shape. Present to the user and
   ask for direction.
+
+### Auto-fix on Blocked
+
+A Blocked response is rarely a stop sign. It usually means the target
+graph is in a state /cv can mechanically repair. Apply each fix
+silently (a one-line note before the action is fine, but no
+questions); after all applicable fixes, re-run `bullseye_convergence`
+and follow the new recommendation.
+
+**Fix 1: retire targets that describe themselves as already
+achieved.** Scan the active targets in the convergence output. For
+each target whose `name` ends in `✓` or whose `context` opens with
+"Achieved YYYY-MM-DD", call `bullseye_retire(cwd, id)` immediately.
+There is zero value in asking the user to confirm — the target's own
+documentation says it's done.
+
+**Fix 2: resolve tunnel warnings by promoting leaves to checkpoints.**
+If the convergence output reports `## ⚠ Tunnel warnings`, each named
+target is a work-kind leaf with no checkpoint reachable. For each
+such target, decide between:
+- `bullseye_put(cwd, id, showcase=true)` — when the target's
+  acceptance criteria describe a user-visible result (a feature
+  works, a binary runs, a check passes). This is the default fix.
+- `bullseye_set_aside(cwd, id, reason=...)` — when project memory
+  or the target's own context flags the work as parked / deferred /
+  superseded. Use the documented rationale verbatim.
+
+Don't ask the user to choose; pick from the target's own context and
+project memory.
+
+**Fix 3: write a missing standing-invariants hook.** If `## Invariants`
+shows `⚠ **Standing-invariants hook not configured**`, write a
+`Makefile` at the project root with a `bullseye:` rule wired to the
+project's actual lint/test/clean-tree checks. The skeleton in the
+convergence output is a starting point; tailor it to the language
+(cargo / go / npm / pytest / etc.). Do **not** auto-commit the new
+Makefile — a fresh untracked file will fail the `clean-tree`
+invariant on the next run, which is exactly what surfaces the file
+to the user for review.
+
+**Fix 4: re-run convergence after any fix.** After applying any of
+the above, call `bullseye_convergence` again and follow the new
+`## Next action`. The fixes compose — retiring achieved targets may
+collapse tunnels; promoting leaves to checkpoints may reveal a fan-
+out worth executing. Don't stop after one fix unless the new output
+says to.
+
+If after auto-fixes the result is *still* Blocked with an
+unrecognised shape, then surface to the user.
 
 ### Suppressing auto-execute
 
