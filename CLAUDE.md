@@ -270,12 +270,6 @@ deep links, sample data, and visual verification cadence.
 - Wait for CI to pass before merging. Do not merge with failing checks.
 - **Do not push to a PR branch that has passing CI** without explicit user approval. A green CI run is valuable — pushing additional commits (even docs-only changes) resets it and forces another full cycle. If further changes are needed, create a new branch (off the green PR branch or off master) and open a separate PR.
 
-## Audit log
-
-- Skills that perform maintenance work (`/docs`, `/release`, `/open-source`) append entries to `docs/audit-log.md` in the repo. The `/waw` skill reads this log for its maintenance status section.
-- Format spec: `~/.claude/skills/audit-log-convention.md`
-- When a skill invokes another skill, only the parent logs — children skip to avoid double entries.
-
 ## Task tracking
 
 - Projects track TODOs in `docs/TODO.md` (all-caps `TODO`). When you discover a new TODO item during work (a bug to fix later, a feature idea, a cleanup opportunity), check the repo-local `CLAUDE.md` for the TODO file location and append the item there. If the repo has no TODO file or `CLAUDE.md` doesn't mention one, create `docs/TODO.md`.

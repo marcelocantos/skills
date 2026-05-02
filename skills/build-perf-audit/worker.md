@@ -13,8 +13,7 @@ A report with:
 4. **Applied changes** (if `--apply`) — what was changed, new timings, delta
 5. **Leftover recommendations** — things not auto-applied, with rationale
 
-Write the report to `docs/build-perf-YYYY-MM-DD.md` and append an entry
-to `docs/audit-log.md` per the audit-log convention.
+Write the report to `docs/build-perf-YYYY-MM-DD.md`.
 
 ## Progress reporting
 
@@ -199,8 +198,7 @@ Write `docs/build-perf-YYYY-MM-DD.md` with:
 [build system(s), profiling commands used, measurement notes]
 ```
 
-Append an entry to `docs/audit-log.md` per
-`~/.claude/skills/audit-log-convention.md`. Offer to commit.
+Offer to commit.
 
 If the repo uses bullseye, check whether any existing targets relate to
 build performance and update them. If findings are significant and not

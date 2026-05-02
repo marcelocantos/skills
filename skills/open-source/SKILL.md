@@ -93,25 +93,6 @@ Invoke the `/release` skill and follow its full workflow — discovery script, a
 
 **This is not a suggestion — it is a hard delegation.** The only acceptable path for creating a release is through `/release`.
 
-## Audit log
-
-After all phases are complete, append a single summary entry to `docs/audit-log.md` (create the file with the standard header if it doesn't exist — see `~/.claude/skills/audit-log-convention.md` for the format). Commit and push it immediately so the entry doesn't drift into the next work cycle. (As an orchestrator spanning multiple commits, this is an exception to the "before the final commit" convention.)
-
-The entry should cover all sub-skills that ran (/docs, /release) and their outcomes. Example:
-
-```markdown
-## 2026-02-25 — /open-source doit v0.1.0
-
-- **Commit**: `790893a`
-- **Outcome**: Open-sourced doit. Audit: 30 findings (4 critical, 7 high), all critical/high addressed. Docs: README, CLAUDE.md, agents-guide.md written. Released v0.1.0 (darwin-arm64, linux-amd64, linux-arm64) with Homebrew tap.
-- **Deferred**:
-  - audit.max_size_mb not enforced
-  - 5 packages at 0% test coverage
-  - per-project config not implemented
-```
-
-Sub-skills (/docs, /release) skip their own audit-log entries when called from /open-source — this entry is the single record.
-
 ## Error handling
 
 - If `gh` CLI is not installed or not authenticated, tell the user and stop.

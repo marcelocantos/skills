@@ -47,11 +47,9 @@ After all writing is done:
 
 3. **Consistency check**: Ensure terminology, project name, and conventions are consistent across all docs.
 
-4. **Audit log**: Append the audit-log entry (see audit-log-convention.md) so it is committed with the documentation changes.
+4. **Commit**: If any files were created or modified, commit all documentation changes with a descriptive message summarising what was added or updated.
 
-5. **Commit**: If any files were created or modified, commit all documentation changes (including the audit-log entry) with a descriptive message summarising what was added or updated.
-
-6. **Final summary**: Report what was created, updated, and verified. List any remaining items the user deferred.
+5. **Final summary**: Report what was created, updated, and verified. List any remaining items the user deferred.
 
 ## Skill improvement
 

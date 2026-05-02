@@ -15,8 +15,6 @@ major sections. Examples:
 
 ## Target status
 
-## Maintenance status
-
 Do not put any other text on the same line or immediately after the
 heading — the blank line is required. These headings are picked up by
 the Agent framework and forwarded to the root session as progress
@@ -47,6 +45,11 @@ one or two sentences covering what was accomplished and where things
 stand right now. If conversation context has been compacted, note this
 and flag that details from before the compaction boundary may be
 approximate.
+
+If the project ships releases, append a one-liner with the latest
+release tag and its age, derived from `git tag --sort=-creatordate |
+head -1` and `git log -1 --format=%cr <tag>`. Skip if the repo has no
+tags.
 
 ## Working tree state
 
@@ -100,25 +103,6 @@ If bullseye returns no targets (empty project), skip this section.
 Relay the summary output, adding a one-line gap assessment per target
 based on session context (what you know from mnemo and the conversation).
 End with: "Run `/cv` for full gap analysis and recommendations."
-
-## Maintenance status
-
-If `docs/audit-log.md` exists in the repo, read it and present a brief
-maintenance summary. Skip this section if the file doesn't exist.
-
-Each entry starts with `## YYYY-MM-DD — /skill-name [optional context]`.
-Parse entries and report:
-
-**Key dates** — time since last audit, last release (with version), and
-last docs pass. Use "never" if no matching entry exists.
-
-**Unresolved deferred items** — collect items from **Deferred** sections.
-An item is resolved if a subsequent entry's outcome mentions addressing
-it, or if a later entry for the same skill has no deferred items. Show
-only unresolved items, grouped by entry date. If none, say so.
-
-**Nudge** — if unresolved deferred items exist, mention them.
-Otherwise, note the project is healthy.
 
 ## What's next?
 

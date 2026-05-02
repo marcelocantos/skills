@@ -28,9 +28,9 @@ The user runs `/release`. No arguments needed — the skill discovers everything
 
 1. **Phase A — Up-front clarification.** A very quick analysis to identify any information likely to be needed from the user *given the specific context of the work being released*. If nothing is genuinely uncertain, ask nothing and move straight to Phase B. Do not invent questions; do not ask out of habit. The default is zero questions.
 
-2. **Phase B — Unattended execution to a mergeable PR.** Run the entire prep workflow without per-phase approval gates: discovery, stability/breaking-change audit, version bump, release notes, CI setup, push, PR open, CI wait, gate check, audit-log entry. End by reporting current state, anything messy that happened during the run, and any concerns. Then **only stop for confirmation if a serious concern arose** about whether it's appropriate to complete the release (failing tests rewritten without justification, a breaking change found, a stability gap, an unresolved CI failure, a missing licence attribution, etc.). If everything is clean, proceed to Phase C without asking.
+2. **Phase B — Unattended execution to a mergeable PR.** Run the entire prep workflow without per-phase approval gates: discovery, stability/breaking-change audit, version bump, release notes, CI setup, push, PR open, CI wait, gate check. End by reporting current state, anything messy that happened during the run, and any concerns. Then **only stop for confirmation if a serious concern arose** about whether it's appropriate to complete the release (failing tests rewritten without justification, a breaking change found, a stability gap, an unresolved CI failure, a missing licence attribution, etc.). If everything is clean, proceed to Phase C without asking.
 
-3. **Phase C — Complete the release.** Squash-merge the release PR (and the audit-log-hash follow-up PR if used), tag, run `gh release create`, monitor CI, install locally, report.
+3. **Phase C — Complete the release.** Squash-merge the release PR, tag, run `gh release create`, monitor CI, install locally, report.
 
 The detailed substeps below are sequenced under these three phases. Where the previous workflow asked *"Proceed to Phase N+1?"* between substeps, that question is gone — substeps run back-to-back unless something in Phase B's concerns list fires.
 
@@ -77,7 +77,7 @@ This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (lat
 
    - `success` — proceed normally.
    - `failure` / `cancelled` / `timed_out` / `action_required` — **stop and triage**. The next push to the default branch (whether the release-prep PR or anything else) will inherit the same failures unless you address them. Pull the failing job log (`gh run view <runId> --log-failed | tail -60`), classify what broke, and decide:
-     - **Code/test failure that the release-prep PR should also fix** (e.g., a test enforcing a constraint a recent commit removed): roll the fix into the release-prep PR alongside the STABILITY/audit-log/version changes. Mention it in the PR body so the reviewer sees the test was deliberately rewritten, not silently deleted.
+     - **Code/test failure that the release-prep PR should also fix** (e.g., a test enforcing a constraint a recent commit removed): roll the fix into the release-prep PR alongside the STABILITY/version changes. Mention it in the PR body so the reviewer sees the test was deliberately rewritten, not silently deleted.
      - **Infrastructure failure unrelated to the code** (e.g., a deploy step's auth token expired, a flaky third-party action): name it in the Phase B report and move on — but only after confirming the failing job is genuinely orthogonal to the release artifacts. A red `test` job is not infrastructure; a red `Deploy to Fly.io` job whose `needs:` doesn't gate artifact upload usually is.
      - **Pre-existing broken-test target that CI doesn't run** (e.g., a `swift test` failure when only `go test` is wired into CI): create a follow-up bullseye target for the fix, note it in the release-prep PR's "Known issues" / "Deferred" section, and proceed. Do **not** silently delete the broken tests as part of the release-prep PR — that's scope creep and obscures the regression.
    - `skipped` / `neutral` — read the job names; usually fine, but worth a glance.
@@ -428,12 +428,7 @@ gate yaml doesn't mention it explicitly. A "tests exist" pass that
 only ran the non-live subset leaves the user-facing flow unverified
 and is not sufficient for a release.
 
-**Expect two PRs.** The `pr-workflow` pre-merge gate means release-skill work routes through a feature branch and PR, not a direct push to master. Combined with the audit-log chicken-and-egg (see **Audit log** section below), the typical release flow produces **two sequential PRs**:
-
-1. **Release PR** — version bump, STABILITY.md updates, doc changes, and the audit-log entry with `Commit: pending`. CI must go green before squash-merge.
-2. **Audit-log-hash PR** — a tiny docs-only follow-up that rewrites `pending` to the real merge-commit hash from PR #1. Also requires CI green before merge, then tag from the resulting master commit.
-
-This is by design. Note it in the Phase B end-of-run report so the user knows the second PR is coming. If the project has no CI, the `pr-workflow` gate still applies — you still need to go through a PR, but CI waits are zero.
+**Release-prep goes through a PR.** The `pr-workflow` pre-merge gate means release-skill work routes through a feature branch and PR, not a direct push to master. The release PR carries the version bump, STABILITY.md updates, and any doc changes; CI must go green before squash-merge. If the project has no CI, the `pr-workflow` gate still applies — you still need to go through a PR, but CI waits are zero.
 
 **Always squash-merge release PRs via `~/.claude/skills/push/merge.sh`, never via raw `gh pr merge`.** After a squash-merge, local master has N pre-squash commits while origin/master has one squash commit with a different SHA — `git pull` fails to fast-forward, `rebase` re-applies already-merged content, and `merge` would create a merge commit (forbidden under squash-only). The only safe resolution is `git reset --hard origin/master`, which is normally a user-only operation. `merge.sh` bundles the squash-merge, the fetch, the checkout, the hard reset, and the local feature-branch cleanup into a single vetted script — pre-authorising the reset by virtue of being a known script. Invoke as:
 
@@ -441,7 +436,7 @@ This is by design. Note it in the Phase B end-of-run report so the user knows th
 ~/.claude/skills/push/merge.sh <pr-number> master <feature-branch>
 ```
 
-Calling `gh pr merge --squash` directly leaves the user staring at a diverged local master with no clean recovery — they have to run `git reset --hard origin/master` by hand every time. That is the bug `merge.sh` exists to prevent. Do this for both the release PR and the audit-log-hash PR.
+Calling `gh pr merge --squash` directly leaves the user staring at a diverged local master with no clean recovery — they have to run `git reset --hard origin/master` by hand every time. That is the bug `merge.sh` exists to prevent.
 
 #### B.8: End-of-Phase-B report and decision point
 
@@ -450,7 +445,6 @@ After CI is green on the release PR, produce a brief report covering:
 - Version selected and version-string updates applied.
 - PR URL, CI status, gate results.
 - Any messiness encountered during the run: rewritten tests, deferred items, infrastructure failures triaged, dist regen results, stash/restore, etc.
-- The two-PR plan (release PR → audit-log-hash PR) if applicable.
 
 Then **decide whether to proceed unattended**. Default is **yes — proceed straight into Phase C without asking**. Only stop and ask if a *serious concern* arose during Phase B that warrants user review before crossing the merge-to-master line:
 
@@ -472,7 +466,7 @@ If a serious concern fires: print the report with the concern called out at the 
 
 Squash-merge the prepared PR(s), tag, and create the GitHub release. Run unattended unless something fails along the way.
 
-1. **Squash-merge the release PR(s)** via `~/.claude/skills/push/merge.sh <pr-number> master <feature-branch>`. If the project uses the audit-log placeholder pattern, open the audit-log-hash follow-up PR, wait for CI green, and squash-merge it the same way.
+1. **Squash-merge the release PR** via `~/.claude/skills/push/merge.sh <pr-number> master <feature-branch>`.
 
 2. **Validate version strings**: Before tagging, verify that any in-source version strings match the release version. For C/C++ projects with version macros, check that the `#define` values match the tag (strip leading `v`). Fail early if they don't — the version commit from B.4 should have already handled this, but double-check.
 
@@ -561,29 +555,6 @@ Squash-merge the prepared PR(s), tag, and create the GitHub release. Run unatten
     commit any resulting `bullseye.yaml` diff locally (no push). This
     enforces the invariant *"after /release returns, `bullseye.yaml` is
     clean"* — `/cv` and other gates rely on it.
-
-## Audit log
-
-Append an entry to `docs/audit-log.md` as part of the release-prep commits (create the file with the standard header if it doesn't exist — see `~/.claude/skills/audit-log-convention.md` for the format).
-
-The entry should include the version released, platforms, and any issues noted. Example:
-
-```markdown
-## 2026-02-28 — /release v0.2.0
-
-- **Commit**: `a1b2c3d`
-- **Outcome**: Released v0.2.0 (darwin-arm64, linux-amd64, linux-arm64). Homebrew formula updated.
-```
-
-**The commit hash chicken-and-egg.** The `Commit` field wants the final merge commit hash on master, but squash-merging a PR produces that hash *after* the PR merges — which is after the audit-log commit has already been made. Two accepted approaches:
-
-1. **Placeholder + follow-up PR** (current pattern for this workflow). Write the audit log entry with `Commit: pending` in the release PR, let it merge, then open a tiny docs-only follow-up PR that rewrites `pending` to the real merge commit hash. Merge that second PR before tagging. This is how v0.7.0 and v0.8.0 of bullseye were done.
-
-2. **Record the PR number instead**. Change the convention to `PR: #123` and drop the commit hash. The PR number is known at commit time, so no follow-up is needed. Trade-off: PR numbers are less useful than commit hashes for `git show` / blame lookups, but they round-trip through GitHub links.
-
-Either is fine; pick one per-project and stick with it. The skill currently assumes approach 1.
-
-**Skip this step** if invoked as part of another skill (e.g., `/open-source`) — the parent skill will log a summary entry.
 
 ## Error handling
 
