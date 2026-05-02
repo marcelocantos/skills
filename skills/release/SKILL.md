@@ -28,7 +28,7 @@ The user runs `/release`. No arguments needed — the skill discovers everything
 
 1. **Phase A — Up-front clarification.** A very quick analysis to identify any information likely to be needed from the user *given the specific context of the work being released*. If nothing is genuinely uncertain, ask nothing and move straight to Phase B. Do not invent questions; do not ask out of habit. The default is zero questions.
 
-2. **Phase B — Unattended execution to a mergeable PR.** Run the entire prep workflow without per-phase approval gates: discovery, stability/breaking-change audit, version bump, release notes, CI setup, push, PR open, CI wait, gate check. End by reporting current state, anything messy that happened during the run, and any concerns. Then **only stop for confirmation if a serious concern arose** about whether it's appropriate to complete the release (failing tests rewritten without justification, a breaking change found, a stability gap, an unresolved CI failure, a missing licence attribution, etc.). If everything is clean, proceed to Phase C without asking.
+2. **Phase B — Unattended execution to a mergeable PR.** Run the entire prep workflow without per-phase approval gates: discovery, breaking-change audit, version bump, release notes, CI setup, push, PR open, CI wait, gate check. End by reporting current state, anything messy that happened during the run, and any concerns. Then **only stop for confirmation if a serious concern arose** about whether it's appropriate to complete the release (failing tests rewritten without justification, a breaking change found, an unresolved CI failure, a missing licence attribution, etc.). If everything is clean, proceed to Phase C without asking.
 
 3. **Phase C — Complete the release.** Squash-merge the release PR, tag, run `gh release create`, monitor CI, install locally, report.
 
@@ -42,7 +42,6 @@ Before doing any work, do a fast scan of the repo (latest tag, commits since, wo
 - The release scope is unclear (e.g., uncommitted WIP unrelated to the release, or a pile of unpushed commits that may or may not be part of this release).
 - **Open PRs carry post-tag work** (`open_prs_with_release_work` reports a count > 0 from `discover.sh`). Each listed PR has commits not in the latest tag, so the release scope is genuinely ambiguous: the user may want to (a) wait for the PR to merge and release the resulting master, (b) bundle release-prep into the existing PR rather than open a sibling release-prep PR (honouring "one PR per session"), or (c) release current master independently and let the PR merge into a later release. Ask which — naming each open PR by number, ahead-count, and title from the discover.sh output. Skip the question only if the listed PRs are clearly orthogonal to the release (e.g., long-running dependabot bumps, draft RFCs); the default is to ask.
 - A pre-1.0 → 1.0 transition is plausible and the user hasn't signalled intent.
-- The release-workflow risk signal (`release_workflow_touched: yes` from `discover.sh`) suggests a prerelease dry-run might be wanted.
 - An MCP-server or service definition gap is suspected and the user's preference (ship anyway / block) is unclear.
 
 If **none** of these apply, ask nothing. Proceed to Phase B silently. The whole point is that asking is the exception, not the rule.
@@ -63,7 +62,7 @@ Assess the project's current release state. **Start by running the companion dis
 
 (It is already `chmod +x` — do **not** wrap it in `bash`, just invoke the path as the command.)
 
-This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (latest tag, commits since last tag, version era, STABILITY.md existence, build system, project type, CI workflows, Homebrew tap, repo description, version macros, vendored dependency licences, working tree status) in one invocation. Do **not** separately run `git tag`, `git log <last-tag>..HEAD`, or `gh release list` — the script already emits that data. Parse its output, then verify or supplement the following items as needed:
+This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (latest tag, commits since last tag, version era, build system, project type, CI workflows, Homebrew tap, repo description, version macros, vendored dependency licences, working tree status) in one invocation. Do **not** separately run `git tag`, `git log <last-tag>..HEAD`, or `gh release list` — the script already emits that data. Parse its output, then verify or supplement the following items as needed:
 
 1. **Existing releases**: The script's `# tags`, `# latest_tag`, and `# releases` sections cover this. `# latest_tag` is the most recent semver tag — use it directly for subsequent phases.
 
@@ -151,83 +150,7 @@ This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (lat
 
     Resolve this before committing any release-prep changes so Phases 4–5 have a clean working tree to operate on.
 
-13. **Release-workflow risk signal**: Read `# release_workflow_touched` and `# release_workflow_triggers` from the discover.sh output.
-
-    When `release_workflow_touched` is `yes`, this release changes code paths that *only* run end-to-end when a real release is published — PR CI never exercises them. Prior incidents under this exact pattern required multiple tag-delete-and-retag cycles (mnemo v0.22.0 shipped after three iterations: MSYS path conversion, Inno Setup relative-path resolution, `[UninstallRun]` flag restriction — none of which could be caught without a real release event).
-
-    In that case, **suggest a prerelease dry-run** before the real tag. One line in the Phase 1 summary, name the specific triggers so the user can judge the risk:
-
-    > *"This release touches release-workflow logic (triggers: `release.yml`, `new-matrix-leg`, …) that hasn't run end-to-end yet. Consider cutting `v<X.Y.Z>-rc.1` as a prerelease via `gh release create --prerelease` first to validate before the real tag. Proceed with real tag anyway, or do rc.1 first?"*
-
-    When `release_workflow_touched` is `no`, **say nothing** about prereleases — don't add noise to routine releases. The whole point of this check is that it only fires when there's a signal.
-
-    If the user opts for a prerelease, run the whole Phase B/C flow against `v<X.Y.Z>-rc.1` with the `--prerelease` flag on `gh release create`. If the resulting release.yml run is green, delete the prerelease tag and re-run Phase C for the real tag. If red, iterate on the fix exactly as you would for the real release — but the real tag is never burned in the process.
-
-Proceed straight to B.2 — no approval prompt.
-
-#### B.2: Stability tracking (pre-1.0 projects only)
-
-**Skip this substep** if discover.sh's `# version_era` reports `post-1.0`.
-
-For pre-1.0 projects, create or update a `STABILITY.md` file in the repo root. This document tracks the project's readiness for a 1.0 release — the point at which backwards compatibility becomes a binding commitment.
-
-**Key framing**: Once 1.0 ships, breaking changes require a major version bump. The purpose of this document is to ensure the project reaches 1.0 with an interaction surface (API, CLI, configuration, file formats, etc.) that is unlikely to need breaking changes in the foreseeable future.
-
-**Document structure**:
-
-1. **Stability commitment** — A brief statement that 1.0 represents a backwards-compatibility contract. After 1.0, breaking changes to the public API, CLI interface, configuration format, or wire/file formats require a major version bump. The pre-1.0 period exists to get these right.
-
-2. **Interaction surface catalogue** — An exhaustive, diffable snapshot of every public-facing surface. This serves two purposes: pre-1.0, it tracks what needs to stabilise; post-1.0, it becomes the canonical baseline for the Phase 1.6 breaking change audit.
-
-   For each surface category (API functions/types, CLI flags/subcommands, config file schemas, wire/file/output formats, etc.), list every public item concretely — function signatures, type definitions, flag names with their types and defaults, format schemas. This is not a prose description; it is a structured catalogue that can be mechanically diffed between releases.
-
-   Pre-1.0, annotate each item with a stability assessment:
-   - **Stable**: Unlikely to change. Design is settled and well-tested.
-   - **Needs review**: Functional but may benefit from refinement before locking in.
-   - **Fluid**: Actively evolving or known to need rework. Would be costly to freeze now.
-
-   Be specific — name the functions, types, flags, or formats. Don't just say "the API is fluid"; say which parts and why.
-
-   Post-1.0, drop the stability annotations (everything is implicitly stable — that's what 1.0 means) and maintain the catalogue purely as a surface snapshot. On each release, update it to reflect additions. Removals or signature changes should not appear — they would be caught by the Phase 1.6 audit.
-
-3. **Gaps and prerequisites** — Concrete items that must be addressed before 1.0:
-   - Missing features that users will expect from a stable release
-   - Documentation gaps (undocumented public API, missing examples)
-   - Known design issues that would require breaking changes to fix later
-   - Dependency or packaging concerns (licensing, attribution, install targets)
-   - Test coverage gaps in critical paths
-
-4. **Out of scope for 1.0** — Features or changes explicitly deferred to post-1.0. This prevents scope creep and sets expectations.
-
-**When creating** the document for the first time, perform a thorough audit of the codebase (read the public headers/API, CLI entry points, documentation, and tests) to populate each section. For large API surfaces (many public headers, dozens of combinators/functions), use parallel research agents to audit different surface areas concurrently — this phase can be context-intensive. Present the draft to the user for review.
-
-**When updating** an existing `STABILITY.md` (pre-1.0), review each section against the current release's changes. Move completed items out, add newly discovered gaps, and update stability assessments. If items have moved from "Fluid" to "Stable", note that. Update the surface catalogue to match the current codebase. Present the diff to the user.
-
-**Post-1.0 maintenance**: `STABILITY.md` survives into the post-1.0 era. The stability commitment and gap sections can be removed (they've served their purpose), but the **interaction surface catalogue must be maintained** on every release. It becomes the authoritative baseline for the Phase 1.6 breaking change audit. After a successful audit, update the catalogue with any additive changes and commit it as part of the release.
-
-**1.0 readiness check**: After updating `STABILITY.md`, assess whether the project is ready to release 1.0. Two conditions must **both** be met:
-
-1. **Checklist clear**: No remaining gaps, no "Fluid" items in the surface catalogue, documentation complete.
-2. **Settling threshold met**: The settling threshold is purely time-based —
-   new releases don't accelerate it, because new code is inherently
-   destabilising. Count every public function, type, enum, constant, wire
-   format, and config field in the surface catalogue, then look up the
-   minimum settling period:
-
-   | Surface items | Minimum settling period |
-   |---|---|
-   | < 20 | 1 month |
-   | 20–50 | 2 months |
-   | 50–100 | 3 months |
-   | > 100 | 4 months |
-
-   The clock starts from the last breaking change to the interaction surface.
-
-If both conditions are met, flag it to the user: "the checklist is clear and the settling threshold is met — the project is eligible for 1.0." The user decides — this is never automatic. If only the checklist is clear but the settling threshold is not, report which condition is unmet and how far away it is.
-
-If the project validates documentation during build (e.g., markdown link checkers), verify the build still passes after adding or updating `STABILITY.md`.
-
-Commit and push the `STABILITY.md` changes, then proceed to B.4 (the breaking-change audit doesn't apply pre-1.0).
+Proceed straight to B.3 — no approval prompt.
 
 #### B.3: Breaking change audit (post-1.0 projects only)
 
@@ -247,17 +170,15 @@ For post-1.0 projects, audit all changes since the last release for backwards-in
 
 **Audit procedure:**
 
-1. **Diff the surface catalogue**: Read `STABILITY.md`'s interaction surface catalogue (the canonical baseline from the last release). Compare it against the current codebase — public headers, exported symbols, CLI entry points, config schemas. Use `git diff <last-tag>..HEAD` on the relevant files to identify changes. Every item in the catalogue must still exist with the same signature and semantics.
+1. **Diff the public surface**: Run `git diff <latest-tag>..HEAD` against the project's public-surface files — exported headers (`*.h`, `*.hpp` outside `internal/` or `private/`), exported source symbols, CLI entry points (flag/subcommand definition sites), and any wire/config schema files. For Go, focus on capitalised identifiers in non-`internal/` packages; for Rust, on `pub` items outside `pub(crate)`; for C/C++, on items in installed headers.
 
-2. **Classify each change** as additive (new functions, new optional fields, new CLI flags) or breaking (anything listed above). Additive changes are fine for a minor release. Update the `STABILITY.md` catalogue to include additions.
+2. **Classify each change** as additive (new functions, new optional fields, new CLI flags) or breaking (anything in the list above). Additive changes are fine for a minor release.
 
-3. **If no breaking changes found**: Report the audit results, commit the updated `STABILITY.md` catalogue, and proceed to B.4.
+3. **If no breaking changes found**: Report the audit results and proceed to B.4.
 
-4. **If breaking changes found**: This is a **serious concern** that halts Phase B. Report each breaking change with specific file:line references, showing what changed relative to the `STABILITY.md` catalogue. Explain that post-1.0 breaking changes are not permitted as a minor or patch release.
+4. **If breaking changes found**: This is a **serious concern** that halts Phase B. Report each breaking change with specific file:line references. Explain that post-1.0 breaking changes are not permitted as a minor or patch release.
 
-   **The project's stance on breaking changes is absolute**: there is no "v2.0" of the same product. If a project genuinely needs to break backwards compatibility, the correct path is to **fork the project into a new product**. For example, `foo` would become `foo2` — a new repository (or a hard fork of the existing one) starting at `v0.1.0` with its own pre-1.0 stabilisation cycle. The original `foo` continues to exist at its last stable version for existing users.
-
-   This policy exists because major version bumps within the same product create ecosystem fragmentation, dependency hell, and migration burdens. A clean fork makes the break explicit and lets both versions coexist without conflict.
+   **The project's stance on breaking changes is absolute**: there is no "v2.0" of the same product. If a project genuinely needs to break backwards compatibility, the correct path is to **fork the project into a new product**. For example, `foo` would become `foo2` — a new repository (or a hard fork of the existing one) starting at `v0.1.0`. The original `foo` continues to exist at its last stable version for existing users.
 
    Present this recommendation to the user and halt Phase B. Do not proceed with the release.
 
@@ -273,8 +194,6 @@ Determine the next version number. **Do not ask for confirmation** — just use 
 
    **C/C++ libraries with version macros**: If the header defines version macros (e.g., `#define PROJECTNAME_VERSION "x.y.z"` with `_MAJOR`, `_MINOR`, `_PATCH` companions), update all four macros to match the new version. Verify consistency: the string must equal `"MAJOR.MINOR.PATCH"`.
 
-   **STABILITY.md catalogue**: If `STABILITY.md` lists version macro values in its interaction surface catalogue, update those to match the new version too. Also update the "Snapshot as of" line to reference the new version.
-
    **Go module version constants**: If the project has Go wrapper modules with
    version constants (e.g., `Version = "x.y.z"` with `VersionMajor`,
    `VersionMinor`, `VersionPatch`), update them to match the new version.
@@ -288,7 +207,7 @@ Determine the next version number. **Do not ask for confirmation** — just use 
    with the leading `v` stripped (e.g., `v0.10.0` → `"0.10.0"`). The
    tag itself keeps the `v` prefix; only the constant drops it.
 
-   **No version macros found**: If a C/C++ library has no version macros at all, note this as a gap. For pre-1.0 projects, record it in `STABILITY.md` under gaps/prerequisites. Don't block the release — version macros are a 1.0 prerequisite, not a pre-1.0 gate.
+   **No version macros found**: If a C/C++ library has no version macros at all, note this as a gap in the Phase B report. Don't block the release.
 
 #### B.5: Release notes
 
@@ -428,7 +347,7 @@ gate yaml doesn't mention it explicitly. A "tests exist" pass that
 only ran the non-live subset leaves the user-facing flow unverified
 and is not sufficient for a release.
 
-**Release-prep goes through a PR.** The `pr-workflow` pre-merge gate means release-skill work routes through a feature branch and PR, not a direct push to master. The release PR carries the version bump, STABILITY.md updates, and any doc changes; CI must go green before squash-merge. If the project has no CI, the `pr-workflow` gate still applies — you still need to go through a PR, but CI waits are zero.
+**Release-prep goes through a PR.** The `pr-workflow` pre-merge gate means release-skill work routes through a feature branch and PR, not a direct push to master. The release PR carries the version bump and any doc changes; CI must go green before squash-merge. If the project has no CI, the `pr-workflow` gate still applies — you still need to go through a PR, but CI waits are zero.
 
 **Always squash-merge release PRs via `~/.claude/skills/push/merge.sh`, never via raw `gh pr merge`.** After a squash-merge, local master has N pre-squash commits while origin/master has one squash commit with a different SHA — `git pull` fails to fast-forward, `rebase` re-applies already-merged content, and `merge` would create a merge commit (forbidden under squash-only). The only safe resolution is `git reset --hard origin/master`, which is normally a user-only operation. `merge.sh` bundles the squash-merge, the fetch, the checkout, the hard reset, and the local feature-branch cleanup into a single vetted script — pre-authorising the reset by virtue of being a known script. Invoke as:
 
@@ -453,10 +372,8 @@ Then **decide whether to proceed unattended**. Default is **yes — proceed stra
 - A licence-attribution gap that wasn't resolvable automatically.
 - A `manual` pre-merge or pre-release gate fired (surface its prompt now).
 - An unresolved CI failure or an infrastructure failure that overlaps the release artifacts.
-- The release-workflow risk signal fired and a prerelease dry-run was indicated.
-- STABILITY.md "Fluid" items remain that the user might want to settle first.
 
-Routine items are **not** serious concerns: a clean changelog display, a successful dist regen, a normal version bump, a `--prerelease` flag set per user request, expected two-PR flow, etc. Don't ask just to confirm something the user already implicitly authorised by running `/release`.
+Routine items are **not** serious concerns: a clean changelog display, a successful dist regen, a normal version bump, expected two-PR flow, etc. Don't ask just to confirm something the user already implicitly authorised by running `/release`.
 
 If the report shows no serious concerns: print the report, say *"proceeding to Phase C"*, and continue.
 
@@ -470,7 +387,7 @@ Squash-merge the prepared PR(s), tag, and create the GitHub release. Run unatten
 
 2. **Validate version strings**: Before tagging, verify that any in-source version strings match the release version. For C/C++ projects with version macros, check that the `#define` values match the tag (strip leading `v`). Fail early if they don't — the version commit from B.4 should have already handled this, but double-check.
 
-3. **Push**: Ensure all commits (version bump, STABILITY.md updates, etc.) are on `master` before tagging. After the squash-merge in step 1, `merge.sh` already left the local `master` aligned with `origin/master`; double-check.
+3. **Push**: Ensure all commits (version bump, etc.) are on `master` before tagging. After the squash-merge in step 1, `merge.sh` already left the local `master` aligned with `origin/master`; double-check.
 
 4. **Regenerate distribution files**: If B.1 identified a dist generation target (e.g., `make dist`), run it now. If it produces any changes, commit them on `master` (e.g., "Regenerate dist for \<version\>") and push before tagging. This ensures the release tag includes up-to-date distribution artifacts.
 
@@ -509,46 +426,39 @@ Squash-merge the prepared PR(s), tag, and create the GitHub release. Run unatten
    Also update the Go module's version constants (if any) to match the
    release version during the Phase 2 version bump.
 
-8. **Monitor CI**: Wait for the release workflow to complete:
+8. **Monitor CI**: Wait for the release workflow to complete in full. The workflow's `homebrew` job has `needs: build`, so a successful `gh run watch` guarantees both that artefacts are uploaded **and** that homebrew-releaser has pushed the formula to the tap.
    ```bash
    gh run list --workflow=release.yml --limit=1
    gh run watch <run-id>
    ```
-   If it fails, help diagnose — do not delete the release or tag without asking.
+   If it fails, help diagnose — do not delete the release or tag without asking. Do **not** start the brew install in step 9 until this returns success — running `brew update` against a tap that hasn't received the formula yet will install the previous version.
 
-9. **Verify**: Confirm:
-   - The release appears on GitHub with correct notes and artifacts
-   - Binary tarballs are attached for each platform
-   - The Homebrew formula was updated in `marcelocantos/homebrew-tap` (check the tap repo's recent commits). If the workflow includes a homebrew-releaser job, wait for it to finish (`gh run watch`) before proceeding — the tap commit must exist before the local install in step 9 will pick up the new version.
-
-10. **Install locally**: Install the released version onto the laptop so the user can use it immediately. This step is **mandatory** for projects with a Homebrew tap — do not skip it and do not ask for permission.
+9. **Install locally**: Only after step 8 returns success. This step is **mandatory** for projects with a Homebrew tap — do not skip it and do not ask for permission.
 
    ```bash
    brew update
    brew upgrade marcelocantos/tap/<project> || brew install marcelocantos/tap/<project>
    ```
 
-   `brew update` is required to pull the fresh formula from the tap — without it, Homebrew uses its cached copy and reinstalls the previous version. Use `upgrade || install` so the command works whether or not the formula is already installed.
+   `brew update` is required to pull the fresh formula from the tap. Use `upgrade || install` so the command works whether or not the formula is already installed.
 
    **Persistent services**: If the project is a long-running server with a Homebrew service definition (detected in Phase 4 step 3), restart the service so the new binary takes effect:
    ```bash
    brew services restart <project>
    ```
 
-   **Verify the install**: Run `<project> --version` (or the equivalent) and confirm the output matches the released version. If it doesn't match, diagnose — common causes are a stale `brew update`, a PATH shadowing issue, or the homebrew-releaser job not having completed.
+   **Verify the install**: Run `<project> --version` (or the equivalent) and confirm the output matches the released version. If it doesn't match, **fail loud** — print the expected version, the observed version, and `which <project>` (a PATH shadow is the only remaining plausible cause once step 8 has returned success), then stop. Do not enter a diagnostic loop of repeated `brew update` / `brew reinstall` attempts — the timing race that used to motivate that loop has been eliminated by the step-8 wait.
 
    **Never hand-edit the brew-managed tap working tree** at `/opt/homebrew/Library/Taps/marcelocantos/homebrew-tap`. It is Homebrew's working copy of the tap, not a scratch space. Uncommitted edits there get autostashed and re-applied around the next `brew update`, which will trip a stash-pop conflict against the homebrew-releaser-regenerated formula and abort the next `brew upgrade` mid-release with a Ruby parse error full of `>>>>>>> Stashed changes` markers. Treat that state as a bug, not a workflow.
 
-   **Smoke-testing a formula change pre-release.** The release.yml-driven flow makes the formula a build artifact — homebrew-releaser regenerates it from `install:` / `formula_includes:` on every release. Use the **rc.1 prerelease** as the smoke test: change the generator inputs in release.yml, cut `v<X.Y.Z>-rc.1`, let homebrew-releaser publish, then `brew upgrade marcelocantos/tap/<project>` and verify. If you genuinely need to test a candidate formula *before* an rc is cut (e.g. because the change is risky and you don't want to burn a tag on a malformed install: block), install from a local file path: `brew install /path/to/working-dir/homebrew-tap/Formula/<project>.rb`. That leaves the brew-managed tap untouched. After verifying, throw the install away (`brew uninstall <project>`) and proceed with the rc as normal.
-
    **Non-Homebrew projects**: If the project has no Homebrew tap (e.g., a library, or a binary distributed another way), skip this step and note it in the Phase B report.
 
-11. **Report**: Print:
+10. **Report**: Print:
     - Release URL
     - Homebrew install command (if tap was set up): `brew install marcelocantos/tap/<project>`
     - Confirmation that the new version is installed locally (include the `--version` output)
 
-12. **Retire the release-readiness target and clean the tree**: If the
+11. **Retire the release-readiness target and clean the tree**: If the
     project uses bullseye and the release was driven by a
     release-readiness target, retire it now via `bullseye_retire`. Then
     run `~/.claude/skills/release/finalize.sh <version> [target-id]` to
