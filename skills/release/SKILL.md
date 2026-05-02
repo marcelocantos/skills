@@ -40,6 +40,7 @@ Before doing any work, do a fast scan of the repo (latest tag, commits since, wo
 
 - The desired version bump differs from the default minor (only ask if there's a concrete signal — e.g., user said "patch release" earlier, or commits clearly indicate breaking changes that warrant a fork rather than a bump).
 - The release scope is unclear (e.g., uncommitted WIP unrelated to the release, or a pile of unpushed commits that may or may not be part of this release).
+- **Open PRs carry post-tag work** (`open_prs_with_release_work` reports a count > 0 from `discover.sh`). Each listed PR has commits not in the latest tag, so the release scope is genuinely ambiguous: the user may want to (a) wait for the PR to merge and release the resulting master, (b) bundle release-prep into the existing PR rather than open a sibling release-prep PR (honouring "one PR per session"), or (c) release current master independently and let the PR merge into a later release. Ask which — naming each open PR by number, ahead-count, and title from the discover.sh output. Skip the question only if the listed PRs are clearly orthogonal to the release (e.g., long-running dependabot bumps, draft RFCs); the default is to ask.
 - A pre-1.0 → 1.0 transition is plausible and the user hasn't signalled intent.
 - The release-workflow risk signal (`release_workflow_touched: yes` from `discover.sh`) suggests a prerelease dry-run might be wanted.
 - An MCP-server or service definition gap is suspected and the user's preference (ship anyway / block) is unclear.

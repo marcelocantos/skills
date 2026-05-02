@@ -652,3 +652,52 @@ else
     echo "# release_workflow_triggers"
     echo "(none)"
 fi
+
+# ---------------------------------------------------------------------------
+# Open PRs carrying post-tag work
+#
+# An open PR whose head branch contains commits not in $latest_tag is a
+# scope-clarification trigger: those commits are likely either (a) the
+# substantive work that should ship as this release, in which case the
+# release-prep work needs to ride that PR rather than open a sibling, or
+# (b) unrelated parallel work, in which case the user needs to decide
+# whether to wait or release independently. Either way, the release skill
+# can't proceed unattended without naming the choice.
+#
+# Output format:
+#   # open_prs_with_release_work
+#   <count>
+#   #<PR#>\t<ahead-count>\t<title>      (one per line, only if count > 0)
+# ---------------------------------------------------------------------------
+
+echo "# open_prs_with_release_work"
+if ! command -v gh >/dev/null 2>&1; then
+    echo "(gh not available)"
+elif [[ -z "${latest_tag:-}" ]]; then
+    echo "0 (no prior tag to diff against)"
+else
+    # One fetch covers all open-PR head refs.
+    git fetch --quiet origin 2>/dev/null || true
+
+    # gh pr list emits one record per open PR. We don't paginate beyond
+    # the default page (30) — projects with >30 open PRs have bigger
+    # problems than release-prep scope ambiguity.
+    pr_records=$(gh pr list --state open --json number,title,headRefName --jq \
+        '.[] | "\(.number)\t\(.headRefName)\t\(.title)"' 2>/dev/null) || pr_records=""
+
+    relevant_prs=()
+    while IFS=$'\t' read -r pr_num head_ref pr_title; do
+        [[ -z "$pr_num" ]] && continue
+        # ahead-of-tag count on the PR's head branch. Use origin/<head>
+        # because the PR's head lives on the remote.
+        ahead=$(git rev-list --count "$latest_tag..origin/$head_ref" 2>/dev/null || echo 0)
+        if [[ "$ahead" -gt 0 ]]; then
+            relevant_prs+=("#$pr_num	$ahead	$pr_title")
+        fi
+    done <<<"$pr_records"
+
+    echo "${#relevant_prs[@]}"
+    if [[ ${#relevant_prs[@]} -gt 0 ]]; then
+        printf '%s\n' "${relevant_prs[@]}"
+    fi
+fi
