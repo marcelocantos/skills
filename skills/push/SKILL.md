@@ -24,6 +24,26 @@ as the command.
 - Use `# upstream` to determine whether the branch already tracks a
   remote.
 
+### 1a. Check for `pr-workflow: skip`
+
+Read the project's `## Gates` section from `CLAUDE.md` (per the merge
+rules in step 7). If the resolved gates contain
+`pr-workflow: skip` (typically declared as
+`override: [pr-workflow: skip]`), the project has opted out of the PR
+ceremony entirely. In that case:
+
+- If on the default branch with commits ahead of the remote, run
+  `git push --recurse-submodules=on-demand` and stop. No feature
+  branch, no PR, no merge step.
+- If on the default branch with **no** commits ahead, stop — nothing to
+  push.
+- If on a non-default branch, fall through to the normal flow (the
+  override is about *not requiring* a PR for default-branch work; it
+  doesn't preclude PRs when the user has explicitly created a feature
+  branch).
+
+Skip steps 2–9 in the direct-push case.
+
 ### 2. Ensure a feature branch
 
 - If already on a non-default branch, use it as-is.
@@ -156,7 +176,9 @@ main feature PR or requiring a separate manual cycle.
 ## Notes
 
 - Never force-push unless the user explicitly requests it.
-- Never push directly to the default branch.
+- Never push directly to the default branch unless the project's gates
+  declare `pr-workflow: skip` (see step 1a). Repos with no CI and
+  narrative-only / docs-only content typically opt out this way.
 - All repos use squash-only merges. The PR title becomes the sole commit message
   on the default branch.
 - If `gh` is not installed or not authenticated, tell the user and stop.

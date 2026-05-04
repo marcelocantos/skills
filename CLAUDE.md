@@ -270,6 +270,62 @@ deep links, sample data, and visual verification cadence.
 - Wait for CI to pass before merging. Do not merge with failing checks.
 - **Do not push to a PR branch that has passing CI** without explicit user approval. A green CI run is valuable — pushing additional commits (even docs-only changes) resets it and forces another full cycle. If further changes are needed, create a new branch (off the green PR branch or off master) and open a separate PR.
 
+### One PR per fan-out, not one PR per agent (HARD RULE)
+
+**Spawned subagents must NOT push or open PRs.** When an agent is
+spawned by another agent — by `/cv` fan-out, by an orchestrating
+skill, by a parent Agent call, or by any other delegation — the
+spawned agent's terminal action is **`git commit` on its worktree
+branch, then stop**. It does not run `git push`, does not run
+`/push`, does not call `gh pr create`, and does not invoke any skill
+that would do those things. The branch sits locally for the parent
+to assemble.
+
+This OVERRIDES the "pushing and opening a PR are pre-authorised"
+clause above for spawned agents specifically. The pre-authorisation
+applies to the *outermost* agent (the one talking to the user),
+not to the fan-out leaves.
+
+**Why**: every spawned agent that opens its own PR turns a single
+fan-out into N concurrent PRs that all need separate review,
+separate gate enforcement, and manual reassembly when their changes
+overlap. The user has been burned by this pattern repeatedly. One
+PR per logical unit of work, assembled locally by the parent, is
+the only path that keeps review tractable.
+
+**The orchestrating agent's responsibility** after fan-out completes:
+
+1. Inspect each spawned agent's worktree branch (commits, diffs,
+   what was claimed vs. what landed).
+2. Decide whether to keep / squash / drop / re-order them. An
+   agent that diverged from its brief or scope-crept gets its
+   commits dropped or rewritten before assembly, not merged as-is.
+3. Cherry-pick or merge the kept commits into a single integration
+   branch off `master` (name it `<scope>-<date>` or
+   `cv-fanout-<date>` or similar — descriptive, not the agent IDs).
+4. Resolve conflicts locally (this is much cheaper than resolving
+   them across N PRs after the fact).
+5. Run the project's `bullseye` / lint / test gates once on the
+   integration branch.
+6. `gh pr create` exactly **one** PR with a body that names every
+   target / change folded in.
+7. Clean up the worktrees and per-agent branches once the PR is up.
+
+**Spawn-prompt hygiene**: when writing prompts for spawned agents,
+include an explicit instruction equivalent to "commit to your
+worktree branch and stop — do NOT push, do NOT run /push, do NOT
+open a PR; the parent will assemble". Do not also tell the agent
+the push/PR steps are "pre-authorised" — that contradicts the
+rule and the agent will follow the more permissive instruction.
+
+**Exception — single-agent delegation for a self-contained task**:
+if a parent spawns *one* agent to do a complete, independent piece
+of work (not part of a fan-out, not part of a multi-agent scheme),
+the agent MAY open its own PR. The rule targets fan-outs and
+orchestrated multi-agent runs specifically. When in doubt, default
+to "commit and stop" — the parent can always run `/push` itself in
+one extra step.
+
 ## Task tracking
 
 - Projects track TODOs in `docs/TODO.md` (all-caps `TODO`). When you discover a new TODO item during work (a bug to fix later, a feature idea, a cleanup opportunity), check the repo-local `CLAUDE.md` for the TODO file location and append the item there. If the repo has no TODO file or `CLAUDE.md` doesn't mention one, create `docs/TODO.md`.
@@ -335,6 +391,17 @@ Good moments to reach for mnemo:
   current task — a quality issue, a missing capability, an
   inconsistency — add it as a target via `bullseye_put` rather than
   fixing it inline or dropping a bare TODO.
+- **Targets, not GitHub issues.** Bullseye targets are the canonical
+  place to record any followable piece of work — bugs to fix later,
+  features to design, cleanups, blockers, dependencies between
+  projects. Do **not** file GitHub issues for these. `bullseye_put`
+  on the relevant repo (or a cross-repo edge to it) replaces
+  `gh issue create` for the work-tracking case. The only
+  legitimate reasons to file a GitHub issue are: an upstream
+  third-party repo where the user wants to report a bug or
+  request a feature externally, or an explicit user instruction
+  to file an issue. Existing issues can stay where they are; new
+  work goes into bullseye.
 - A target is a desired state, not a task. Write it as an assertion:
   "All tests pass on Windows" not "Fix Windows tests."
 - Include enough context that a future agent in a fresh session can
