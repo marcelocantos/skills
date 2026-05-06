@@ -16,6 +16,7 @@ End-to-end skill for cutting a release of an existing project. Covers discovery,
 - **Binaries**: Always build via CI — never build release binaries locally
 - **Homebrew tap**: `marcelocantos/homebrew-tap` — uses [homebrew-releaser](https://github.com/Justintime50/homebrew-releaser) GitHub Action for automated formula generation and publishing
 - **Versioning**: Semantic versioning (`vMAJOR.MINOR.PATCH`). **Always suggest minor releases** (bump MINOR, reset PATCH to 0). Patch releases are reserved for hotfixes to a specific minor release — never use them for regular forward progress. Only use major/patch when the user explicitly requests it.
+- **Pre-1.0 → 1.0 shakeout**: A 1.0 release locks in a backwards-compatibility contract — after 1.0, breaking changes require forking the project (e.g., `foo` → `foo2`, see Phase B.3) rather than a major bump. Before cutting 1.0, the public API must have accumulated **at least 1 month** with no backwards-incompatible changes since the last breaking release. Historical SemVer practice was to scale shakeout by surface size (3+ months for >50 items); in the LLM-coding era, real-world API exercise compresses sharply, so a flat 1-month minimum suffices regardless of surface size. If a breaking change is judged necessary mid-shakeout, the clock **resets** from the new breaking release's tag date. See B.3a for the gate.
 - **Tag ownership**: The release tag is created **once** by `gh release create` locally. CI workflows must **never** create tags or releases — they only build artifacts and upload them to the existing release.
 
 ## Invocation
@@ -41,7 +42,7 @@ Before doing any work, do a fast scan of the repo (latest tag, commits since, wo
 - The desired version bump differs from the default minor (only ask if there's a concrete signal — e.g., user said "patch release" earlier, or commits clearly indicate breaking changes that warrant a fork rather than a bump).
 - The release scope is unclear (e.g., uncommitted WIP unrelated to the release, or a pile of unpushed commits that may or may not be part of this release).
 - **Open PRs carry post-tag work** (`open_prs_with_release_work` reports a count > 0 from `discover.sh`). Each listed PR has commits not in the latest tag, so the release scope is genuinely ambiguous: the user may want to (a) wait for the PR to merge and release the resulting master, (b) bundle release-prep into the existing PR rather than open a sibling release-prep PR (honouring "one PR per session"), or (c) release current master independently and let the PR merge into a later release. Ask which — naming each open PR by number, ahead-count, and title from the discover.sh output. Skip the question only if the listed PRs are clearly orthogonal to the release (e.g., long-running dependabot bumps, draft RFCs); the default is to ask.
-- A pre-1.0 → 1.0 transition is plausible and the user hasn't signalled intent.
+- A pre-1.0 → 1.0 transition is plausible and the user hasn't signalled intent. Note: a 1.0 cut is a **major** bump that the agent never initiates on its own — only the user can request it. If they do, B.3a's shakeout gate fires.
 - An MCP-server or service definition gap is suspected and the user's preference (ship anyway / block) is unclear.
 
 If **none** of these apply, ask nothing. Proceed to Phase B silently. The whole point is that asking is the exception, not the rule.
@@ -181,6 +182,34 @@ For post-1.0 projects, audit all changes since the last release for backwards-in
    **The project's stance on breaking changes is absolute**: there is no "v2.0" of the same product. If a project genuinely needs to break backwards compatibility, the correct path is to **fork the project into a new product**. For example, `foo` would become `foo2` — a new repository (or a hard fork of the existing one) starting at `v0.1.0`. The original `foo` continues to exist at its last stable version for existing users.
 
    Present this recommendation to the user and halt Phase B. Do not proceed with the release.
+
+#### B.3a: Pre-1.0 → 1.0 shakeout gate (1.0 cut only)
+
+**Skip this substep** unless the user has explicitly requested a `v1.0.0` cut from a pre-1.0 version. The agent never initiates a 1.0 transition; this gate only fires when the user has asked for one.
+
+A 1.0 release locks in a backwards-compatibility contract — after 1.0, breaking changes require **forking the project** (e.g., `foo` → `foo2`) rather than a major bump. The pre-1.0 period exists to shake out the API design before that contract takes effect.
+
+**The shakeout rule:** at least **1 month** must have elapsed since the last release that introduced backwards-incompatible changes to the public API.
+
+- Historical SemVer practice scaled the shakeout by surface size (e.g., 3+ months for libraries with >50 public items). In the LLM-coding era, real-world API exercise compresses sharply — a flat 1-month minimum suffices regardless of surface size.
+- "Backwards-incompatible" matches the breaking-change list in B.3 (removals, signature changes, narrowed types, tightened validation, removed/renamed CLI flags, etc.). Additive changes don't count.
+- If a breaking change is judged necessary mid-shakeout, the clock **resets** from the new breaking release's tag date.
+
+**Audit procedure:**
+
+1. **Identify the last breaking release.** Walk back through the project's tags (use `# tags` from discover.sh) and identify the most recent tag that introduced a breaking change. If the project's STABILITY.md or release notes call this out explicitly, use that. Otherwise, diff each tag's public surface against its predecessor (same procedure as B.3) and find the most recent break. If unclear, ask the user.
+
+2. **Compute the gate date.** `gate_date = <last-breaking-tag-date> + 1 month`. Read the tag date with `git log -1 --format=%aI <tag>`.
+
+3. **Compare against today.**
+   - If today is on or after `gate_date`: the shakeout is complete. Proceed to B.4.
+   - If today is before `gate_date`: the shakeout is **not** complete. Halt Phase B and report:
+     - The last breaking release tag and date
+     - The earliest eligible 1.0 cut date
+     - The number of days remaining
+     - A recommendation to add a bullseye sub-target on the project's 1.0 showcase target capturing the shakeout (using the pattern from claudia 🎯T1.6: a `not_before:` date in the acceptance criteria, with a clock-reset clause).
+
+**Bullseye integration:** projects pursuing 1.0 should encode the shakeout as an explicit sub-target blocking the showcase target, rather than burying the requirement in prose. This makes the prerequisite visible to `/cv` so it stops recommending the 1.0 cut prematurely. The target name pattern is *"<project> has accumulated a 1-month shakeout period with no breaking API changes since <last-breaking-tag>"*. When this gate halts Phase B for a project that has no such sub-target, offer to create one.
 
 #### B.4: Version
 
