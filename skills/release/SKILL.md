@@ -19,6 +19,26 @@ End-to-end skill for cutting a release of an existing project. Covers discovery,
 - **Pre-1.0 → 1.0 shakeout**: A 1.0 release locks in a backwards-compatibility contract — after 1.0, breaking changes require forking the project (e.g., `foo` → `foo2`, see Phase B.3) rather than a major bump. Before cutting 1.0, the public API must have accumulated **at least 1 month** with no backwards-incompatible changes since the last breaking release. Historical SemVer practice was to scale shakeout by surface size (3+ months for >50 items); in the LLM-coding era, real-world API exercise compresses sharply, so a flat 1-month minimum suffices regardless of surface size. If a breaking change is judged necessary mid-shakeout, the clock **resets** from the new breaking release's tag date. See B.3a for the gate.
 - **Tag ownership**: The release tag is created **once** by `gh release create` locally. CI workflows must **never** create tags or releases — they only build artifacts and upload them to the existing release.
 
+## Parallelization
+
+The skill has substantial parallelizable structure. Default to running independent work in parallel — the wall-clock and token wins are large, and the global directive's "default to parallel" bias applies with full force here. The skill historically read as a serial pipeline; it is not one.
+
+**Fan out Phase B.1's audits (items 7–11).** CLI flag audit, agent-guide check (incl. gotcha staleness), README freshness, vendor licence attribution, and language-binding test coverage are independent read-only investigations with bounded outputs. Spawn each as a Sonnet subagent (`subagent_type: Explore` or `general-purpose` with `model: sonnet`) and assemble the digests in the parent. These subagents must **not** commit, push, or open PRs — they investigate and report. Any fixes the audits surface are made in the parent context as part of the release-prep PR.
+
+**Run B.5, B.6, and B.7 concurrently.** Once `discover.sh` output is parsed and the version number is decided in B.4 step 2, these substeps have no cross-dependencies:
+
+- **B.7 (tests)** is the long pole — kick it off via `Bash(run_in_background: true)` first so it overlaps everything else.
+- **B.5 (release notes drafting)** runs in the foreground while tests execute.
+- **B.6 (release.yml creation, conditional)** runs in the foreground alongside B.5.
+- **B.3 (breaking-change audit, post-1.0 only)** also belongs in this bracket — an independent `git diff` against the public surface.
+- **B.4 step 3 (version-string commit)** can run alongside the above; it doesn't block B.5/B.6/B.7.
+
+Collect B.7's background result before committing the version bump and pushing the PR — a failing test run halts Phase B regardless of how clean the docs and workflow look.
+
+**Phase C step 7 (Go submodule tags) runs in parallel with step 8 (`gh run watch`).** They touch disjoint state.
+
+**The CI wait between PR push and `gh run watch` returning green has no useful parallel work** *if the audit fan-out happened before the PR was pushed*, which is the whole point of fanning out early. Late-arriving audit findings force a second PR cycle. If you find yourself wanting to do real work during the CI wait, the fan-out fired too late.
+
 ## Invocation
 
 The user runs `/release`. No arguments needed — the skill discovers everything from the repo.
@@ -88,6 +108,8 @@ This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (lat
    **Tap opt-out.** Some projects deliberately skip Homebrew distribution — e.g., a package manager that replaces Homebrew can't coherently ship via a tap. Opt out by adding a `homebrew_tap: disabled` directive to the project's `CLAUDE.md` (mirrors existing directives like `delivery:` and `profile:`). `discover.sh` honours the directive and reports `# homebrew_tap` as `(disabled — CLAUDE.md declares homebrew_tap: disabled)` and `# homebrew_tap_token_secret` as `(n/a — tap disabled)`. When you see either sentinel, skip the tap checks entirely, skip Phase 4 step 2 (homebrew-releaser job), and skip Phase 5 step 9 (local `brew install` verification). Note the opt-out in the Phase B report instead.
 
 6. **Repo description**: Check that the GitHub repo has a description set (`gh repo view --json description`). homebrew-releaser crashes on null descriptions. If missing, set one with `gh repo edit --description "..."`. Also verify the description is **accurate and up to date** — stale descriptions (e.g., referencing renamed concepts) should be updated.
+
+**Fan out items 7–11.** The next five items are independent read-only investigations. Spawn one Sonnet subagent per item in a single message (multiple Agent tool uses in one assistant turn) and have each return a short digest. Spawn-prompt rule: "investigate and report findings — do **not** commit, do **not** push, do **not** open a PR. The parent will collect digests and decide what to fix in the release-prep PR." See the Parallelization section above. Items 1–6 and item 12 stay in the parent — they are trivial reads of `discover.sh` output or single `git status` calls.
 
 7. **CLI flags audit**: If the project produces standalone binaries, check that the following flags exist and work:
 
@@ -237,6 +259,21 @@ Determine the next version number. **Do not ask for confirmation** — just use 
    tag itself keeps the `v` prefix; only the constant drops it.
 
    **No version macros found**: If a C/C++ library has no version macros at all, note this as a gap in the Phase B report. Don't block the release.
+
+#### B.5–B.7: Concurrent bracket
+
+B.5 (release notes), B.6 (release.yml creation), and B.7 (gate check incl. tests) **run concurrently**. The minimal harness:
+
+1. As soon as B.4 step 2 has decided the version, kick off B.7's test run in the background:
+   ```
+   Bash(command: "<project-test-command>", run_in_background: true)
+   ```
+   The harness will notify when the test run finishes — do not poll, do not sleep.
+2. In the foreground, draft release notes (B.5) and write the workflow file (B.6, if needed). These are file edits and `git add` / `git commit` operations on the parent's working tree; they don't conflict with the background test run.
+3. When the test-run notification arrives, fold its result into the gate check (B.7).
+4. Only after all three substeps are settled do you commit the bundled release-prep changes and push the PR.
+
+If any of the three fail, halt Phase B per the existing rules — the parallel structure does not change *what* counts as a serious concern, only *when* the work happens. See the Parallelization section.
 
 #### B.5: Release notes
 
@@ -456,6 +493,8 @@ Squash-merge the prepared PR(s), tag, and create the GitHub release. Run unatten
    ```
    Also update the Go module's version constants (if any) to match the
    release version during the Phase 2 version bump.
+
+   **Run this in parallel with step 8.** The submodule tag push and `gh run watch` touch disjoint state. Kick step 7 off as a foreground action and start step 8 immediately after — or run step 8 in the background and do step 7 while it watches.
 
 8. **Monitor CI**: Wait for the release workflow to complete in full. The workflow's `homebrew` job has `needs: build`, so a successful `gh run watch` guarantees both that artefacts are uploaded **and** that homebrew-releaser has pushed the formula to the tap.
    ```bash
