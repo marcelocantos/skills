@@ -468,17 +468,25 @@ Squash-merge the prepared PR(s), tag, and create the GitHub release. Run unatten
 
    ```bash
    brew update
-   brew upgrade marcelocantos/tap/<project> || brew install marcelocantos/tap/<project>
+   log=$(mktemp -t brew-upgrade-<project>.XXXXXX) && trap 'rm -f "$log"' EXIT
+   brew upgrade marcelocantos/tap/<project> 2>&1 | tee "$log" || \
+     brew install marcelocantos/tap/<project> 2>&1 | tee "$log"
    ```
 
-   `brew update` is required to pull the fresh formula from the tap. Use `upgrade || install` so the command works whether or not the formula is already installed.
+   `brew update` is required to pull the fresh formula from the tap. Use `upgrade || install` so the command works whether or not the formula is already installed. **Always tee the full output to a temp file** — when something goes wrong, a `tail -5` of the truncated output never shows the actual failure mode, and you'll be guessing instead of diagnosing. Keep the `mktemp` path so you can inspect it if the verify step below fails.
 
    **Persistent services**: If the project is a long-running server with a Homebrew service definition (detected in Phase 4 step 3), restart the service so the new binary takes effect:
    ```bash
    brew services restart <project>
    ```
 
-   **Verify the install**: Run `<project> --version` (or the equivalent) and confirm the output matches the released version. If it doesn't match, **fail loud** — print the expected version, the observed version, and `which <project>` (a PATH shadow is the only remaining plausible cause once step 8 has returned success), then stop. Do not enter a diagnostic loop of repeated `brew update` / `brew reinstall` attempts — the timing race that used to motivate that loop has been eliminated by the step-8 wait.
+   **Verify the install**: Run `<project> --version` (or the equivalent) and confirm the output matches the released version. If it doesn't match, **inspect `"$log"` first** — the full upgrade output is there, including any "Failed to fix install linkage" warnings, missing-symlink hints, or Cellar-vs-bin-symlink mismatches. Then **fail loud**: print the expected version, the observed version, `which <project>`, and the relevant lines from `"$log"`. Common causes:
+
+   - **Cellar populated but `bin/<project>` missing**: a formula-name collision with a published Homebrew cask shadows the symlink-creation step. `brew link --overwrite marcelocantos/tap/<project>` resolves it; report the formula's name as a candidate for renaming if this recurs.
+   - **PATH shadow**: a different `<project>` binary earlier in `$PATH`. `which -a <project>` shows all candidates.
+   - **`brew upgrade` ran but skipped link**: the symptom is "Cellar has new version, `which` returns command-not-found, no obvious error in the truncated tail." This is exactly why `tee`-ing the full log matters; grep the log for `link` / `symlink` / `Error:` to find the actual cause.
+
+   Do not enter a diagnostic loop of repeated `brew update` / `brew reinstall` attempts — the timing race that used to motivate that loop has been eliminated by the step-8 wait.
 
    **Never hand-edit the brew-managed tap working tree** at `/opt/homebrew/Library/Taps/marcelocantos/homebrew-tap`. It is Homebrew's working copy of the tap, not a scratch space. Uncommitted edits there get autostashed and re-applied around the next `brew update`, which will trip a stash-pop conflict against the homebrew-releaser-regenerated formula and abort the next `brew upgrade` mid-release with a Ruby parse error full of `>>>>>>> Stashed changes` markers. Treat that state as a bug, not a workflow.
 
