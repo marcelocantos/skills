@@ -22,7 +22,7 @@ Also includes my global [`CLAUDE.md`](CLAUDE.md) directives and the [`convergenc
 - **[`/todo`](skills/todo/SKILL.md)** — Summarise open TODOs from local todo file and GitHub issues.
 - **[`/vera`](skills/vera/SKILL.md)** — Semantic code search, regex pattern search, and symbol lookup across a local repository. Returns ranked markdown codeblocks with file path, line range, content, and optional symbol info. Use `vera search` for conceptual/behavioral queries (how a feature works, where logic lives, exploring unfamiliar code). Use `vera grep` for exact strings, regex patterns, imports, and TODOs. Use `vera references` to trace callers/callees. Use rg only for bulk find-and-replace or files outside the index.
 - **[`/waw`](skills/waw/SKILL.md)** — "Where Are We?" — Context restoration after being AFK. Default is a quick recap; `/waw all` runs the full deep briefing.
-- **[`/ytt`](skills/ytt/SKILL.md)** — Fetch a YouTube video's transcript and present a detailed synopsis with key takeaways.
+- **[`/ytt`](skills/ytt/SKILL.md)** — Fetch a YouTube video's transcript and ingest it into ~/think/knowledge/youtube/ as a synopsis with key takeaways. Updates the knowledge-base index and commits.
 
 ## License
 

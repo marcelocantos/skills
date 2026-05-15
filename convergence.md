@@ -20,7 +20,10 @@ task-list thinking ("do X, then Y, then Z") with state-gap thinking
 This means delivery is not a final step bolted onto completed code —
 it's intrinsic to the target. "Merged to master" is a waypoint, not a
 destination. The destination is the user experiencing the change.
-Targets are not achieved until their impact is delivered.
+Targets are not achieved until their impact is delivered. The same PR
+that delivers the impact should also mark the target achieved in
+`bullseye.yaml` — the merge is the achievement event. Don't split
+implementation and retirement across separate PRs.
 
 ## Decomposition
 

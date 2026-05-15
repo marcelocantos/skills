@@ -1,13 +1,16 @@
 ---
 name: ytt
-description: Fetch a YouTube video's transcript and present a detailed synopsis with key takeaways.
+description: Fetch a YouTube video's transcript and ingest it into ~/think/knowledge/youtube/ as a synopsis with key takeaways. Updates the knowledge-base index and commits.
 user-invocable: true
 ---
 
 # ytt
 
-Fetch a YouTube video's transcript via the `ytt` CLI and present a
-detailed synopsis and key takeaways.
+Fetch a YouTube video's transcript via the `ytt` CLI, write a detailed
+synopsis to `~/think/knowledge/youtube/<id>/`, regenerate the
+knowledge-base index, and commit. The user may suppress ingest with a
+natural-language qualifier (e.g. "but don't ingest", "just summarise",
+"in chat only") — in which case present the synopsis inline and stop.
 
 ## Arguments
 
@@ -39,21 +42,65 @@ Read the transcript output end-to-end. Identify:
 - Concrete claims, examples, data points, and recommendations.
 - Any caveats, counterpoints, or nuances the speaker raises.
 
-### 3. Present the synopsis
+### 3. Compose the synopsis
 
-Structure the response as:
+The synopsis content is the same whether ingesting or not. Structure:
 
-**Synopsis** — a detailed multi-paragraph summary covering the full
-content of the video in logical order. Aim for depth over brevity;
-the user wants to understand the video without watching it. Preserve
-the speaker's framing and terminology where it matters.
+- **Title** — `# <video title>` (skip in chat-only mode).
+- **Source line** — `Source: <youtube URL>` (skip in chat-only mode).
+- **TL;DR line** — a single `**TL;DR**: …` line immediately under the
+  title. Load-bearing: `build-index.sh` greps for it. Keep to 1–3
+  sentences capturing the thesis.
+- **`## Synopsis`** — detailed multi-paragraph summary in logical
+  order. Depth over brevity; the user wants to understand the video
+  without watching it. Preserve the speaker's framing and terminology
+  where it matters. Break into labelled subsections only if the video
+  has clear chapters.
+- **`## Key Takeaways`** — bulleted list of the most important,
+  actionable, or surprising points. Each bullet should stand alone as
+  a distinct insight, not a mechanical restatement of the synopsis.
 
-**Key takeaways** — a bulleted list of the most important, actionable,
-or surprising points. Each bullet should stand alone as a distinct
-insight, not a mechanical restatement of the synopsis.
+### 4. Ingest (default)
 
-If the video has clear sections or chapters, you may break the synopsis
-into labelled subsections. Otherwise keep it flowing.
+Skip this step if the user qualified the command to suppress ingest.
+
+1. **Check for existing ingest.** If `~/think/knowledge/youtube/<id>/`
+   already exists, stop and tell the user — offer to refresh
+   (overwrite synopsis + meta.json) or skip. Do not silently
+   double-ingest.
+2. **Fetch metadata** with yt-dlp:
+   ```bash
+   yt-dlp --skip-download \
+     --print '%(.{id,title,uploader,channel,channel_id,upload_date,duration,view_count,description,webpage_url,tags})j' \
+     '<url>'
+   ```
+   Pretty-print the JSON object into `meta.json` (preserve all fields,
+   2-space indent, keep unicode characters readable — e.g. `t3․gg`).
+3. **Write the synopsis** to
+   `~/think/knowledge/youtube/<id>/<topic-slug>.md`. The slug is a
+   short kebab-case description of the video's topic (e.g.
+   `bash-is-not-enough.md`, `agent-memory-retrieval-shapes.md`), not
+   the video title. One synopsis file per directory.
+4. **Regenerate the index:**
+   ```bash
+   bash ~/work/github.com/marcelocantos/ytt/scripts/playlist-ingest/build-index.sh
+   ```
+   This rewrites `~/think/knowledge/youtube/youtube-knowledge-base.md`
+   from all `meta.json` + synopsis pairs, sorted newest-first.
+5. **Commit** from `~/think/`:
+   - First commit: `Ingest <channel>'s "<short-title>" video on <topic>`
+     — stage `knowledge/youtube/<id>/`.
+   - Second commit: `Regenerate youtube knowledge-base index` — stage
+     `knowledge/youtube/youtube-knowledge-base.md`.
+
+### 5. Present a brief summary in chat
+
+After ingest, give the user a one-line confirmation plus a 2–3 sentence
+recap of the video's thesis. Do not paste the full synopsis back into
+chat — they can read the file.
+
+In chat-only mode, present the full synopsis and key takeaways in the
+response.
 
 ## Notes
 
@@ -62,3 +109,8 @@ into labelled subsections. Otherwise keep it flowing.
   substance to fit an arbitrary budget.
 - Quote memorable lines sparingly — only when the exact phrasing
   carries weight the paraphrase loses.
+- The directory name is always the 11-character YouTube video ID.
+  The `.md` filename is a topic slug, not the title.
+- The TL;DR line format is exactly `**TL;DR**: <text>` on its own
+  line near the top — `build-index.sh` matches with
+  `grep -m1 -E '^\*\*TL;DR\*\*:'`.
