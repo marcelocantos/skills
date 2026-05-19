@@ -55,6 +55,8 @@ The user runs `/release`. No arguments needed — the skill discovers everything
 
 The detailed substeps below are sequenced under these three phases. Where the previous workflow asked *"Proceed to Phase N+1?"* between substeps, that question is gone — substeps run back-to-back unless something in Phase B's concerns list fires.
 
+**Merge ≠ tag.** The release-prep PR's merge into master and the `gh release create <tag>` action are two separate steps, decoupled in time. In a straight-through `/release` run with no user interruption, the original `/release` invocation authorises the entire pipeline — merge *and* tag *and* brew install — and the agent should not stop and ask between them; that's the "ideal scenario is fully unattended from start to finish" promise. Re-authorisation is only required when the user has interrupted and amended the flow (e.g. "hold the tag, I want to add more tests first", "merge and I'll come back later"). Master can keep accumulating *PRs* (not just commits — additional test scaffolding, follow-up doc fixes, new fixtures, anything) between a release-prep merge and the eventual tag; when the tag is cut, it points at whatever HEAD has at that moment. The PR title `Release v0.N.0` is a descriptive checkpoint, not a contractual commitment to tag immediately, and a held-but-untagged release is a normal long-lived state rather than a release in mid-flight.
+
 ### Phase A: Up-front clarification
 
 Before doing any work, do a fast scan of the repo (latest tag, commits since, working-tree state, version era, project type) and decide whether any of the following are genuinely ambiguous:
@@ -443,6 +445,8 @@ Then **decide whether to proceed unattended**. Default is **yes — proceed stra
 
 Routine items are **not** serious concerns: a clean changelog display, a successful dist regen, a normal version bump, expected two-PR flow, etc. Don't ask just to confirm something the user already implicitly authorised by running `/release`.
 
+**Defer-the-tag is its own routine outcome, not a concern.** If during Phase B the user says they want to land more PRs (more tests, doc fixes, additional fixtures) before tagging, that's not "abort the release" — it's "merge the prep PR onto master and stop". Land step 1 of Phase C (the squash-merge), report the merged-untagged state, and stop. Subsequent follow-up PRs go through the normal PR workflow against master, not through a fresh `/release` invocation. When the user later authorises the tag, re-enter Phase C at step 5 against current HEAD.
+
 If the report shows no serious concerns: print the report, say *"proceeding to Phase C"*, and continue.
 
 If a serious concern fires: print the report with the concern called out at the top and ask one focused question (*"merge anyway, or stop here?"*).
@@ -451,7 +455,15 @@ If a serious concern fires: print the report with the concern called out at the 
 
 Squash-merge the prepared PR(s), tag, and create the GitHub release. Run unattended unless something fails along the way.
 
-1. **Squash-merge the release PR** via `~/.claude/skills/push/merge.sh <pr-number> master <feature-branch>`.
+**Re-entrancy and the held-release state.** Phase C is one continuous flow under a normal `/release` invocation — the original `/release` invocation authorises the merge *and* the tag *and* the brew install. Run it straight through.
+
+The split-in-time case only arises when the user has interrupted Phase B and asked to defer the tag (e.g. "hold the tag, I want more tests first", "merge then I'll come back"). In that case:
+
+- Run step 1 (squash-merge) and then stop. Master is now in a *held-release* state: the prep content is on master, but no tag has been cut.
+- Master can accumulate any number of further PRs in this state — additional tests, doc fixes, new fixtures, anything — landed via the standard PR workflow against master, not via a fresh `/release` invocation. Each one becomes part of whatever-version-we-eventually-tag.
+- When the user later authorises the tag, re-enter Phase C at step 5 against the current HEAD (which may be many PRs past the original merge). The v0.N.0-prep PR's title is descriptive, not contractual — it doesn't obligate the tag.
+
+1. **Squash-merge the release PR** via `~/.claude/skills/push/merge.sh <pr-number> master <feature-branch>`. In the straight-through case, proceed immediately to step 2. In the held-release case (user interrupted Phase B to defer the tag), stop after the merge and report the merged-untagged state plainly; pick up at step 5 when authorisation arrives.
 
 2. **Validate version strings**: Before tagging, verify that any in-source version strings match the release version. For C/C++ projects with version macros, check that the `#define` values match the tag (strip leading `v`). Fail early if they don't — the version commit from B.4 should have already handled this, but double-check.
 
