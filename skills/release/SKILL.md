@@ -262,6 +262,26 @@ Determine the next version number. **Do not ask for confirmation** — just use 
 
    **No version macros found**: If a C/C++ library has no version macros at all, note this as a gap in the Phase B report. Don't block the release.
 
+#### B.4a: Retire diff-satisfied targets (bullseye projects only)
+
+**Skip this substep** if the project does not use bullseye.
+
+The global `~/.claude/CLAUDE.md` directive *"target lifecycle changes ride the PR that triggers them"* means any active bullseye target whose acceptance is satisfied entirely by the changes in this release must be retired **inside the release-prep PR**, not as a follow-up commit/PR after the tag. The release skill is responsible for finding these targets and retiring them before the branch is pushed.
+
+**Procedure:**
+
+1. **Gather candidates.** Pull `🎯T*` references out of every commit message in `# commits_since_last_tag`. Add to the candidate list any frontier target whose name/acceptance describes work the release notes are now claiming as shipped.
+
+2. **Check acceptance.** For each candidate, fetch its acceptance with `bullseye_get` and decide whether the diff in this release satisfies every criterion. Be honest: if even one criterion is unmet (e.g., "documented in agents-guide.md" and the guide wasn't updated), the target is not yet achievable and stays open.
+
+3. **Retire each fully-satisfied target.** Call `bullseye_retire(cwd, id)`. The 🎯T22 auto-commit machinery folds the `bullseye.yaml` change into a commit on the release-prep branch automatically.
+
+4. **List the retirements in the Phase B report** so the user sees which targets the release closes.
+
+**What this substep does NOT cover:** *release-readiness meta-targets* — targets like *"v0.N.0 is shipped"* whose acceptance literally requires the release to exist. Those legitimately cannot retire here because the release doesn't exist yet. They are Phase C step 11's job.
+
+The distinction is simple: if the target's acceptance is met by the **diff** in this PR, retire here (B.4a); if it's met by the **release event itself** (tag exists, formula in tap, brew install works), retire in Phase C step 11. A feature target like "add subdivide tool" is the first kind; a target like "v0.29.0 is published to the Homebrew tap" is the second.
+
 #### B.5–B.7: Concurrent bracket
 
 B.5 (release notes), B.6 (release.yml creation), and B.7 (gate check incl. tests) **run concurrently**. The minimal harness:
@@ -548,13 +568,29 @@ The split-in-time case only arises when the user has interrupted Phase B and ask
     - Homebrew install command (if tap was set up): `brew install marcelocantos/tap/<project>`
     - Confirmation that the new version is installed locally (include the `--version` output)
 
-11. **Retire the release-readiness target and clean the tree**: If the
-    project uses bullseye and the release was driven by a
-    release-readiness target, retire it now via `bullseye_retire`. Then
-    run `~/.claude/skills/release/finalize.sh <version> [target-id]` to
+11. **Retire release-readiness meta-targets and clean the tree**: This
+    step is narrow on purpose. Targets whose acceptance is satisfied
+    by the **PR diff** were already retired in Phase B.4a (per the
+    global *"lifecycle changes ride the PR that triggers them"*
+    directive). What's left for this step are *release-readiness
+    meta-targets* — targets whose acceptance literally requires the
+    release to exist (tag created, formula in tap, brew install
+    works, etc.). If such a target exists and its acceptance is now
+    met, retire it via `bullseye_retire`. Then run
+    `~/.claude/skills/release/finalize.sh <version> [target-id]` to
     commit any resulting `bullseye.yaml` diff locally (no push). This
-    enforces the invariant *"after /release returns, `bullseye.yaml` is
-    clean"* — `/cv` and other gates rely on it.
+    enforces the invariant *"after /release returns, `bullseye.yaml`
+    is clean"* — `/cv` and other gates rely on it.
+
+    **Do not retire diff-satisfied feature targets here.** That
+    produces a follow-up `Update bullseye.yaml` commit hanging off
+    local master with no PR — exactly the situation the global
+    directive forbids. If you find yourself reaching for
+    `bullseye_retire` on a feature target at this step, the
+    retirement belongs back in Phase B.4a; the release PR has
+    already merged, so the next-best recovery is a small chore PR
+    naming the slip (the release skill update of 2026-05-20
+    documents this failure mode).
 
 ## Error handling
 
