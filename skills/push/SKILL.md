@@ -11,6 +11,22 @@ branch and PR if they don't already exist.
 
 ## Steps
 
+### 0. Sweep merged branches
+
+Run `~/.claude/skills/push/sweep-merged.sh <default-branch>` (already
+`chmod +x` — invoke the path directly). It prunes stale remote-tracking
+refs and deletes local branches whose PR has already merged, self-healing
+the cruft left by merges done outside `merge.sh` (GitHub web UI, raw
+`gh pr merge`, CI auto-merge). delete_branch_on_merge cleans the remote
+side, but the local branch + tracking ref linger forever otherwise, and
+squash-merge hides them from `git branch --merged`.
+
+The sweep is conservative — it deletes a branch only when its upstream is
+`[gone]` **and** a merged PR exists for it **and** its tip is exactly the
+merged head SHA (so a branch reused for live work after its PR landed is
+never touched), and never the current or default branch. Safe to run
+every push; no-op when nothing is stale.
+
 ### 1. Preflight
 
 Run `~/.claude/skills/push/preflight.sh` and parse its output. It is

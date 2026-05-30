@@ -47,7 +47,7 @@ The user runs `/release`. No arguments needed — the skill discovers everything
 
 `/release` runs in **three phases**. The ideal scenario is fully unattended from start to finish — only stop and ask the user when there is a genuine reason to.
 
-1. **Phase A — Up-front clarification.** A very quick analysis to identify any information likely to be needed from the user *given the specific context of the work being released*. If nothing is genuinely uncertain, ask nothing and move straight to Phase B. Do not invent questions; do not ask out of habit. The default is zero questions.
+1. **Phase A — Up-front clarification.** Starts with a **release-freeze kill switch**: if the project's CLAUDE.md declares `release_freeze: "<reason>"`, halt immediately with that reason and do not proceed. Otherwise, a very quick analysis to identify any information likely to be needed from the user *given the specific context of the work being released*. If nothing is genuinely uncertain, ask nothing and move straight to Phase B. Do not invent questions; do not ask out of habit. The default is zero questions.
 
 2. **Phase B — Unattended execution to a mergeable PR.** Run the entire prep workflow without per-phase approval gates: discovery, breaking-change audit, version bump, release notes, CI setup, push, PR open, CI wait, gate check. End by reporting current state, anything messy that happened during the run, and any concerns. Then **only stop for confirmation if a serious concern arose** about whether it's appropriate to complete the release (failing tests rewritten without justification, a breaking change found, an unresolved CI failure, a missing licence attribution, etc.). If everything is clean, proceed to Phase C without asking.
 
@@ -59,7 +59,22 @@ The detailed substeps below are sequenced under these three phases. Where the pr
 
 ### Phase A: Up-front clarification
 
-Before doing any work, do a fast scan of the repo (latest tag, commits since, working-tree state, version era, project type) and decide whether any of the following are genuinely ambiguous:
+#### A.0: Release-freeze check (kill switch)
+
+**Before any other Phase A work**, run `~/.claude/skills/release/discover.sh` and read the `# release_freeze` field. If it is anything other than `(none)`:
+
+- **Halt immediately.** Do not proceed with any further discovery, version bump, release-notes drafting, branch creation, or PR work.
+- Print the freeze reason verbatim to the user, with a one-line summary: *"This repo declares a release freeze in CLAUDE.md. /release is blocked until the directive is lifted."*
+- Tell the user explicitly that lifting the freeze requires editing the project's `CLAUDE.md`: remove the `release_freeze:` directive AND switch any port-freeze gate profile back to `base`.
+- Do not offer to lift the freeze on the user's behalf, do not suggest workarounds, do not propose bypassing the gate profile. The freeze exists because the product is in a state where shipping is wrong; that judgement is the user's to revoke.
+
+The `release_freeze:` directive in CLAUDE.md is a single line of the form `release_freeze: "<reason>"` (mirrors the existing `homebrew_tap: disabled` pattern). Projects in port/rewrite/migration phases use it to make the freeze explicit and machine-checkable.
+
+If `# release_freeze` is `(none)`, proceed to the rest of Phase A below.
+
+#### A.1: Clarification
+
+Do a fast scan of the repo (latest tag, commits since, working-tree state, version era, project type) and decide whether any of the following are genuinely ambiguous:
 
 - The desired version bump differs from the default minor (only ask if there's a concrete signal — e.g., user said "patch release" earlier, or commits clearly indicate breaking changes that warrant a fork rather than a bump).
 - The release scope is unclear (e.g., uncommitted WIP unrelated to the release, or a pile of unpushed commits that may or may not be part of this release).
@@ -151,12 +166,18 @@ This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (lat
 
    **Quick start for agent-installed tools**: If the project is an MCP server or agent tool, the README should include a "Quick start" section with a copy-pasteable prompt that users can give their agent (e.g., *"Install X from &lt;repo URL&gt; — brew install, start the service, register it as an MCP server, and restart the session. Follow the agents-guide.md in the repo."*). This is distinct from the agents-guide (which the agent reads) — it's for the human who wants to say "install this" without spelling out every step. A fenced code block is ideal since GitHub renders a copy button on them. Flag if missing.
 
-10. **Third-party licence attribution**: Scan the project for vendored or bundled third-party code — check `vendor/`, `third_party/`, `extern/`, or similar directories, and any headers/sources copied into the project. For each dependency found:
+   **Own licence file (blocker)**: Verify the project ships its *own* top-level licence text — a `LICENSE`, `LICENCE`, `COPYING`, or equivalent file in the repo root. This is distinct from a mere README mention and from item 10 (third-party attribution): a declared licence with no actual licence text is a real gap, and the individual signals each look green without it (SPDX field set in `Cargo.toml`/`package.json`/`pyproject.toml`/etc., README says "Apache 2.0", a NOTICES file exists for dependencies). Specifically:
+   - Confirm the file exists. A declared SPDX licence with **no** root licence file is a blocker — add the canonical text before tagging.
+   - Confirm the detected licence type matches the declared SPDX field (e.g. don't ship a `license = "Apache-2.0"` manifest alongside an MIT `LICENSE`).
+   - Confirm any README link to the licence resolves — `[LICENSE](LICENSE)` pointing at a non-existent file is a dead link and a tell that the file was never added.
+
+10. **Third-party licence attribution & compatibility**: Scan the project for vendored or bundled third-party code — check `vendor/`, `third_party/`, `extern/`, or similar directories, and any headers/sources copied into the project. For each dependency found:
    - Identify its licence (MIT, BSD, Apache 2.0, etc.)
    - Check whether the project includes proper attribution (a NOTICES, THIRD_PARTY, or equivalent file listing each dependency with its licence text or a reference to it)
    - Flag any missing attributions. These must be resolved before release — distributing code without required attribution is a licence violation.
+   - **Licence compatibility (blocker)**: Flag any bundled component whose licence is incompatible with the project's own licence — most importantly copyleft (GPL/AGPL/LGPL) content vendored into a permissively-licensed (MIT/Apache/BSD) distribution. A single GPL file shipped in an Apache-2.0 binary taints the whole distribution. Also treat **unlicensed files copied from a copyleft-licensed upstream as copyleft by default** (a file with no licence header, taken from a GPL project, inherits that project's GPL). These must be removed or relicensed before release.
 
-   This check applies to all dependency types: vendored submodules, copied header-only libraries, embedded source files, and generated/bundled code.
+   This check applies to **all** bundled content, not just `vendor/` directories: copied header-only libraries, embedded source files, generated/bundled code, and **embedded data resources** — themes, icon/sprite data, fonts, sample datasets, and anything pulled in via `include_str!`/`include_bytes!`/embedded asset bundles. Embedded data files are the most commonly-missed vector because they don't live under `vendor/` and carry their own per-file licences (often in front-matter or sidecar files) that differ from both the project licence and each other.
 
 11. **Language bindings / wrappers**: Check for language-specific bindings or wrappers in the repo (e.g., `go/`, `python/`, `wasm/`, or similar directories). If found, verify their test suites cover the features being released. Flag any new features that lack binding-level tests. Bindings that lag behind the core implementation should be updated before tagging.
 
