@@ -18,7 +18,7 @@ and comes back in a single structured response.
 bullseye_convergence(cwd=<project root>)
 ```
 
-This runs `make bullseye` / `mk bullseye` for standing invariants,
+This runs `make bullseye` / `cv bullseye` for standing invariants,
 scans git for unreleased fix commits, renders the target summary
 with full frontier details inline, and computes a deterministic next
 action.

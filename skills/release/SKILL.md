@@ -104,7 +104,7 @@ This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (lat
 
 1. **Existing releases**: The script's `# tags`, `# latest_tag`, and `# releases` sections cover this. `# latest_tag` is the most recent semver tag — use it directly for subsequent phases.
 
-2. **Build system**: Determine how the project builds — mkfile, Makefile, go build, cargo, cmake, etc. If the project has a `mkfile`, run `mk --help-agent` to get build instructions and understand the mk syntax. mk binaries are available from https://github.com/marcelocantos/mk. Check for a distribution generation target (e.g., `make dist`, `mk dist`) that produces release artifacts (amalgamated headers, bundled files, etc.) that are checked into the repo. Note the target name for Phase 5.
+2. **Build system**: Determine how the project builds — cvfile, mkfile (legacy), Makefile, go build, cargo, cmake, etc. If the project has a `cvfile` (or legacy `mkfile`), run `cv --help-agent` to get build instructions and understand the cv syntax. cv binaries are available from https://github.com/marcelocantos/cv. Check for a distribution generation target (e.g., `make dist`, `cv dist`) that produces release artifacts (amalgamated headers, bundled files, etc.) that are checked into the repo. Note the target name for Phase 5.
 
 3. **Project type**: Determine whether the project produces standalone binaries or is a library/tool that users consume as source. This affects whether CI binaries and Homebrew tap are relevant.
 
@@ -348,16 +348,16 @@ Draft release notes from git history.
 
    **Generated/embedded files**: If the Makefile has copy or generate steps that feed `go:embed` (or similar compile-time embedding), CI must replicate those steps before building. For example, if the Makefile copies `agents-guide.md` to `internal/cli/help_agent.md` for `go:embed`, add an explicit step in the workflow (e.g., `cp agents-guide.md internal/cli/help_agent.md`) before the build step. Check for Makefile prerequisites of the `build` target that produce files listed in `.gitignore` — these are generated files that CI won't have.
 
-   **mk-based projects**: If the project uses `mkfile` instead of `Makefile`, CI must install mk before building. Fetch the appropriate binary from `https://github.com/marcelocantos/mk/releases`. Example step:
+   **cv-based projects**: If the project uses `cvfile` (or legacy `mkfile`) instead of `Makefile`, CI must install cv before building. Fetch the appropriate binary from `https://github.com/marcelocantos/cv/releases`. Example step:
    ```yaml
-   - name: Install mk
+   - name: Install cv
      run: |
-       MK_VERSION=$(gh release view --repo marcelocantos/mk --json tagName -q .tagName)
-       curl -sL "https://github.com/marcelocantos/mk/releases/download/${MK_VERSION}/mk-${MK_VERSION#v}-linux-amd64.tar.gz" | tar xz -C /usr/local/bin mk
+       CV_VERSION=$(gh release view --repo marcelocantos/cv --json tagName -q .tagName)
+       curl -sL "https://github.com/marcelocantos/cv/releases/download/${CV_VERSION}/cv-${CV_VERSION#v}-linux-amd64.tar.gz" | tar xz -C /usr/local/bin cv
      env:
        GH_TOKEN: ${{ github.token }}
    ```
-   Adjust the OS/arch in the tarball name to match the runner. Use `mk` instead of `make` in all build and test steps.
+   Adjust the OS/arch in the tarball name to match the runner. Use `cv` instead of `make` in all build and test steps.
 
 2. **Add homebrew-releaser job**: Add a job that runs after binaries are uploaded, using [homebrew-releaser](https://github.com/Justintime50/homebrew-releaser):
 

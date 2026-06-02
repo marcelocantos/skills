@@ -216,7 +216,7 @@ fi
 # 5. Build system
 # ---------------------------------------------------------------------------
 echo "# build_system"
-for f in Makefile makefile GNUmakefile mkfile CMakeLists.txt Cargo.toml go.mod meson.build build.gradle build.gradle.kts pom.xml package.json pyproject.toml setup.py SConstruct Justfile Taskfile.yml; do
+for f in Makefile makefile GNUmakefile cvfile mkfile CMakeLists.txt Cargo.toml go.mod meson.build build.gradle build.gradle.kts pom.xml package.json pyproject.toml setup.py SConstruct Justfile Taskfile.yml; do
     [[ -f "$f" ]] && echo "$f"
 done
 
@@ -225,12 +225,13 @@ done
 # ---------------------------------------------------------------------------
 echo "# dist_target"
 found_dist=false
-if [[ -f mkfile ]]; then
-    if grep -qE '^dist[[:space:]]*:' mkfile 2>/dev/null; then
-        echo "mkfile: dist target found"
+for f in cvfile mkfile; do
+    if [[ -f "$f" ]] && grep -qE '^dist[[:space:]]*:' "$f" 2>/dev/null; then
+        echo "$f: dist target found"
         found_dist=true
+        break
     fi
-fi
+done
 if [[ -f Makefile ]]; then
     if grep -qE '^dist[[:space:]]*:' Makefile 2>/dev/null; then
         echo "Makefile: dist target found"

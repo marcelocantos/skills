@@ -76,6 +76,21 @@ sub-target turns out to be composite when you start working on it,
 decompose then. The hierarchy emerges from engagement with the problem,
 not from upfront analysis.
 
+### Sub-targets are not PRs
+
+Decomposition structures *assessment and sequencing*, not delivery
+boundaries. A composite target and its sub-targets normally ship as
+**one PR**, with each sub-target landing as a commit (or a few) on a
+single branch. Do **not** map 🎯T1.1, T1.2, … to separate PRs — that
+turns one feature into a sequence of human-review stalls, which is
+exactly the velocity tax the "One PR per objective" HARD RULE in
+`~/.claude/CLAUDE.md` forbids. Naturally-serial phases are the *classic
+trap*: serial sub-targets share a branch and a PR; they don't each earn
+one. Split a composite across multiple PRs only when its sub-targets are
+genuinely independent *and* separately useful, or when the user says so.
+The `converging` state exists for the rare target that legitimately
+spans PRs — not as license to chunk one feature into many.
+
 ## Convergence assessment
 
 At decision boundaries (session start, completing a sub-target,
