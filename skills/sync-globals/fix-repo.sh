@@ -365,7 +365,7 @@ EOF
 SLASH_EXTS="c h cc cpp cxx hpp hxx m mm java kt kts swift ts tsx js jsx mjs cjs go rs cs scala dart"
 
 # File extensions using # comments
-HASH_EXTS="py rb sh zsh bash yaml yml mk tf"
+HASH_EXTS="py rb sh zsh bash yaml yml cv mk tf"
 
 # Special filenames using # comments
 HASH_NAMES="Makefile"
