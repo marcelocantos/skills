@@ -91,6 +91,67 @@ genuinely independent *and* separately useful, or when the user says so.
 The `converging` state exists for the rare target that legitimately
 spans PRs — not as license to chunk one feature into many.
 
+## Graph shapes
+
+Decomposition is not just "split this node into N smaller nodes" —
+the **shape** of the resulting subgraph matters. A target that reads
+in prose as "do X, then Y, then check Z" is almost certainly hiding
+a subgraph the YAML doesn't yet make explicit. Bullseye's repo
+ships a named vocabulary of recurring shapes at `docs/shapes.md`:
+
+- **diamond** — design once, two (or more) parallel branches, one
+  convergence node.
+- **fan-out** — one prerequisite, many independent children, no
+  shared tail.
+- **chain** — sequential dependency; each intermediate is itself a
+  meaningful state.
+- **choke-point** — many parents converge through one node, many
+  children fan out below.
+- **spike-then-decide** — a research target gates a fan-out of
+  mutually exclusive implementation options; unchosen options retire
+  with a "rejected after spike" reason.
+- **contract-first** — define an interface up front; parallel
+  implementations fan out against it; an integration node converges
+  them.
+- **migration** — prepare, cut over, keep old running, verify,
+  remove old. The "keep old running" node is the one most often
+  omitted.
+
+### Agent discipline
+
+Before committing to a single-node target whose acceptance reads as
+multi-phase prose, run the catalogue against it. Ask:
+
+1. Is there a fork inside the prose — two independent things that
+   could run in parallel after one prior step? → diamond.
+2. Is there one prerequisite enabling many independents with no
+   shared tail? → fan-out.
+3. Is there one node that everything has to roll up through? →
+   choke-point.
+4. Is one of the steps a "decide" that picks among options? →
+   spike-then-decide.
+5. Is there an interface multiple things will hang off? →
+   contract-first.
+6. Is there an old system that must stay alive during the switch? →
+   migration.
+7. Is it actually sequential, and do the intermediates have
+   independent meaning? → chain.
+8. Are the steps a single coherent piece of work whose
+   intermediates aren't separately addressable? → leave it as one
+   node.
+
+The mistake to avoid is filing a single node whose acceptance
+encodes a subgraph in prose. The graph is the artifact — if the
+shape matters, draw it in the graph. Propose the decomposition (and
+the corresponding `bullseye_subdivide` / `bullseye_put` call shape)
+before doing the work, not after.
+
+The discipline complements but does not replace the "When NOT to
+decompose" rules above: do not invent a shape just to have one.
+Shapes earn their place when each named role corresponds to a piece
+of work that is itself addressable, deserves its own acceptance
+criteria, or runs in parallel with a sibling.
+
 ## Convergence assessment
 
 At decision boundaries (session start, completing a sub-target,

@@ -316,6 +316,8 @@ B.5 (release notes), B.6 (release.yml creation), and B.7 (gate check incl. tests
 3. When the test-run notification arrives, fold its result into the gate check (B.7).
 4. Only after all three substeps are settled do you commit the bundled release-prep changes and push the PR.
 
+   **Name the PR for its contents — not the version.** Under squash-only merges the PR title *becomes the commit message on master*, so a bare `Release v0.N.0` leaves master's history saying nothing about what shipped. The release number does **not** belong in the PR title at all — it is self-evident from the tag and the merge. Title the release-prep PR exactly as you would any feature PR: a descriptive summary of the release's headline change(s), with **no version number and no `Release` prefix** — e.g. `TODO discovery covers all known roots`, or `image OCR + semantic search`. Derive it from the `# commits_since_last_tag` / release-notes headline(s): one change → name it; several → the dominant one or a 2–4 word theme. The version lives on the `git tag` and the `gh release create --title` (`v0.N.0`) — that is where it is meaningful; the PR is not.
+
 If any of the three fail, halt Phase B per the existing rules — the parallel structure does not change *what* counts as a serious concern, only *when* the work happens. See the Parallelization section.
 
 #### B.5: Release notes
@@ -505,6 +507,16 @@ The split-in-time case only arises when the user has interrupted Phase B and ask
 - When the user later authorises the tag, re-enter Phase C at step 5 against the current HEAD (which may be many PRs past the original merge). The v0.N.0-prep PR's title is descriptive, not contractual — it doesn't obligate the tag.
 
 1. **Squash-merge the release PR** via `~/.claude/skills/push/merge.sh <pr-number> master <feature-branch>`. In the straight-through case, proceed immediately to step 2. In the held-release case (user interrupted Phase B to defer the tag), stop after the merge and report the merged-untagged state plainly; pick up at step 5 when authorisation arrives.
+
+   **Bypassed-check policy + post-merge CI report.** Some projects opt to *not* block a release on a disproportionately slow CI job (e.g. a Windows CGO build that takes 10–30× the Linux job). When the project owner has signalled that preference, it is acceptable to force-merge (admin) once the fast, authoritative jobs (e.g. ubuntu) are green rather than waiting the slow job out — `gh pr merge <pr> --squash --admin --delete-branch` (note: `merge.sh` does not pass `--admin`, so a ruleset that requires checks needs the direct `gh` form, followed by the same local-sync `merge.sh` would have done: `git checkout master && git fetch && git merge --ff-only origin/master`). **But bypassing a check is not the same as ignoring it.** The squash-merge fires a fresh master-push CI run; **read that run's per-job conclusions and report any failure** so a real regression on the bypassed (or any) platform never slips by silently:
+
+   ```bash
+   rid=$(gh run list --repo <owner>/<repo> --workflow=ci.yml --event push --branch master --limit 1 --json databaseId -q '.[0].databaseId')
+   gh run view "$rid" --repo <owner>/<repo> --json conclusion,jobs \
+     -q '"\(.conclusion)  " + ([.jobs[] | "\(.name): \(.conclusion)"] | join("  "))'
+   ```
+
+   Surface the result in the Phase C report. If a bypassed job *failed*, say so prominently (it's a post-hoc fix item, not necessarily a release blocker) — and check whether the same job also failed on the *PR* run vs only intermittently, since a job that flips pass/fail across runs of the same code is a **flaky test**, not a real regression. A flaky job that keeps forcing bypasses is itself a defect to file a target for, not a permanent override.
 
 2. **Validate version strings**: Before tagging, verify that any in-source version strings match the release version. For C/C++ projects with version macros, check that the `#define` values match the tag (strip leading `v`). Fail early if they don't — the version commit from B.4 should have already handled this, but double-check.
 
