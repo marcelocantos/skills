@@ -143,6 +143,18 @@ act on it mechanically:
 - **Anything else** — unrecognised shape. Present to the user and
   ask for direction.
 
+### PR boundary (applies to every Execute-now path)
+
+**One PR per objective — this is hard rule #1 in CLAUDE.md.** Working
+through several targets in a session does **not** mean one PR each. A
+composite target and its sub-targets (🎯T1.1, T1.2, …) ship as a single
+PR, with each sub-target landing as a commit on one branch. Never open a
+second PR while one is inflight; never map phases or sub-targets to
+separate PRs. Split only when targets are genuinely independent *and*
+separately useful, or when the user says so. When in doubt, keep working
+on the same branch. Full rationale: `~/.claude/convergence.md`
+("Sub-targets are not PRs").
+
 ### Auto-fix on Blocked
 
 A Blocked response is rarely a stop sign. It usually means the target
