@@ -11,6 +11,7 @@ Also includes my global [`CLAUDE.md`](CLAUDE.md) directives and the [`convergenc
 - **[`/commit`](skills/commit/SKILL.md)** — Stage and commit changes with an auto-drafted message.
 - **[`/cv`](skills/cv/SKILL.md)** — Evaluate convergence gaps on active targets and recommend next work.
 - **[`/docs`](skills/docs/SKILL.md)** — End-to-end documentation sherpa — audit, plan, and write all project documentation.
+- **[`/hygiene`](skills/hygiene/SKILL.md)** — Declare and drift-validate a repo's steady-state hygiene posture (tests, security scans, code quality, governance, …) and aggregate coverage across the fleet. Use to check a repo's hygiene.yaml against reality, onboard a repo, or answer "is X covered in repo Z?" / "which repos lack X?".
 - **[`/inbox`](skills/inbox/SKILL.md)** — Pull cross-session inbox notes addressed to this repo (or a given directory) via mnemo, and optionally wait for one to arrive.
 - **[`/open-source`](skills/open-source/SKILL.md)** — Open-source a project — audit, fix, document, publish, and release.
 - **[`/post`](skills/post/SKILL.md)** — Post a cross-session inbox note to another repo/session via mnemo (a thin wrapper over mnemo_note_post).
