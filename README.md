@@ -11,7 +11,9 @@ Also includes my global [`CLAUDE.md`](CLAUDE.md) directives and the [`convergenc
 - **[`/commit`](skills/commit/SKILL.md)** — Stage and commit changes with an auto-drafted message.
 - **[`/cv`](skills/cv/SKILL.md)** — Evaluate convergence gaps on active targets and recommend next work.
 - **[`/docs`](skills/docs/SKILL.md)** — End-to-end documentation sherpa — audit, plan, and write all project documentation.
+- **[`/inbox`](skills/inbox/SKILL.md)** — Pull cross-session inbox notes addressed to this repo (or a given directory) via mnemo, and optionally wait for one to arrive.
 - **[`/open-source`](skills/open-source/SKILL.md)** — Open-source a project — audit, fix, document, publish, and release.
+- **[`/post`](skills/post/SKILL.md)** — Post a cross-session inbox note to another repo/session via mnemo (a thin wrapper over mnemo_note_post).
 - **[`/pr-audit`](skills/pr-audit/SKILL.md)** — Audit open PRs across all owned repos and recommend cleanup actions (close superseded, merge ready, poke contrib reviewers, fan-in synchronized rollouts).
 - **[`/progress-report`](skills/progress-report/SKILL.md)** — Generate and publish a weekly progress report from git activity across all repos.
 - **[`/push`](skills/push/SKILL.md)** — Push current work through a PR-based CI workflow. Creates branch and PR if needed.

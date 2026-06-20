@@ -113,20 +113,28 @@ expected, even — for successive rewrites to converge on similar
 observations; don't force artificial differences. Just start from a
 blank page.
 
-**Length budget (sub-linear, by series length).** The Journey
-legitimately grows as the body of work accumulates, but it must grow
-*sub-linearly* — fold new work into existing themes, do not append
-paragraphs. Let `N` = the number of weekly reports including this one
-(count `reports/weekly-report-*.md`). Hold the section to: **~350
-words** at N ≤ 8; **~500** at 9–16; **~650** at 17–28; **~800** at
-29–44; **~950** at 45–72; **~1100 (hard ceiling)** at 73+. The curve is
-logarithmic — each band roughly doubles the week span while adding only
-~150 words — so length keeps decelerating and never runs away. If a
-rewrite would exceed its band, cut: merge themes, drop the weakest
-example, or name a project without re-describing it. Structure as a
-handful of stable thematic paragraphs (e.g. correctness, compounding
-tooling, breadth, consistency) and slot new projects under them rather
-than growing the count.
+**This is an overview, not a catalogue.** The per-project enumeration
+— which repos, releases, and features — lives in *Greatest Hits* and
+the weekly reports. Do **not** reproduce it here. The Journey conveys
+the *character and significance* of the cumulative body of work: what
+kind of work it is, what makes it notable, and what the headline
+numbers mean. Describe qualities — breadth, rigour, compounding
+tooling, the inverted human role — and name at most one or two
+projects as illustration. If a paragraph becomes "a X — **foo** — that
+does Y" three times over, it has slipped into enumeration; pull back to
+the general statement. A reader should finish with a *sense* of what
+was achieved, then descend to Greatest Hits and the reports for
+specifics.
+
+**Length budget (sub-linear, by series length).** Even as an overview
+the section may deepen as the body of work grows, but only
+*sub-linearly*. Let `N` = the number of weekly reports including this
+one (count `reports/weekly-report-*.md`). Hold it to: **~300 words** at
+N ≤ 8; **~400** at 9–16; **~500** at 17–28; **~600** at 29–44; **~700**
+at 45–72; **~800 (hard ceiling)** at 73+. The curve is logarithmic —
+~100 words per doubling of the week span — so it keeps decelerating and
+never runs away. Length is a ceiling, not a target: a tighter overview
+is always better than a padded one.
 
 Include the rewritten section in the draft output so the user can
 review it alongside the report. After approval, Phase 3 stages the
