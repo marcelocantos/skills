@@ -12,9 +12,9 @@ Usage: `/post <inbox> <body>`
 
 - `<inbox>` — the recipient **directory** (usually a repo root). It may
   be absolute (`/Users/me/work/ytt`) or relative to *this* session's
-  initial working directory (`../ytt`). `~` is not allowed. The
-  directory must exist; a non-existent inbox is a clear error and posts
-  nothing.
+  initial working directory (`../ytt`). A leading `~` is not allowed
+  (shell home-expansion is ambiguous). The directory must exist; a
+  non-existent inbox is a clear error and posts nothing.
 - `<body>` — the note text (the rest of the line). Quote-free; everything
   after the inbox is the body.
 

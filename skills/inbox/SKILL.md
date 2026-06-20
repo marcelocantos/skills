@@ -32,8 +32,9 @@ than reading any files by hand.
   retry — or just pass the absolute path, which never needs the binding.
 
 - **`/inbox <path>`** — use `<path>` as the inbox (absolute, or relative
-  to this session's cwd). `~` is not allowed; pass an absolute path or a
-  `./`-relative one.
+  to this session's cwd). A leading `~` is not allowed (shell
+  home-expansion is ambiguous); pass an absolute path or a `./`-relative
+  one.
 
 ## Read
 
