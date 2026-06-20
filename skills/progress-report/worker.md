@@ -107,11 +107,26 @@ list, and (as needed) the previous reports. The section contextualises
 the cumulative body of work: total days, commits, languages, traditional
 equivalent, the nature of the work, the human role, and what stands out.
 
-Aim for similar length and tone to what's already there (confident,
-dense, British English, no emojis), but feel free to restructure,
-re-emphasise, or change examples. It is fine — expected, even — for
-successive rewrites to converge on similar observations; don't force
-artificial differences. Just start from a blank page.
+Keep the tone confident, dense, British English, no emojis; feel free
+to restructure, re-emphasise, or change examples. It is fine —
+expected, even — for successive rewrites to converge on similar
+observations; don't force artificial differences. Just start from a
+blank page.
+
+**Length budget (sub-linear, by series length).** The Journey
+legitimately grows as the body of work accumulates, but it must grow
+*sub-linearly* — fold new work into existing themes, do not append
+paragraphs. Let `N` = the number of weekly reports including this one
+(count `reports/weekly-report-*.md`). Hold the section to: **~350
+words** at N ≤ 8; **~500** at 9–16; **~650** at 17–28; **~800** at
+29–44; **~950** at 45–72; **~1100 (hard ceiling)** at 73+. The curve is
+logarithmic — each band roughly doubles the week span while adding only
+~150 words — so length keeps decelerating and never runs away. If a
+rewrite would exceed its band, cut: merge themes, drop the weakest
+example, or name a project without re-describing it. Structure as a
+handful of stable thematic paragraphs (e.g. correctness, compounding
+tooling, breadth, consistency) and slot new projects under them rather
+than growing the count.
 
 Include the rewritten section in the draft output so the user can
 review it alongside the report. After approval, Phase 3 stages the

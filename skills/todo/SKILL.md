@@ -1,106 +1,92 @@
 ---
 name: todo
-description: Summarise open TODOs from local todo file and GitHub issues.
+description: Summarise and manage open TODOs for this project via mnemo, and triage them toward convergence targets.
 user-invocable: true
 ---
 
-Manage TODO items for this project. Behaviour depends on whether
-arguments are provided after `/todo`.
+Manage TODO items for this project, backed entirely by the mnemo MCP
+server. Behaviour depends on whether arguments are provided after `/todo`.
+
+mnemo indexes `TODO.md` / `todos.md` (and any configured `todo_glob`)
+anywhere within a project's tree, parses the Obsidian Tasks dialect
+(📅 due, ⏳ scheduled, 🛫 start, ✅/❌ done/cancelled, 🔺⏫🔼🔽⏬ priority,
+🔁 recurrence, #tags, [[links]]), and exposes query/add/edit tools. There
+is no file to locate or `cat` — the index is the source of truth.
+
+If a mnemo tool errors (e.g. connection refused), the daemon isn't
+running; tell the user to start it (`brew services start mnemo`) rather
+than falling back to reading files by hand.
 
 ## Step 1 — Gather
 
-Execute `~/.claude/skills/todo/gather.sh` directly (it is already `chmod +x` —
-do **not** wrap it in `bash`, just invoke the path as the command). This script
-locates the TODO file (checking CLAUDE.md for a path hint, then trying common
-names) and dumps its contents in one call.
+Call `mnemo_todos` scoped to the current project:
+- `repo`: the current repo — its name, or a path fragment of the cwd
+  (e.g. the project directory name) when the name isn't known.
+- `status`: `open`.
 
-Parse the output:
-- `# claude-md-hint` — any mention of a TODO file in CLAUDE.md.
-- `# todo-file` — either `path: <path>` followed by `---` and the file
-  contents, or `(not found)`.
-- `# github-issues` — open GitHub issues from `gh issue list`, or a
-  skip message if `gh` is unavailable / not in a repo.
+Each result carries its `section`, `priority`, `due` date, `tags`,
+overdue flag, source `file_path`, and `id`. The `id` is what you pass to
+`mnemo_todo_set` to edit an item in place.
 
-## Step 1.5 — Normalise path
-
-If a TODO file was found but its path is non-standard, flag it before
-proceeding:
-- **Wrong case** (e.g. `todo.md`, `Todo.md`): tell the user and offer to
-  `git mv` it to the all-caps `TODO.md` equivalent.
-- **Wrong directory** (e.g. `TODO.md` or `todo.md` in the repo root instead
-  of `docs/`): tell the user and offer to `git mv` it to `docs/TODO.md`.
-- If both are wrong, offer a single move (e.g. `todo.md` → `docs/TODO.md`).
-
-Only proceed with the rename if the user agrees. Use `git mv` so history
-is preserved. After renaming, update the project's `CLAUDE.md` if it
-references the old path.
+If the result is empty, the project has no open TODOs (or none indexed
+yet) — take the "no open items" branch in Step 2.
 
 ## Step 2 — Act
 
-### If no TODO file was found
+### If there are no open items
 
-- **`/todo` (no args)**: Report that no TODO file exists and offer to create
-  `docs/TODO.md` (always all-caps `TODO`).
-- **`/todo <text>`**: Create `docs/TODO.md` automatically (always all-caps `TODO`) and add the item.
+- **`/todo` (no args)**: Report that there are no open TODOs and offer to
+  start one — `mnemo_todo_add` creates `docs/TODO.md` on the first add.
+- **`/todo <text>`**: Add it (see below); the file is created
+  automatically if absent.
 
-### `/todo` (no arguments) — Summarise
+### `/todo` (no arguments) — Summarise & triage
 
-Present a combined view of all open work:
+Present the open work grouped by section/heading as `mnemo_todos` reports
+it. Surface **overdue** items first (mnemo flags them). For each item show
+the bold title and a short one-line description (not the full notes),
+prefixed with a category emoji inferred from its content:
+- 🐛 Bug — fixes, crashes, error handling, regressions
+- ✨ Feature — new functionality, user-facing additions
+- 🔧 Tooling — build, CI, developer workflow, editor config
+- 🏗️ Architecture — refactoring, restructuring, design patterns
+- 💡 Idea — speculative, exploratory, "think about" items
+- 📖 Docs — documentation, README, comments, guides
+- 🔒 Security — auth, permissions, secrets, vulnerability fixes
+- 📦 Dependency — upgrades, vendoring, package management
+- 📋 Task — anything that doesn't fit the above
 
-**Local TODOs** (from the TODO file):
-- Group items by section/heading as they appear in the file.
-- Show only **open** items (`- [ ]`). Skip completed (`- [x]`) and
-  struck-through items.
-- For each item, show the bold title and a short one-line description
-  (not the full design notes).
-- Prefix each item with a category emoji inferred from its content:
-  - 🐛 Bug — fixes, crashes, error handling, null refs, regressions
-  - ✨ Feature — new functionality, user-facing additions
-  - 🔧 Tooling — build, CI, developer workflow, editor config
-  - 🏗️ Architecture — refactoring, restructuring, design patterns
-  - 💡 Idea — speculative, exploratory, "think about" items
-  - 📖 Docs — documentation, README, comments, guides
-  - 🔒 Security — auth, permissions, secrets, vulnerability fixes
-  - 📦 Dependency — upgrades, vendoring, package management
-  - 📋 Task — anything that doesn't fit the above categories
-
-**GitHub Issues** (from the gather output):
-- List open issues with number, title, and labels.
-- Group by label if labels are present; otherwise list flat.
-
-**Triage pass** — three tracking systems, one flow:
+**Triage pass — two tracking systems, one flow:**
 
 > **TODOs** = inbox (low-friction capture)
 > **Targets** = backlog (desired states the agent converges toward)
-> **GitHub issues** = interface (public, collaborative, tied to CI/PRs)
 
-Items flow upward: a thought lands in TODO, gets triaged into a target
-or issue (or discarded), and the TODO file drains toward empty.
+Items flow upward: a thought lands in a TODO, gets triaged into a target
+(or discarded), and the TODO list drains toward empty. For each item,
+assess where it belongs and offer the matching action:
+- 🎯 **Promote to target** — items describing a desired state ("all tests
+  pass on CI", "dispatch supports structured results"). Offer to create it
+  (`bullseye_put`, or suggest `/target …`); once it's captured, mark the
+  TODO done with `mnemo_todo_set id:<id> status:done`.
+- ✅ **Keep as TODO** — speculative ideas, trivial one-offs, notes to self
+  that don't warrant tracking overhead.
+- 🗑️ **Discard** — stale, already done, or superseded. Offer to close it
+  with `mnemo_todo_set id:<id> status:cancelled`.
 
-For each TODO item, assess where it belongs:
-- 🎯 **Promote to target** — items describing a desired state ("all
-  tests pass on CI", "dispatch supports structured results"). Suggest:
-  "Promote to target? `/target <…>`"
-- 🔗 **Promote to issue** — items that benefit from public visibility,
-  contributor discussion, or CI linkage (bug reports, feature requests,
-  user-facing changes). Suggest: "Open as issue? `gh issue create …`"
-- ✅ **Keep as TODO** — speculative ideas, trivial one-offs, notes to
-  self that don't warrant tracking overhead.
-- 🗑️ **Discard** — stale, already done, or superseded. Suggest removal.
+Only mutate (promote, mark done/cancelled) with the user's go-ahead.
 
-Also check GitHub issues for items that imply a desired state — these
-may warrant a corresponding target so `/cv` can track convergence.
-Issues and targets aren't 1:1: a target might spawn multiple issues,
-and closing an issue might partially satisfy a target's acceptance
-criteria.
-
-End with a combined count: "N local TODOs (K promote candidates), M GitHub issues open."
+End with a count: "N open TODOs (K promote candidates, M overdue)."
 
 ### `/todo <text>` — Add a new item
 
-Use the `path:` from the gather output. Append the provided text as a new
-open TODO item (`- [ ] …`) to the file. Choose the most appropriate existing
-section based on the item's content. If no section fits well, append to the
-end of the file.
+Call `mnemo_todo_add` with:
+- `dir`: the current working directory (resolves to this project's
+  `docs/TODO.md`, created if absent) — **or** `file` for an explicit path.
+- `text`: the item, including any Obsidian decorations the user supplied
+  (e.g. `📅 2026-07-01 ⏫ #docs`).
+- `section`: the most appropriate existing heading for the item's content;
+  omit to append at end of file.
 
-After adding, confirm with the item text and the section it was placed in.
+The tool creates the file when needed, writes atomically, and re-indexes
+immediately. Confirm with the returned item text, its `file_path`, and the
+section it landed in.
