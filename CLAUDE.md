@@ -8,7 +8,7 @@ These five are inviolable. Everything else in this file is strong guidance, not 
 2. **Never run `git reset --hard`.** Ask the user to run it — the sandbox blocks it anyway.
 3. **Squash-only merges.** Never `git merge`; always squash-merge via PR.
 4. **Never commit secrets** — `.env`, credentials, private keys. (test fixtures with fake creds are fine)
-5. **Read the language file before writing that language** — Python/Go/C++/TLA+ (see "Languages").
+5. **Read the language file before writing that language** — Python/Go/C++/TLA+/SQL (see "Languages").
 
 ## Bias toward action
 
@@ -39,7 +39,7 @@ Always use full clickable URLs (`https://github.com/org/repo`), never the short 
 
 Before writing/modifying/reviewing code in these languages — or answering about their idioms, tooling, or APIs — read the file in full. They contain opinionated rules (banned patterns, required tools, vendoring policies) that override generic best-practice. Don't skip because you "already know" the language; if you're emitting more than a one-liner, stop and read.
 
-- Python → [`python.md`](~/.claude/python.md) · Go → [`go.md`](~/.claude/go.md) · C/C++ → [`cpp.md`](~/.claude/cpp.md) · TLA+ → [`tlaplus.md`](~/.claude/tlaplus.md)
+- Python → [`python.md`](~/.claude/python.md) · Go → [`go.md`](~/.claude/go.md) · C/C++ → [`cpp.md`](~/.claude/cpp.md) · TLA+ → [`tlaplus.md`](~/.claude/tlaplus.md) · SQL → [`sql.md`](~/.claude/sql.md)
 
 New language rule → write it into the relevant file (creating one if needed) and add the mapping here.
 
