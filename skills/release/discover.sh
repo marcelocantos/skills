@@ -29,6 +29,16 @@ detect_licence() {
     [[ -f "$f" ]] || { echo "unknown"; return; }
     local head
     head=$(head -40 "$f" 2>/dev/null) || { echo "unknown"; return; }
+    # An explicit SPDX-License-Identifier tag is unambiguous and takes
+    # precedence over prose-scanning — the latter misfires when a file
+    # *cites* another project's licence (e.g. doctest.h naming Catch2's
+    # Boost licence) or when the licence file lacks a canonical title.
+    local spdx
+    spdx=$(echo "$head" | sed -nE 's@.*SPDX-License-Identifier:[[:space:]]*([A-Za-z0-9.+-]+).*@\1@p' | head -1)
+    if [[ -n "$spdx" ]]; then
+        echo "$spdx"
+        return
+    fi
     # "Apache License" and "Version 2.0" sit on separate lines in the canonical
     # text, so match either phrase on its own line (grep is line-oriented).
     if echo "$head" | grep -qi "Apache License\|Apache-2\.0"; then
@@ -480,20 +490,45 @@ for vdir in vendor third_party extern; do
             [[ -d "$item" ]] || continue
             dep_name="include/$(basename "$item")"
             licence="none"
-            for lf in "$item"LICENSE* "$item"LICENCE* "$item"COPYING* "$item"license*; do
+            # Match a top-level LICENSE/COPYING as well as sidecar licence
+            # files prefixed by the header stem (e.g. fkYAML/node.LICENSE).
+            for lf in "$item"LICENSE* "$item"LICENCE* "$item"COPYING* "$item"license* \
+                      "$item"*.LICENSE "$item"*.LICENCE "$item"*.license "$item"*.licence; do
                 if [[ -f "$lf" ]]; then
                     licence=$(detect_licence "$lf")
                     break
                 fi
             done
+            # Fall back to an SPDX tag in any header in the dir.
+            if [[ "$licence" == "none" ]]; then
+                spdx=$(grep -rhoE 'SPDX-License-Identifier:[[:space:]]*[A-Za-z0-9.+-]+' "$item" 2>/dev/null \
+                       | head -1 | sed -E 's/.*:[[:space:]]*//')
+                [[ -n "$spdx" ]] && licence="$spdx"
+            fi
             echo "$dep_name: $licence"
         done
         # Standalone headers
         for item in "$vdir/include"/*.h "$vdir/include"/*.hpp; do
             [[ -f "$item" ]] || continue
             dep_name="include/$(basename "$item")"
-            # Try to detect licence from header comment
-            licence=$(head -30 "$item" 2>/dev/null | grep -qi "MIT\|BSD\|Apache\|Boost\|BSL\|ISC\|Public.Domain\|Zlib" && detect_licence "$item" || echo "check-header")
+            licence="check-header"
+            # Prefer a sibling licence file (e.g. doctest.h + doctest.LICENSE)
+            # over scanning the header comment — the comment may cite other
+            # projects' licences (doctest names Catch2's Boost licence) and
+            # mislead the prose scanner.
+            stem="${item%.*}"
+            for lf in "$stem".LICENSE "$stem".LICENCE "$stem".txt "$stem"-LICENSE "$stem"_LICENSE; do
+                if [[ -f "$lf" ]]; then
+                    licence=$(detect_licence "$lf")
+                    break
+                fi
+            done
+            # Fall back to scanning the header comment itself (detect_licence
+            # honours an SPDX tag first, then prose).
+            if [[ "$licence" == "check-header" ]] \
+               && head -40 "$item" 2>/dev/null | grep -qi "SPDX-License\|MIT\|BSD\|Apache\|Boost\|BSL\|ISC\|Public.Domain\|Zlib"; then
+                licence=$(detect_licence "$item")
+            fi
             echo "$dep_name: $licence"
         done
     fi
@@ -574,6 +609,23 @@ for f in agents-guide.md AGENTS-GUIDE.md docs/agents-guide.md docs/AGENTS-GUIDE.
         break
     fi
 done
+# Fall back to a glob for project-prefixed or co-located guides
+# (e.g. dist/sqldeep-agents-guide.md, AGENTS-FOO.md). Libraries that ship
+# as dist/ legitimately keep the guide beside the dist files rather than
+# at the repo root.
+if [[ "$found_agent_guide" == false ]]; then
+    shopt -s nullglob nocaseglob
+    for f in *agents-guide.md *agent-guide.md AGENTS*.md \
+             dist/*agents-guide.md dist/*agent-guide.md \
+             docs/*agents-guide.md docs/*agent-guide.md; do
+        if [[ -f "$f" ]]; then
+            echo "exists: $f"
+            found_agent_guide=true
+            break
+        fi
+    done
+    shopt -u nullglob nocaseglob
+fi
 if [[ "$found_agent_guide" == false ]]; then
     echo "missing"
 fi
