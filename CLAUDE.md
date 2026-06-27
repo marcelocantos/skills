@@ -2,13 +2,14 @@
 
 ## Hard rules
 
-These five are inviolable. Everything else in this file is strong guidance, not law.
+These six are inviolable. Everything else in this file is strong guidance, not law.
 
 1. **One PR per objective.** Never split a feature/objective across multiple PRs; never have two open at once. Phases and sub-targets are *commits on one branch*, not separate PRs. (detail under "Pull requests")
 2. **Never run `git reset --hard`.** Ask the user to run it — the sandbox blocks it anyway.
 3. **Squash-only merges.** Never `git merge`; always squash-merge via PR.
 4. **Never commit secrets** — `.env`, credentials, private keys. (test fixtures with fake creds are fine)
 5. **Read the language file before writing that language** — Python/Go/C++/TLA+/SQL (see "Languages").
+6. **Releases bump MINOR only.** Never choose a MAJOR or PATCH version on your own initiative — under any circumstances, bugfixes and tiny tweaks included. Only the user initiates a major/patch release. Writing a version with PATCH ≠ 0 (or a MAJOR bump) you weren't told to write verbatim is a violation. Releases go through the `/release` skill — never hand-roll a version bump or `gh release create` (detail under "Tools, output & task conventions").
 
 ## Bias toward action
 
@@ -109,7 +110,8 @@ The `mnemo` MCP server indexes all session transcripts — the primary source fo
 ## Tools, output & task conventions
 
 - Before WebFetch/curl/custom scripts for a domain task → [`tools.md`](~/.claude/tools.md); a dedicated CLI is likely installed.
-- Before creating a repo, a source file, or `.gitignore`, configuring an MCP server, or running a release → [`conventions.md`](~/.claude/conventions.md) (licensing, repo hygiene, versioning, CLI-binary specs, config formats, build flags, MCP config).
+- Before creating a repo, a source file, or `.gitignore`, or configuring an MCP server → [`conventions.md`](~/.claude/conventions.md) (licensing, repo hygiene, CLI-binary specs, config formats, build flags, MCP config).
+- **Releases (mandatory, not optional):** every release goes through the `/release` skill — never hand-roll a version bump or `gh release create`. Opening [`conventions.md`](~/.claude/conventions.md) (Versioning) first is required. Versions are MINOR-only — see Hard rule #6.
 - Before converting to PDF or rendering a PlantUML/diagram → [`conventions.md`](~/.claude/conventions.md) (mpe2pdf; SVG-only).
 - Stuck on a non-obvious bug → [`conventions.md`](~/.claude/conventions.md) (write a structured problem description first).
 
