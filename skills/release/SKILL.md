@@ -124,8 +124,19 @@ This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (lat
 
    **A `set` secret is not a *valid* secret, and `homebrew_tap_token_op: valid` doesn't prove the *repo* secret matches.** Action secrets are write-only, so `homebrew_tap_token_secret: set` only proves the secret *exists* — not that its value still authenticates. `homebrew_tap_token_op` probes the 1Password *source* token, which can be `valid` while the repo's stored copy is a stale snapshot from an earlier PAT rotation. Either way the homebrew-releaser job 401s after the tag is cut. **Refresh the repo secret here, unconditionally, before tagging** — every release, not just first-time setup:
 
+   **Guard the read — never pipe `op` straight into `gh secret set`.** If the 1Password CLI session is locked (`op` prints `account is not signed in` / `authorization timeout` to *stderr* and writes nothing to stdout), a bare `op read … | gh secret set …` pipes an **empty value** and silently overwrites a previously-valid token with nothing. The next homebrew-releaser job then fails with *"You must provide all necessary environment variables"* — i.e. the refresh meant to protect the release is what breaks it. Always read to a temp file, verify it's non-empty, and only then set the secret; on failure, surface `op`'s error and leave the existing secret untouched:
+
    ```bash
-   op read "op://Personal/GitHub Homebrew Tap PAT/token" | gh secret set HOMEBREW_TAP_TOKEN --repo <owner>/<repo>
+   tok=$(mktemp); trap 'rm -f "$tok"' EXIT
+   if op read "op://Personal/GitHub Homebrew Tap PAT/token" > "$tok" 2>/tmp/op.err && test -s "$tok"; then
+     gh secret set HOMEBREW_TAP_TOKEN --repo <owner>/<repo> < "$tok"
+   else
+     echo "op read failed — secret left unchanged:" >&2; cat /tmp/op.err >&2
+     # If op is merely locked, the user can unlock (fingerprint/password) and you
+     # retry; an interactive `op read` often succeeds via the desktop-app
+     # integration even when `op whoami` reports "not signed in". Do NOT set the
+     # secret from empty/error output.
+   fi
    ```
 
    If `homebrew_tap_token_op` is `expired`, the PAT itself has lapsed — the user must mint a new fine-grained PAT with access to `marcelocantos/homebrew-tap` and update the 1Password item before this refresh will help. (`gh secret set` reads the piped value from stdin, so the token is never echoed.) This must happen in B.1 — not B.6 step 2 — because B.6 is skipped on every release after the first (existing release workflow → no setup work). Burying the refresh in B.6 means it only ever runs once per repo, which is exactly the historical failure mode that produced this paragraph.
@@ -573,7 +584,7 @@ The split-in-time case only arises when the user has interrupted Phase B and ask
    gh run list --workflow=release.yml --limit=1
    gh run watch <run-id>
    ```
-   If it fails, help diagnose — do not delete the release or tag without asking. **If only the `homebrew` job failed with a `401 Unauthorized`** (stale `HOMEBREW_TAP_TOKEN`; see the Known-issues list in Phase 4 step 2), the binaries already uploaded — refresh the secret from 1Password (`op read … | gh secret set HOMEBREW_TAP_TOKEN --repo <owner>/<repo>`) and re-run just that job with `gh run rerun <run-id> --failed`, then re-watch. Do **not** start the brew install in step 9 until this returns success — running `brew update` against a tap that hasn't received the formula yet will install the previous version.
+   If it fails, help diagnose — do not delete the release or tag without asking. **If only the `homebrew` job failed with a `401 Unauthorized`** (stale `HOMEBREW_TAP_TOKEN`; see the Known-issues list in Phase 4 step 2), the binaries already uploaded — refresh the secret from 1Password (the **guarded** `op read` → `gh secret set` form from B.1 step 5 — never the bare pipe, which clobbers the secret with empty output when `op` is locked) and re-run just that job with `gh run rerun <run-id> --failed`, then re-watch. Also covers the "must provide all necessary environment variables" failure, which is the *empty-secret* symptom of the same root cause. Do **not** start the brew install in step 9 until this returns success — running `brew update` against a tap that hasn't received the formula yet will install the previous version.
 
 9. **Install locally**: Only after step 8 returns success. This step is **mandatory** for projects with a Homebrew tap — do not skip it and do not ask for permission.
 
