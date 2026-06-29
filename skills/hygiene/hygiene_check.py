@@ -5,21 +5,25 @@
 # ///
 """Validate hygiene.yaml against repo reality (fleet hygiene initiative).
 
-hygiene.yaml declares the repo's steady-state hygiene posture: a list of
-items, each pairing an intent with a machine-checkable `evidence` pointer.
-This validator resolves every pointer against what the repo actually
-contains — CI jobs, Makefile targets, files, gh settings, scanners — and
-fails (exit 1) when a claim has no backing reality, when a `skipped` item is
-silently running, when a required `reason` is missing, or when the declared
-maturity `tier` exceeds the tier the repo actually holds.
+hygiene.yaml declares a repo's steady-state hygiene posture: a list of items,
+each pairing an intent with a machine-checkable `evidence` pointer. The
+validator resolves every pointer against what the repo actually contains — CI
+jobs, Makefile targets, files, gh settings, scanners.
+
+Tiers are PER DIMENSION, not a single repo score (schema v1). For each
+dimension the validator derives the **held tier** = the highest T such that
+every item in that dimension with `tier <= T` is satisfied. The repo declares
+a per-dimension `floors` ratchet; drift (a dimension dropping below its floor)
+fails the check. `aspires` is the gap horizon for reporting. `enforce` is
+intent-only metadata and no longer affects tiers.
 
 bullseye tracks aspirational state ("achieve X"); this tracks steady-state
 ("we maintain X"). Invoked by the `hygiene` skill (/hygiene).
 
-The evaluator is repo-agnostic: `check_repo(root)` returns a structured
-report for any repo root, so the fleet aggregator (hygiene_portfolio.py)
-reuses it. Lives in the `hygiene` skill (~/.claude/skills/hygiene, synced to
-marcelocantos/skills); could graduate to a bullseye-sibling MCP later.
+`check_repo(root)` is repo-agnostic, so the fleet aggregator
+(hygiene_portfolio.py) reuses it. Lives in the `hygiene` skill
+(~/.claude/skills/hygiene, synced to marcelocantos/skills); could graduate to
+a bullseye-sibling MCP later.
 
 Usage: hygiene_check.py [--json] [path/to/hygiene.yaml]
        (default: ./hygiene.yaml, repo root = cwd)
@@ -37,6 +41,7 @@ import yaml
 VALID_STATE = {"enforced", "present", "manual", "planned", "skipped"}
 VALID_ENFORCE = {"blocking", "warning", "informational"}
 REASON_REQUIRED = {"skipped", "planned"}  # negative space must justify itself
+NO_TIER = 90                              # sentinel for an item missing `tier`
 
 DIM_ORDER = ["correctness", "security", "quality", "deps", "release",
              "governance", "build", "docs", "perf", "vcs", "agent"]
@@ -194,9 +199,7 @@ def evaluate(ctx: Ctx, item: dict) -> dict:
     advisory = None
     if state == "planned":
         satisfied = False
-        # planned items assert a gap (`absent:`), so ok=True == gap still
-        # open (normal). ok=False means the thing now exists -> reclassify.
-        if not ok:
+        if not ok:  # absent: holds == gap still open (normal); ok==False => closed
             advisory = "reality outran declaration — gap appears closed; reclassify"
     elif state == "skipped":
         satisfied = ok
@@ -206,26 +209,26 @@ def evaluate(ctx: Ctx, item: dict) -> dict:
         satisfied = ok
 
     return {
-        "id": iid, "dim": item.get("dim"), "tier": item.get("tier", 99),
+        "id": iid, "dim": item.get("dim"), "tier": item.get("tier", NO_TIER),
         "state": state, "enforce": enforce, "desc": item.get("desc", ""),
         "satisfied": satisfied, "ok": ok, "detail": detail,
         "errors": errors, "advisory": advisory,
     }
 
 
-# --- tier logic ------------------------------------------------------------
-# A repo holds tier T iff every *blocking* item with tier <= T is satisfied.
-# warning/informational gaps are reported but don't lower the held tier.
+# --- per-dimension tier logic ----------------------------------------------
+# held tier of a dimension = highest T such that every item in that dimension
+# with tier <= T is satisfied. A gap at the dimension's lowest tier yields 0.
 
-def derived_held_tier(results: list[dict], tiers: list[int]) -> tuple[int, list[dict]]:
+def held_tier(items: list[dict]) -> int:
+    tiers = sorted({it["tier"] for it in items if it["tier"] < NO_TIER})
     held = 0
-    for t in sorted(tiers):
-        unmet = [r for r in results
-                 if r["tier"] <= t and r["enforce"] == "blocking" and not r["satisfied"]]
-        if unmet:
-            return held, unmet
-        held = t
-    return held, []
+    for t in tiers:
+        if all(it["satisfied"] for it in items if it["tier"] <= t):
+            held = t
+        else:
+            break
+    return held
 
 
 def check_repo(root: Path, doc_path: Path | None = None) -> dict:
@@ -234,17 +237,33 @@ def check_repo(root: Path, doc_path: Path | None = None) -> dict:
     doc = yaml.safe_load(doc_path.read_text())
     ctx = Ctx(root=root, workflows=load_workflows(root), owner_repo=gh_owner_repo(root))
 
-    declared = doc.get("tier", 0)
-    aspires = doc.get("aspires", declared)
-    tier_levels = sorted(int(k) for k in (doc.get("tiers") or {1: ""}).keys())
+    floors = doc.get("floors", {}) or {}
+    aspires = doc.get("aspires", 0)
     results = [evaluate(ctx, it) for it in doc.get("items", [])]
-    held, blockers = derived_held_tier(results, tier_levels)
+
+    by_dim: dict[str, list[dict]] = {}
+    for r in results:
+        by_dim.setdefault(r["dim"], []).append(r)
+
+    dims = {}
+    for d, items in by_dim.items():
+        held = held_tier(items)
+        floor = floors.get(d, 0)
+        unmet = sorted((it for it in items if not it["satisfied"]),
+                       key=lambda x: (x["tier"], x["id"]))
+        dims[d] = {"held": held, "floor": floor, "ok": held >= floor, "unmet": unmet}
+
+    floor_violations = sorted(d for d, v in dims.items() if not v["ok"])
+    skip_violations = [r for r in results
+                       if r["state"] == "skipped" and not r["satisfied"]]
     config_errors = [e for r in results for e in r["errors"]]
+    passed = not (floor_violations or skip_violations or config_errors)
 
     return {
-        "repo": doc.get("repo", root.name), "declared_tier": declared,
-        "aspires": aspires, "held_tier": held, "tier_ok": held >= declared,
-        "blockers": blockers, "config_errors": config_errors, "results": results,
+        "repo": doc.get("repo", root.name), "aspires": aspires,
+        "dims": dims, "results": results, "floor_violations": floor_violations,
+        "skip_violations": skip_violations, "config_errors": config_errors,
+        "passed": passed,
     }
 
 
@@ -262,56 +281,50 @@ def main() -> int:
         doc_path = root / "hygiene.yaml"
 
     rep = check_repo(root, doc_path)
-    passed = rep["tier_ok"] and not rep["config_errors"]
 
     if as_json:
         print(json.dumps(rep, indent=2))
-        return 0 if passed else 1
+        return 0 if rep["passed"] else 1
 
-    GLYPH = {True: "✓", False: "✗"}
-    by_dim: dict[str, list[dict]] = {}
-    for r in rep["results"]:
-        by_dim.setdefault(r["dim"], []).append(r)
+    print(f"hygiene: {rep['repo']}   aspires tier {rep['aspires']}\n")
+    print("  dimension     held  floor")
+    for d in sorted(rep["dims"], key=lambda x: DIM_ORDER.index(x) if x in DIM_ORDER else 99):
+        v = rep["dims"][d]
+        flag = "✓" if v["ok"] else "✗ BELOW FLOOR"
+        extra = f"  (+{v['held'] - v['floor']} above)" if v["ok"] and v["held"] > v["floor"] else ""
+        print(f"  {d:12}  T{v['held']}    T{v['floor']}   {flag}{extra}")
+    print()
 
-    print(f"hygiene: {rep['repo']}  declared tier {rep['declared_tier']}, "
-          f"aspires {rep['aspires']}\n")
-    for dim in sorted(by_dim, key=lambda d: DIM_ORDER.index(d) if d in DIM_ORDER else 99):
-        print(f"  {dim}")
-        for r in sorted(by_dim[dim], key=lambda x: x["tier"]):
-            if r["state"] == "skipped" and r["satisfied"]:
-                g = "⊘"  # correctly absent
-            elif r["state"] == "planned":
-                g = "◦"  # declared gap
-            else:
-                g = GLYPH[r["satisfied"]]
-            print(f"    {g} [T{r['tier']} {r['enforce'][:4]}] {r['id']}: {r['detail']}")
-            if r["advisory"]:
-                print(f"        ⚠ {r['advisory']}")
-            for e in r["errors"]:
-                print(f"        ⚠ config: {e}")
-        print()
-
-    planned = [r for r in rep["results"] if r["state"] == "planned"]
-    print(f"gaps to close ({len(planned)}) on the path to tier {rep['aspires']}:")
-    for r in sorted(planned, key=lambda x: (x["tier"], x["id"])):
-        print(f"  ◦ [T{r['tier']}] {r['id']} — {r['desc']}")
+    # gaps: unmet items with tier <= aspires, grouped by dimension
+    print(f"gaps to close (unmet, tier ≤ {rep['aspires']}):")
+    any_gap = False
+    for d in sorted(rep["dims"], key=lambda x: DIM_ORDER.index(x) if x in DIM_ORDER else 99):
+        gaps = [it for it in rep["dims"][d]["unmet"] if it["tier"] <= rep["aspires"]]
+        if not gaps:
+            continue
+        any_gap = True
+        ids = ", ".join(f"{it['id'].split('.', 1)[1]}[T{it['tier']}]" for it in gaps)
+        print(f"  {d}: {ids}")
+    if not any_gap:
+        print("  (none)")
     print()
 
     print("─" * 60)
-    print(f"held tier: {rep['held_tier']}   declared: {rep['declared_tier']}   "
-          f"{'OK' if rep['tier_ok'] else 'DRIFT'}")
-    if not rep["tier_ok"]:
-        print(f"  declared tier {rep['declared_tier']} but only tier "
-              f"{rep['held_tier']} is held; unmet blocking items below it:")
-        for r in rep["blockers"]:
-            print(f"    ✗ [T{r['tier']}] {r['id']}: {r['detail']}")
-    if rep["config_errors"]:
-        print(f"  {len(rep['config_errors'])} declaration error(s):")
-        for e in rep["config_errors"]:
-            print(f"    ✗ {e}")
+    if rep["floor_violations"]:
+        print("FLOOR DRIFT — dimensions below their declared floor:")
+        for d in rep["floor_violations"]:
+            v = rep["dims"][d]
+            print(f"  ✗ {d}: held T{v['held']} < floor T{v['floor']}")
+            for it in v["unmet"]:
+                if it["tier"] <= v["floor"]:
+                    print(f"      unmet at/below floor: {it['id']} [T{it['tier']}] — {it['detail']}")
+    for r in rep["skip_violations"]:
+        print(f"  ✗ skip violated: {r['id']} — {r['detail']}")
+    for e in rep["config_errors"]:
+        print(f"  ✗ declaration error: {e}")
 
-    print(f"\n{'PASS' if passed else 'FAIL'}")
-    return 0 if passed else 1
+    print(f"\n{'PASS' if rep['passed'] else 'FAIL'}")
+    return 0 if rep["passed"] else 1
 
 
 if __name__ == "__main__":

@@ -39,17 +39,23 @@ Both scripts are `uv`-run (pyyaml dep is inline); invoke the path directly
   LICENSE, scanners), then write `hygiene.yaml` per the schema below,
   grounding every `evidence` pointer in something that actually exists.
   Run the validator and iterate until it reflects the truth (gaps declared
-  as `planned`/`skipped`, not hidden). Default `tier` to the floor the repo
-  actually holds; set `aspires` to the target.
+  as `planned`/`skipped`, not hidden). Set each dimension's `floors` entry to
+  the held tier it actually reaches, and park gaps above the floor in the
+  `aspires` band — `/hygiene` will tell you if a floor overstates reality.
 
 ## hygiene.yaml schema
 
 ```yaml
-schema_version: 0
+schema_version: 1
 repo: <name>
-tier: 2          # floor the repo GUARANTEES (validated: held tier must match)
-aspires: 3       # bullseye-style target; items above `tier` are gap-reported
-tiers:           # the shared ladder
+aspires: 3       # gap horizon: unmet items with tier <= aspires are reported
+floors:          # PER-DIMENSION held-tier ratchet; a dim below floor => DRIFT
+  correctness: 2
+  security: 2
+  quality: 2
+  docs: 0        # 0 = no validated hygiene in this dimension yet (honest)
+  # … one entry per dimension you commit to; omitted dims default to floor 0
+tiers:           # the shared ladder (labels)
   1: baseline    # LICENSE + README + .gitignore; tests build & run
   2: maintained  # full matrix, examples run, lint/format, release + governance
   3: hardened    # formal specs, security scanning, SBOM/signing, fuzzing, perf
@@ -59,11 +65,19 @@ items:
     desc: <one-line intent>
     state: enforced       # enforced | present | manual | planned | skipped
     cadence: continuous   # continuous | per-release | periodic:<dur> | once-must-hold
-    enforce: blocking     # blocking | warning | informational
-    tier: 2               # minimum tier at which this item is required
+    enforce: blocking     # blocking | warning | informational  (intent only)
+    tier: 2               # tier at which this item is required, WITHIN its dimension
     reason: <text>        # REQUIRED for state: skipped or planned
     evidence: {<kind>: <value>}
 ```
+
+**Held tier is per dimension.** For each dimension the validator derives the
+held tier = the highest *T* such that every item in that dimension with
+`tier <= T` is satisfied. A repo's posture is the **vector** of per-dimension
+held tiers (the matrix headline), not a single score — repos have orthogonal
+strengths (e.g. one strong on correctness, another on code quality). Put a
+dimension's *gaps* (unmet `planned` items) at a tier **above** its floor, in
+the `aspires` band; a gap parked at or below the floor reads as drift.
 
 **Dimensions:** `correctness`, `security`, `quality`, `deps`, `release`,
 `governance`, `build`, `docs`, `perf`, `vcs`, `agent`.
@@ -89,13 +103,16 @@ mechanical rather than prose):
    carries a required `reason` and an `absent:` evidence pointer the
    validator checks — so if a skipped thing silently starts running, the
    skip fails. `planned` marks a not-yet-closed gap honestly.
-2. **Cadence + enforcement, validated.** Every item declares how often it
-   should hold and at what level it bites; the validator catches the gap
-   between "declared blocking" and reality.
-3. **Tiers, not a binary.** A repo holds tier *T* iff every **blocking**
-   item with tier ≤ *T* is satisfied; warning/informational gaps are
-   reported but don't lower the held tier. The validator derives the held
-   tier and fails if the declared `tier` overstates it.
+2. **Cadence + intent recorded.** Every item declares how often it should
+   hold (`cadence`) and how loud its absence is meant to be (`enforce`).
+   `enforce` is intent-only metadata — it documents severity but does **not**
+   affect held tiers (an earlier blocking-only rule made tiers depend on
+   author discretion; that was dropped).
+3. **Per-dimension tiers + a ratchet.** Posture is a vector of per-dimension
+   held tiers, not one number — repos have orthogonal strengths. `floors`
+   pins the held tier each dimension must keep; if reality drops below a
+   floor (a capability regressed, or a gap was parked too low), the check
+   fails. That is the drift detector.
 
 ## Notes
 
