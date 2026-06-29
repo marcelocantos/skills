@@ -112,6 +112,49 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 1b. Release ref — the branch the release is cut FROM
+# ---------------------------------------------------------------------------
+# A release always ships the repo's DEFAULT branch, which may not be the
+# branch currently checked out. Diffing the tag delta against HEAD is
+# misleading when the working tree sits on a feature branch (e.g. a
+# long-lived design branch 40 commits ahead of master): discover.sh would
+# report the feature branch's commits as "since the last tag" when the
+# default branch may have nothing new to release. Resolve the default
+# branch and a concrete ref to diff the release deltas against,
+# independent of HEAD.
+default_branch=""
+if has_cmd gh; then
+    default_branch=$(gh repo view --json defaultBranchRef -q '.defaultBranchRef.name' 2>/dev/null) || default_branch=""
+fi
+# Fall back to the global convention (master) when gh can't tell us.
+[[ -n "$default_branch" ]] || default_branch="master"
+
+# Freshen the default branch and tags so the deltas below are accurate
+# regardless of how stale the checked-out branch is. Best-effort: offline
+# or non-GitHub repos fall back to whatever local refs exist.
+git fetch --quiet origin "$default_branch" --tags 2>/dev/null || true
+
+# Most authoritative available ref for the default branch.
+if git rev-parse --verify --quiet "origin/$default_branch" >/dev/null 2>&1; then
+    release_ref="origin/$default_branch"
+elif git rev-parse --verify --quiet "$default_branch" >/dev/null 2>&1; then
+    release_ref="$default_branch"
+else
+    release_ref="HEAD"
+fi
+current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+
+echo "# default_branch"
+echo "$default_branch"
+
+echo "# release_ref"
+if [[ -n "$current_branch" && "$current_branch" != "$default_branch" && "$release_ref" != "HEAD" ]]; then
+    echo "$release_ref  (NOTE: HEAD is on '$current_branch', not the default branch '$default_branch' — # commits_since_last_tag below is computed against $release_ref, NOT your checkout)"
+else
+    echo "$release_ref"
+fi
+
+# ---------------------------------------------------------------------------
 # 2. Tags
 # ---------------------------------------------------------------------------
 echo "# tags"
@@ -137,10 +180,12 @@ fi
 # 2b. Commits since last tag (or all commits if no tags)
 # ---------------------------------------------------------------------------
 echo "# commits_since_last_tag"
+# Diffed against the default-branch release ref (section 1b), NOT HEAD, so a
+# feature-branch checkout doesn't misreport its own commits as releasable.
 if [[ -n "$latest_tag" ]]; then
-    git log --oneline "$latest_tag..HEAD" 2>/dev/null || echo "(git log failed)"
+    git log --oneline "$latest_tag..$release_ref" 2>/dev/null || echo "(git log failed)"
 else
-    git log --oneline 2>/dev/null | head -50 || echo "(no commits)"
+    git log --oneline "$release_ref" 2>/dev/null | head -50 || echo "(no commits)"
 fi
 
 # ---------------------------------------------------------------------------
