@@ -47,10 +47,31 @@ mnemo_note_recv(inbox: "<resolved inbox>")
 ```
 
 Present each note's `body`, who sent it (`from_repo` / `from_session`),
-and `posted_at`. If there are none, say the inbox is empty.
+and `posted_at`.
 
-To peek without consuming, pass `mark_read=false`, or use
-`mnemo_note_list(inbox: "<resolved inbox>")`.
+**If `mnemo_note_recv` returns no unread notes, do NOT just report an
+empty inbox.** Fall back to a non-consuming browse of the same inbox:
+
+```
+mnemo_note_list(inbox: "<resolved inbox>", days: 7)
+```
+
+If that surfaces recently-read notes, show the most recent one (or two),
+framed as already-delivered — e.g. *"Nothing new. The last note (already
+read at `<read_at>`, from `<from_repo>`) was:"* followed by its body.
+Only when `mnemo_note_list` is **also** empty do you report a genuinely
+empty inbox.
+
+Why this matters: `mnemo_note_recv` marks a note read the instant it is
+returned — *before* you present it. If the session is interrupted between
+the recv and showing you the note (a rate-limit error, `/clear`, a
+crash), the note is consumed (no longer unread) but you never saw it. The
+fallback browse re-surfaces such a note on the next `/inbox` instead of
+silently showing empty. mnemo retains notes after delivery (mark-read is
+non-destructive), so they are always recoverable this way.
+
+To peek without consuming at any time, pass `mark_read=false` to
+`mnemo_note_recv`, or use `mnemo_note_list(inbox: "<resolved inbox>")`.
 
 ## Wait for a note (`/loop /inbox`)
 

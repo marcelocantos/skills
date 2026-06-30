@@ -50,15 +50,25 @@ Confirm the period with the user before proceeding.
 
 ## Phase 1: Data gathering
 
-**Start by running the companion gathering script** with the period start date:
+**Start by running the companion gathering script** with BOTH the period start
+date and an explicit exclusive end bound. The second argument is the day
+**after** the period's last day (the Monday after the end Sunday). Always pass
+it — omitting it makes the scan run through *now*, silently pulling in
+out-of-period commits dated after the period. That defect bit a real run
+(rustuml's next tranche and a large bgfx purge leaked in), so this is not
+optional:
 
 ```
-~/.claude/skills/progress-report/gather.sh "<YYYY-MM-DD start date>"
+~/.claude/skills/progress-report/gather.sh "<start YYYY-MM-DD>" "<end-Sunday + 1 day, YYYY-MM-DD>"
 ```
+
+For example, a period ending Sunday 2026-06-28 → `gather.sh "2026-06-08" "2026-06-29"`.
 
 (It is already `chmod +x` — do **not** wrap it in `bash`, just invoke the path as the command.)
 
-This script scans all repos under `~/work/` for commits since the given date, collecting per-repo commit logs and diff stats. Parse its output to identify active repos and key metrics.
+This script scans all repos under `~/work/` for commits in the half-open window
+`[start, end)`, collecting per-repo commit logs and diff stats. Parse its output
+to identify active repos and key metrics.
 
 Then follow guide sections 1.1–1.5 and section 4 (authorship). Use `~/work/github.com/` as the scan root.
 

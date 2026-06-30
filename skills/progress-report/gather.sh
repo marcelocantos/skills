@@ -41,6 +41,30 @@ SINCE="${1:-1 week ago}"
 UNTIL="${2:-}"
 WORK_ROOT="$HOME/work"
 
+# Directory names skipped while scanning for repos. Beyond dependency
+# vendoring (vendor, node_modules), these are build/cache outputs that can
+# contain nested .git directories — Unity's Library/Temp/Builds, Xcode
+# DerivedData, CocoaPods Pods. A nested .git inside a build output is never a
+# real project repo; counting one corrupts both the per-repo scan and the
+# daily breakdown (this bit a Unity repo's iOS build dir in a prior run).
+PRUNE_DIRS=(vendor node_modules .build build Build Builds Library Temp obj Pods DerivedData)
+
+# Emit each repo's .git directory under WORK_ROOT (sorted), pruning PRUNE_DIRS
+# at any depth. Submodules have a .git *file* (gitlink), not a dir, so
+# `-type d` already skips them; this additionally prunes nested independent
+# clones living inside build outputs. Used by BOTH the main scan and the daily
+# breakdown so they always see the identical repo set.
+find_repos() {
+    local prune=() d
+    for d in "${PRUNE_DIRS[@]}"; do
+        # Prepend the -o separator before every term except the first, so the
+        # expression has no trailing -o (which would swallow the next predicate).
+        [[ ${#prune[@]} -gt 0 ]] && prune+=(-o)
+        prune+=(-name "$d")
+    done
+    find "$WORK_ROOT" \( "${prune[@]}" \) -prune -o -name .git -type d -print 2>/dev/null | sort
+}
+
 # git's bare-date --since/--until parsing is unreliable: an incomplete date
 # like "2026-05-18" inherits the CURRENT wall-clock time-of-day, so commits
 # from earlier on the start day are silently dropped — and the result varies
@@ -174,9 +198,7 @@ while IFS= read -r gitdir; do
     total_inflight=$((total_inflight + inflight_count))
     total_repos=$((total_repos + 1))
 
-done < <(find "$WORK_ROOT" \
-    \( -name vendor -o -name node_modules -o -name .build -o -name build \) -prune -o \
-    -name .git -type d -print 2>/dev/null | sort)
+done < <(find_repos)
 
 # Output collected data.
 if [[ $total_repos -eq 0 ]]; then
@@ -273,9 +295,7 @@ while [[ "$cur_epoch" -le "$end_epoch" ]]; do
         if [[ "$count" -gt 0 ]]; then
             day_repos=$((day_repos + 1))
         fi
-    done < <(find "$WORK_ROOT" \
-        \( -name vendor -o -name node_modules -o -name .build -o -name build \) -prune -o \
-        -name .git -type d -print 2>/dev/null | sort)
+    done < <(find_repos)
 
     echo "$dow $day_str $day_repos"
     cur_epoch="$next_epoch"
