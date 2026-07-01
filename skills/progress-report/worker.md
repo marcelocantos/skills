@@ -34,19 +34,50 @@ notifications.
 
 ## Determining the period
 
-The period ends on the most recent Sunday. If today is Sunday, confirm with the user that no more work will be done today before including it as the end date.
+Reports are **always single-week** — a strict 7-day window from Monday to
+Sunday (`end − start == 6 days`). **Never emit a report spanning more than one
+week.** If several weeks are outstanding, produce **one report per week**,
+oldest first (see "Multiple pending weeks" below).
 
-To find the start date:
+To find the week(s) to report:
 
 1. Find the most recent `reports/weekly-report-*.md` file in the report repo.
-2. Extract the end date from its title (the date after the `…`).
-3. The new period starts the day after that end date.
+2. Extract the end date from its title (the Sunday after the `…`). Call it
+   `last_end`.
+3. Find the most recent Sunday on or before today. If today is Sunday, confirm
+   with the user that no more work will be done today before including it; call
+   the result `latest_sun`.
+4. The pending weeks are the Sundays strictly after `last_end` up to and
+   including `latest_sun`. Each pending week is the 7-day window
+   `[that Sunday − 6 days … that Sunday]` (Monday … Sunday).
 
-If the start date is after the end date (i.e. the previous report already covers through this Sunday or later), the period is empty — ask the user for guidance.
+- If there are **no** pending weeks (`last_end >= latest_sun`), the period is
+  empty — ask the user for guidance.
+- If there is **exactly one**, proceed with Phases 1–2 for that single week.
+- If there are **two or more**, see "Multiple pending weeks" immediately below.
 
-If no previous report exists, ask the user for the start date.
+If no previous report exists, ask the user for the start date (which must be a
+Monday), then treat every whole week from there to `latest_sun` as pending.
 
-Confirm the period with the user before proceeding.
+**Invariant — assert before Phase 1 of every report:** the period is exactly
+7 days (`end == start + 6 days`), `start` is a Monday, and `end` is a Sunday.
+If this does not hold, **stop and report the discrepancy** rather than
+generating a multi-week or misaligned report.
+
+Confirm the week(s) with the user before proceeding.
+
+### Multiple pending weeks
+
+When two or more weeks are outstanding, do **not** combine them into one
+report. Run Phases 1 and 2 once per pending week, **oldest first**, each with
+its own strict 7-day `gather.sh` window, its own daily-activity chart, and its
+own report file, Reports entry, and Metrics row. Treat each week as if the
+prior weeks were already published — the immediately-preceding week's report is
+the "previous report" for narrative continuity, so read it before writing the
+next. Generate all pending reports before returning, and present them together
+in the draft output for review. The cumulative sections (Journey So Far,
+totals, timeline) are rewritten **once**, reflecting the state after the last
+pending week.
 
 ## Phase 1: Data gathering
 
@@ -62,7 +93,8 @@ optional:
 ~/.claude/skills/progress-report/gather.sh "<start YYYY-MM-DD>" "<end-Sunday + 1 day, YYYY-MM-DD>"
 ```
 
-For example, a period ending Sunday 2026-06-28 → `gather.sh "2026-06-08" "2026-06-29"`.
+For example, the single week ending Sunday 2026-06-28 (Monday 2026-06-22 …
+Sunday 2026-06-28) → `gather.sh "2026-06-22" "2026-06-29"`.
 
 (It is already `chmod +x` — do **not** wrap it in `bash`, just invoke the path as the command.)
 

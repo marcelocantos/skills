@@ -29,6 +29,13 @@ Follow guide section 6 for the README updates, then publish:
    together in a single commit on `master`.
 5. Push: `git push`.
 
+When the worker produced **multiple single-week reports** (a catch-up run
+covering more than one pending week), repeat steps 2–3 once per week — one
+Reports entry and one Metrics row per report, newest first — and stage every
+report file and its daily-activity chart in step 4. The Journey So Far and
+timeline are cumulative: apply them once, reflecting the state after the newest
+week. Commit the whole batch together (e.g. `Add weekly reports <A> and <B>`).
+
 ## Error handling
 
 - If a repo's `.git` directory is missing or corrupt, skip it and note the issue.
