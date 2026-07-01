@@ -25,9 +25,14 @@ Follow guide section 6 for the README updates, then publish:
    narrative from the approved draft.
 2. Add a collapsible entry under `## Reports` (newest first).
 3. Add a row to the `## Metrics` table (newest first).
-4. Stage the new report, updated README, achievements, charts, and cache
+4. Refresh the `## At a Glance` bullets at the top of the README to match
+   the updated Totals row (span, commits/repos/languages, human hours,
+   generalist-years + multiplier, net-lines activity signal) — see guide
+   section 6. It is a scannable mirror of the Totals, not a new source of
+   figures.
+5. Stage the new report, updated README, achievements, charts, and cache
    together in a single commit on `master`.
-5. Push: `git push`.
+6. Push: `git push`.
 
 When the worker produced **multiple single-week reports** (a catch-up run
 covering more than one pending week), repeat steps 2–3 once per week — one
