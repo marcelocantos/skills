@@ -1,6 +1,6 @@
 ---
 name: oracle-first
-description: Verification-economics method for AI-assisted work. Use when porting or migrating legacy code, replicating an existing system's behaviour ("match the old app exactly"), doing visual/physics/feel parity work, designing acceptance criteria for a target, planning verification for a codebase analysis, or when repeated tweak-and-check against human judgment isn't converging.
+description: Verification-economics method for AI-assisted work. Use when porting or migrating legacy code, replicating an existing system's behaviour ("match the old app exactly"), doing visual/physics/feel parity work, authoring the correctness spec for new code (property tests, invariants, TLA+), designing acceptance criteria for a target, planning verification for a codebase analysis, or when repeated tweak-and-check against human judgment isn't converging.
 user-invocable: true
 ---
 
@@ -11,6 +11,28 @@ effort. Full theory, evidence, and case studies:
 [`doctrine.md`](~/.claude/skills/oracle-first/doctrine.md). Read it when
 planning a port/migration or a verification strategy; the rules below
 suffice for quick classification.
+
+## Two oracle modes — read this first
+
+"Oracle" is the *test-oracle* sense: anything that adjudicates
+correctness — assertion, invariant, property test, type check, TLA+
+model, golden file, differential comparison. **Not** "external source of
+truth." Most work here is new code, not porting; the two modes differ in
+what the oracle can promise:
+
+- **Port / replicate** — asks *"does this match what exists?"* The
+  reference is external ground truth; strong guarantee. Extract it into
+  a runnable check (rules 3–7). Classes 2/4.
+- **New code** — asks *"does this conform to what I declared?"* You
+  *author* the spec as executable checks (property tests, TLA+,
+  load-bearing properties — csp, doit, sqlpipe are all new systems with
+  no referent). The guarantee is only as sound as the declaration: a
+  green suite proves the invariant you wrote holds, not that it was the
+  *right* invariant (rule 11). So **audits, not oracles, guard intent** —
+  an adversarial pass probes whether the encoded spec matches reality,
+  the one thing the oracle cannot check about itself. Design validity
+  stays human (the irreducible residue); an oracle certifies that the
+  code obeys the model, never that the model is right.
 
 ## Invocation
 
@@ -95,12 +117,14 @@ term — the fix differs per term:
    reference into a runnable oracle (`oracle.cpp`, conformance suite,
    golden corpus); generate against it. Two-step with a prose
    intermediate relocates the reinterpretation, it doesn't remove it.
-5. **Differential harness pattern** (when a runnable reference exists):
-   compile both old and new headless; drive with identical seeded input
-   tapes; diff paired state traces per tick; report divergence
-   percentiles **as a function of horizon**; provide a `study <seed>`
-   replay mode showing paired state side by side. Time-accelerated, no
-   device, no UI.
+5. **Differential harness pattern** (when a reference is runnable — or
+   can be *manufactured*: a deliberately-naive obviously-correct twin,
+   or metamorphic relations, per doctrine §4's new-code convergence
+   loop): compile both reference and new headless; drive with identical
+   seeded input tapes; diff paired state traces per tick; report
+   divergence percentiles **as a function of horizon**; provide a
+   `study <seed>` replay mode showing paired state side by side.
+   Time-accelerated, no device, no UI.
 6. **Goodhart guard.** Every fix must trace to a structural divergence
    in the reference source — never tune a constant merely because it
    shrinks the oracle's error. Gradient + structural constraint =
@@ -132,6 +156,37 @@ term — the fix differs per term:
     oracle, a scheduled adversarial audit, or a recorded accepted risk;
     and triage audit findings adversarially before acting — the audit
     machinery has a documented false-positive record.
+12. **For new code, you grow the oracle; you don't author it once.**
+    With no external referent, a trustworthy spec is *converged*, not
+    declared — the same discovery problem the doctrine names for
+    unstable-spec tooling (J-curve), applied to the checks themselves:
+    - **Seed** the few properties you're confident are load-bearing,
+      ideally before the code (TLA+/invariants first, then conform).
+    - **Manufacture a referent** where you can, so "new code" borrows a
+      port's strength: a naive, obviously-correct twin to differential-
+      test against (rule 5, self-authored reference), or **metamorphic
+      relations** — properties that must hold *between* outputs without
+      knowing the right output (f(x) vs f(permuted x)).
+    - **Accrete from failure** — every bug and every audit finding
+      becomes a newly-encoded property. The oracle grows monotonically
+      from escapes; it is never finished.
+    - **Test the oracle, not just the code** — inject faults / mutate
+      the code and confirm the oracle catches them (csp ships
+      intentionally-buggy TLA+ variants). An oracle green on known-broken
+      code is weak; mutation catch-rate is how you *measure* oracle
+      strength.
+    - **Probe for unknowns** — adversarial audits whose output is new
+      *spec*, run loop-until-dry; diminishing new findings is the
+      convergence signal.
+    - **Stabilise intent by use before hardening** — dogfood first; a
+      spec still in discovery can't be reliably oracled, and premature
+      hardening depreciates on the next pivot. Then **declare the
+      residual** un-oracled surface as explicit accepted risk, never
+      silence.
+    Reliable ≠ certain: the oracle is trustworthy to the degree it
+    catches injected faults, has absorbed every past escape, survives
+    adversarial probing with diminishing returns, and has a tracked
+    false-accept rate.
 
 ## When analysing a codebase or planning
 

@@ -44,21 +44,19 @@ Read the transcript output end-to-end. Identify:
 
 ### 3. Compose the synopsis
 
-The synopsis content is the same whether ingesting or not. Structure:
+The output format (structure, TL;DR line, slug rules, and the machine
+contract `build-index.sh` parses) is defined in one place — read it and
+follow it verbatim:
 
-- **Title** — `# <video title>` (skip in chat-only mode).
-- **Source line** — `Source: <youtube URL>` (skip in chat-only mode).
-- **TL;DR line** — a single `**TL;DR**: …` line immediately under the
-  title. Load-bearing: `build-index.sh` greps for it. Keep to 1–3
-  sentences capturing the thesis.
-- **`## Synopsis`** — detailed multi-paragraph summary in logical
-  order. Depth over brevity; the user wants to understand the video
-  without watching it. Preserve the speaker's framing and terminology
-  where it matters. Break into labelled subsections only if the video
-  has clear chapters.
-- **`## Key Takeaways`** — bulleted list of the most important,
-  actionable, or surprising points. Each bullet should stand alone as
-  a distinct insight, not a mechanical restatement of the synopsis.
+```
+~/work/github.com/marcelocantos/ytt/scripts/playlist-ingest/synopsis-contract.md
+```
+
+This is the same contract the scheduled `ingest` path feeds to its
+synopsis agent, so the interactive and automated paths stay identical.
+In chat-only mode, skip the `# <title>` and `Source:` lines and present
+the Synopsis and Key Takeaways inline; otherwise honour the contract as
+written.
 
 ### 4. Ingest (default)
 
@@ -111,6 +109,7 @@ response.
   carries weight the paraphrase loses.
 - The directory name is always the 11-character YouTube video ID.
   The `.md` filename is a topic slug, not the title.
-- The TL;DR line format is exactly `**TL;DR**: <text>` on its own
-  line near the top — `build-index.sh` matches with
-  `grep -m1 -E '^\*\*TL;DR\*\*:'`.
+- Output structure, the TL;DR line format, and slug rules live in
+  `synopsis-contract.md` (see step 3) — the single source of truth
+  shared with the scheduled `ingest` path and the `build-index.sh`
+  parser. Don't restate them here.

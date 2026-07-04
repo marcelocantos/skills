@@ -137,6 +137,93 @@ becomes a template). *Implementation* is fully delegable class-1 work.
 work — the correct standing goal for idle agent capacity: **the machine
 builds its own cage.**
 
+**Arriving at a reliable oracle for new code (the convergence loop).**
+Porting gives the oracle for free — extract the referent. New code has
+no referent, so the oracle is *grown*, not authored, and its reliability
+is *converged toward*, never assumed. This is the same spec-discovery
+problem §1 names for dogfooded tooling, turned on the checks themselves.
+A trustworthy new-code oracle emerges from six moves:
+
+1. *Seed* — author the few properties you're confident are load-bearing,
+   ideally before the code (model-first: TLA+/invariants, then conform).
+   The spec predates the implementation.
+2. *Manufacture a referent* — recover a port's external-check strength
+   without a legacy system: a deliberately naive, obviously-correct twin
+   to differential-test the real implementation against (rule 5 sourced
+   from a self-authored reference), or **metamorphic relations** —
+   properties that must hold *between* outputs without knowing the right
+   output (sortedness, round-trip identity, permutation invariance,
+   f(x)⊑f(x∪y)). Metamorphic oracles are the main way to check code
+   whose correct answer you cannot independently compute.
+3. *Accrete from failure* — every escaped bug and every audit finding is
+   a property you needed but had not encoded; convert each into a
+   standing check. The oracle grows monotonically from its own escapes
+   (csp's 160 specs accreted this way); it is never finished.
+4. *Test the oracle, not just the code* — mutation/fault injection:
+   deliberately break the code and confirm the oracle catches it (csp
+   ships intentionally-buggy TLA+ variants for exactly this). An oracle
+   green on known-broken code is weak; **mutation catch-rate is how you
+   measure oracle strength**, the new-code analogue of "does the test
+   fail on master" for a port.
+5. *Probe for unknowns* — adversarial audits whose deliverable is new
+   *spec*, not just fixes, run loop-until-dry: diminishing new findings
+   across rounds is the convergence signal (and open-ended classes like
+   de-id show some oracles never fully close — declare the residual).
+6. *Stabilise intent by use before hardening* — the spec encodes your
+   current understanding of intent, which is itself in discovery; a spec
+   still moving (high-p, mid-J-curve) cannot be reliably oracled, and
+   premature hardening depreciates on the next pivot (sqlift's hash
+   oracle mooted by the cgo pivot). Dogfood to stabilise intent, then
+   freeze it into checks, then declare the un-oracled residue as
+   explicit accepted risk — never silence.
+
+Reliable ≠ certain. A new-code oracle is trustworthy to the degree it
+catches injected faults, has absorbed every past escape, survives
+adversarial probing with diminishing returns, and carries a tracked
+false-accept/false-reject rate — and even then it certifies conformance
+to a declared spec, never that the spec matches intent (that residue is
+what audits probe and the owner owns; §8, the irreducible residue).
+
+**Eliciting intent into the seed (the design-time front-end).** The
+convergence loop above *grows* an oracle once seed properties exist —
+but for new code the seed itself is sourced from the owner's intent,
+which is incomplete, evolving, and partly tacit. Sourcing it is an
+interactive design-time act, not a one-shot spec-write. Prose intent
+leaks exactly as prose specs do ("the oracle IS the spec"): the owner
+can only enumerate what they already know is load-bearing, and much of
+intent is "I'll know it when I see it" — the class-3 trap, upstream.
+
+- *The example is the unit of intent transfer.* The reliable transducer
+  from fuzzy intent to a decidable check is the concrete example — "when
+  X, expect Y." Examples are demonstrable and arguable, they seed
+  golden/property tests directly, and they surface the disagreement
+  prose glosses. Drive the design dialogue toward load-bearing examples
+  and capture each as an executable check *as the design firms*.
+- *Spiral, not waterfall.* Some intent is only discoverable by reacting
+  to something built (§1's dogfood-to-stabilise, made interactive):
+  design → thin slice → owner reacts → intent sharpens → new example →
+  check. Maintain a live **oracle-coverage map** of the design (pinned /
+  fuzzy / examples-so-far); refuse production work on still-fuzzy
+  regions; let exploratory spikes run intent-un-oracled, on purpose.
+- *Sort decidable from taste first.* Elicitation's opening move is
+  triage: make the functional majority decidable, isolate the
+  irreducible class-3 residue as a single accept/reject. This moves §5's
+  misclassification alarm upstream — the failure it prevents is
+  discovering *at the end* that the whole thing was built against feel.
+- *Guards carry over.* Proportionality — don't force an oracle onto a
+  spike still discovering its own shape (premature hardening depreciates;
+  cf. oracle depreciation, convergence-loop move 6). Goodhart — elicit
+  *load-bearing* examples, not convenient ones, or the seed pins an
+  incidental.
+- *It needs an independent forcer.* Left to the executing agent,
+  elicitation is skipped under the incentive to start generating
+  (attestation ≠ execution). It wants a party whose standing role is to
+  hold work at the design gate until intent is testable, and to judge
+  the result against the elicited checks — the governor, not the
+  operator (§1). In this portfolio that party is Jevons; the mechanism
+  is filed as jevons 🎯T31 (enforce oracle-first as a system property +
+  interactive greenfield oracle elicitation).
+
 **Green-suite false assurance (v2's best-supported finding).** A green
 class-1 suite verifies **the idealisation it encodes, not the system**.
 Every catastrophic H1-2026 defect shipped under green suites — pigeon's
