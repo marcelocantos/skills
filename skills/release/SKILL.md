@@ -215,6 +215,25 @@ This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (lat
 
     Resolve this before committing any release-prep changes so Phases 4–5 have a clean working tree to operate on.
 
+13. **macOS CI shell-script compatibility (bash 3.2)**: GitHub's macOS
+    runners ship **bash 3.2** (Apple froze it at the last GPLv2 release), so
+    any shell script a macOS CI job invokes — or that a macOS end-user runs
+    with stock `/bin/bash` — must avoid bash 4+ features. Grep the scripts
+    `release.yml` (and `ci.yml`) run on macOS, plus any user-facing
+    build/install script the release distributes, for:
+    - `declare -A` (associative arrays), `mapfile` / `readarray` — bash 4+,
+      hard failures (`declare: -A: invalid option`).
+    - `"${arr[@]}"` on a possibly-empty array under `set -u` — bash <4.4
+      errors with "unbound variable"; needs the `${arr[@]+"${arr[@]}"}` guard.
+    `bash -n` does **not** catch these (they fail at runtime, not parse), so
+    grep for the tokens and, on this machine, verify by actually running the
+    script under `/bin/bash` — it is 3.2.57, the same version the runner has.
+    Any hit is a release-PR fix, not a post-tag surprise. This is a
+    parent-context grep, **not** part of the items 7–11 fan-out. The trap is
+    that the bug is invisible locally when Homebrew's bash 5.x shadows
+    `/bin/bash` on the dev Mac — it surfaces only on the runner, and if
+    `release.yml` builds it, only *after* the tag is cut.
+
 Proceed straight to B.3 — no approval prompt.
 
 #### B.3: Breaking change audit (post-1.0 projects only)
@@ -541,6 +560,14 @@ The split-in-time case only arises when the user has interrupted Phase B and ask
 3. **Push**: Ensure all commits (version bump, etc.) are on `master` before tagging. After the squash-merge in step 1, `merge.sh` already left the local `master` aligned with `origin/master`; double-check.
 
 4. **Regenerate distribution files**: If B.1 identified a dist generation target (e.g., `make dist`), run it now. If it produces any changes, commit them on `master` (e.g., "Regenerate dist for \<version\>") and push before tagging. This ensures the release tag includes up-to-date distribution artifacts.
+
+4a. **Pre-tag dry-run of `release.yml` (only when it builds macOS artefacts via project scripts)**: If `release.yml` builds artefacts on macOS by running a project shell script (a `build-libs.sh`, a packaging script, or any non-trivial `run:` step — as opposed to a pure `go build` / `cargo build` matrix), dispatch its `workflow_dispatch` dry-run and confirm the **macOS** job is green **before** creating the tag:
+   ```bash
+   gh workflow run release.yml --ref <branch-or-master>
+   rid=$(gh run list --workflow=release.yml --event workflow_dispatch --limit 1 --json databaseId -q '.[0].databaseId')
+   gh run watch "$rid" --exit-status
+   ```
+   Rationale: macOS runners use bash 3.2 (see B.1 item 13) and differ from the dev Mac (Homebrew bash 5.x shadows `/bin/bash`), so a script that builds locally can still fail only on the runner. Because the real build fires on `release: published` — i.e. *after* the tag exists — a script bug there forces a **re-cut** (delete + recreate the release and move the tag). The `workflow_dispatch` dry-run builds and link-tests without uploading, so it catches the failure while the tag can still move freely. This is the dynamic complement to B.1 item 13's static grep; run it whenever the release workflow's macOS path executes project shell scripts. Skip it otherwise.
 
 5. **Create the release**: Use `gh release create` which both tags and creates the release:
    ```bash
