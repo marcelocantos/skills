@@ -199,6 +199,18 @@ Produce, as part of the analysis:
 - **Acceptance criteria per target, split by verification class** —
   never bundle decidable checks with perceptual sign-off in one
   criterion (the target inherits the p of its most-perceptual clause).
+- **Conclude with a graph recommendation.** Land the analysis in the
+  target graph — don't leave it as prose. Translate the cost-term,
+  oracle-inventory, and class findings into concrete target changes,
+  and — in most cases — converge on a *single choke-point target* (the
+  oracle foundation: injectable seams, manufactured referent, seeded
+  invariants, a declared per-target oracle map) that embodies them,
+  wired as a blocker of the targets whose verification it gates. Prefer
+  one embodying target over scattering oracle obligations across many
+  nodes; per-target acceptance refinements then ride each target's own
+  work-PR, driven by the choke-point's oracle map. This is the
+  new-code analogue of rule 12's "seed the properties before the code":
+  the graph edit *is* the seeding act.
 
 ## Skill improvement
 
