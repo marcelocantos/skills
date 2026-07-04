@@ -152,6 +152,25 @@ Shapes earn their place when each named role corresponds to a piece
 of work that is itself addressable, deserves its own acceptance
 criteria, or runs in parallel with a sibling.
 
+## Acceptance criteria: split by verification class
+
+Never bundle machine-checkable criteria with human-perceptual ones in a
+single target. A target whose acceptance mixes oracle-gated clauses
+(tests, CI, harness checks) with glance-gated clauses (visual sign-off,
+feel, on-device confirmation) inherits the human-attention cost of its
+most-perceptual clause: it cannot self-close, stop-hooks stall on the
+unperformed manual steps, and the decidable majority of the work waits
+on the perceptual tail.
+
+Authoring rule: split every acceptance list into (a) **oracle-gated**
+clauses an agent can verify and retire autonomously, and (b)
+**glance-gated** clauses requiring human perception — as separate
+sub-targets when both are substantial, with the glance-gated node
+downstream of the oracle-gated one. Classify clauses using the
+verification classes in the `oracle-first` skill; anything
+class-1-convertible (reference-comparable, dynamical) should be
+converted to a machine check before being filed as a human step.
+
 ## Convergence assessment
 
 At decision boundaries (session start, completing a sub-target,
