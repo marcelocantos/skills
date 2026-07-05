@@ -55,10 +55,13 @@ Before generating anything, produce a short **oracle plan** (≤10 lines):
 1. **Classification** — the task's dominant cost term and verification
    class.
 2. **The oracle** — what existing machine check gates this work; if none
-   and judgment is the dominant term, what to extract or build *first*
+   and judgment is the dominant term, what to extract or build
    (reference extraction, differential harness, golden corpus, headless
-   sim + solver) — oracle construction precedes iteration on the
-   artifact.
+   sim + solver). Build it concurrently with the code if you like — it
+   need not precede the first draft — but it must exist before you
+   *iterate* the artifact against it (rule 2), and before any
+   demo/retire: verification (oracle-run-against-code) gates completion,
+   not coding. See "Oracle, code, and verification are three nodes".
 3. **The loop** — what signal iteration will run against. Never a human
    perceptual signal (rule 2).
 4. **The residue** — what will still need the human's judgment, and
@@ -211,6 +214,35 @@ Produce, as part of the analysis:
   work-PR, driven by the choke-point's oracle map. This is the
   new-code analogue of rule 12's "seed the properties before the code":
   the graph edit *is* the seeding act.
+
+### Oracle, code, and verification are three nodes, not two
+
+Do **not** model the oracle as a blocker of the *code* — that's TDD by the
+back door, and it over-constrains: the code can be written before the oracle
+exists. Model each verified capability as **three** nodes:
+
+- **O** — the oracle/harness for the property.
+- **C** — the code that must satisfy it.
+- **V** — *O run against C, green.* `V depends_on {O, C}`; **O and C are
+  siblings with no edge between them** (build concurrently, or C first).
+
+**V — not C — is the achievement / demo / retire gate.** What you may never
+do is *claim C correct, demo it, or retire the target* without V having run
+and passed. A bullseye target's **acceptance clause already is V**
+(oracle-applied-to-code); the oracle belongs in a **sibling** target, and an
+edge *toward* that oracle means "this target's **achievement** needs the
+oracle," never "its **coding** needs the oracle." The choke-point oracle is
+built early not to block coding but because **V cannot fire without it**, and V
+gates every completion claim.
+
+Corollary — the discipline gate (self-check, or a maker/checker sub-agent)
+fires at the **V boundary** (about to demo / attest / retire), not at
+code-start. Two failure modes to catch there, both live escapes if missed:
+- **demo-before-V** — attesting a capability works with V never run (rule 9;
+  the executor's "done" is unverified until the oracle adjudicates it).
+- **oracle substitution** — an *adjacent* green check ("it compiles", "frames
+  flow", "it connects") treated as coverage for the deferred fidelity property
+  it does not test (rule 11). *"The frame arrived" is not "the frame is right."*
 
 ## Skill improvement
 
