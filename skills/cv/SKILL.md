@@ -127,7 +127,11 @@ act on it mechanically:
 - **Line starts with `**Execute now**: Run /release…`** — unreleased
   fixes take precedence. Invoke the `/release` skill. Do NOT call
   `gh release create` directly; route through `/release` so its gates
-  fire.
+  fire. Release policy is resolved by bullseye from the project's
+  `profile:` + external profile template (`release.unreleased_fixes`);
+  store-shipped products (`profile: game` → `informational`) should
+  not emit this action — if they still do, treat as a template/profile
+  gap, not an override.
 
 - **Line starts with `**Blocked**:`** — standing invariants are
   failing, validation errors, the frontier is empty, or the graph is

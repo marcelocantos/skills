@@ -259,6 +259,72 @@ is deferred, concentrated verification debt (the "ran for weeks — now
 inspect 200 screens" trap). Oracles raise the autonomy ceiling;
 presentation lowers the human floor; advance them in lockstep.
 
+**Spatial residual compression (geometry / layout / silhouette parity).**
+Rule 2 already bans iterating against human perception; spatial work
+makes the mechanism concrete. Spatial systems hide the real state
+behind a lossy projection:
+
+```
+world / mesh / matrices  →  pixels  →  VLM words
+```
+
+Each arrow throws away the degrees of freedom the bug lives in
+(millimetres, angles, which mesh, which basis). Agents and tired humans
+then **over-fit stories to the residual of the projection** — a 30°
+basis mix looks simultaneously like "centroid wrong", "roll wrong",
+"culling", and "mesh bad." Vision returns coarse labels ("mass is left
+of centre"); useful as a *veto*, useless as a *gradient*. Without a
+shared control plane there is no *ceteris paribus*: every screenshot is
+a new experiment.
+
+**Principle — Prefer reconstructable geometry over perceptual residual
+when the correctness claim is spatial.**
+
+Operationally:
+
+1. *Classify.* Placement / transform / silhouette / layout under a shared
+   pose → class 2 with continuous geometry. "Feels right when spinning"
+   is residual class-3 judgment *after* the continuous claim is green.
+2. *Do not optimise against vision alone.* Use screenshots/VLMs as a
+   stop condition ("still looks wrong → oracle incomplete or bug
+   remains"), never as the search signal.
+3. *Instrument before the lossy steps.* Shared inject of *logical* pose
+   (portable quantities in a **named** frame — lon/lat, front+up, viewport
+   roll — not raw matrices unless bases match); read-back that
+   **reconstructs live state** (do not echo the last POST); emit centres,
+   frames, world/viewport AABBs, angular error, basis tags; compare
+   invariants (angular separation, normalized AABB offset, containment),
+   not matrix equality across engines.
+4. *Bandwidth rule.* Spend setup until the residual fits in a few numbers
+   a human or agent can hold ("centre 0°, AABB offset 0.34 half-diagonals,
+   bases disagree ~34°"). "The white blob is wrong somewhere" is too
+   high-entropy to search.
+5. *Structural over knobs.* When two systems disagree spatially, first
+   ask "same generative model of the pose?" (basis, camera contract,
+   face-user formula). Coefficient thrash on the wrong model is infinite;
+   one correct basis conversion can end a day of screenshot thrash.
+   Unifying coordinate systems is optional; **tagging and converting at
+   the boundary is mandatory.**
+
+Economics: for spatial/port/parity work the harness is not overhead on
+the fix — **it is the fix's precondition.** High setup once × high
+information per cycle beats high friction × 1-bit veto loops. Dual-app
+UDP is not required for every bug; a single-app dump of local centre,
+face matrix, and projected AABB is often enough. VLMs remain good at
+"still broken / looks like the old app" and bad at "which Euler angle
+and which basis."
+
+*Case (yourworld → yourworld2 silhouette, 2026-07):* days of
+tweak-screenshot thrash (culling, roll, free-floating localRot) did not
+localise a mixed-basis face-math centre on a yw2 mesh plus a wrong
+face-user presentation. A dual outer-loop oracle (POST logical state /
+GET reconstructed live geometry + AABBs / GET screenshot; UDP follow for
+ceteris paribus) compressed the residual to comparable numbers; one
+structural centre conversion dropped AABB offset ~0.34 → ~0.05 and made
+the remaining face-user claim decidable. The drawing path of the
+obsolete reference stayed untouched — only the control plane was
+instrumented.
+
 ## 5. The interpretive-dance failure mode
 
 Asking a model for **precise transliteration** of existing logic
@@ -358,6 +424,14 @@ one-sentence methodology interventions; agent did all implementation).
   algorithms, font metrics) — after which parity became geometric
   equality gated by ~12,500 golden pairs. The extraction ordeal *was*
   the oracle construction; it converts the problem permanently.
+- **yourworld silhouette** (legacy GLES → yourworld2/sokol): pure
+  class-2 spatial residual. Screenshot/VLM thrash failed because the
+  error was multi-cause-looking and the control plane was not shared.
+  Dual outer-loop render oracles (logical pose inject, live geometry
+  read-back, world+viewport AABBs) compressed the residual; structural
+  basis conversion + face-user alignment closed most of the gap without
+  rewriting the obsolete draw path. Encodes rule 13 / §4 spatial
+  residual compression — the geometry-shaped form of veto→gradient.
 
 ## 8. Strategy: the four moves
 

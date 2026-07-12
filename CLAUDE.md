@@ -1,5 +1,10 @@
 # Global Directives
 
+@AGENTS.md
+
+Claude Code adapter over the shared `AGENTS.md`. Shared rules live there;
+Claude-only material lives below. See "Instruction file layout" in AGENTS.md.
+
 ## Hard rules
 
 These six are inviolable. Everything else in this file is strong guidance, not law.
@@ -8,7 +13,7 @@ These six are inviolable. Everything else in this file is strong guidance, not l
 2. **Never run `git reset --hard`.** Ask the user to run it — the sandbox blocks it anyway.
 3. **Squash-only merges.** Never `git merge`; always squash-merge via PR.
 4. **Never commit secrets** — `.env`, credentials, private keys. (test fixtures with fake creds are fine)
-5. **Read the language file before writing that language** — Python/Go/C++/TLA+/SQL (see "Languages").
+5. **Read the language file before writing that language** — Python/Go/C++/Rust/TLA+/SQL (see "Languages" in `AGENTS.md`).
 6. **Releases bump MINOR only.** Never choose a MAJOR or PATCH version on your own initiative — under any circumstances, bugfixes and tiny tweaks included. Only the user initiates a major/patch release. Writing a version with PATCH ≠ 0 (or a MAJOR bump) you weren't told to write verbatim is a violation. Releases go through the `/release` skill — never hand-roll a version bump or `gh release create` (detail under "Tools, output & task conventions").
 
 ## Bias toward action
@@ -39,14 +44,6 @@ Always use full clickable URLs (`https://github.com/org/repo`), never the short 
 - **No magic numbers** — use an enum, named constant, or symbolic value when one is available (all languages).
 - **Modular along orthogonal concerns** — keep platform-specific code separate from platform-neutral logic (separate files/units, not scattered `#ifdef`s).
 - **Refactor in small, targeted steps** alongside feature work; avoid sweeping rewrites.
-
-## Languages
-
-Before writing/modifying/reviewing code in these languages — or answering about their idioms, tooling, or APIs — read the file in full. They contain opinionated rules (banned patterns, required tools, vendoring policies) that override generic best-practice. Don't skip because you "already know" the language; if you're emitting more than a one-liner, stop and read.
-
-- Python → [`python.md`](~/.claude/python.md) · Go → [`go.md`](~/.claude/go.md) · C/C++ → [`cpp.md`](~/.claude/cpp.md) · TLA+ → [`tlaplus.md`](~/.claude/tlaplus.md) · SQL → [`sql.md`](~/.claude/sql.md)
-
-New language rule → write it into the relevant file (creating one if needed) and add the mapping here.
 
 ## Defensive coding
 
@@ -101,11 +98,11 @@ Before crossing a delivery boundary — `/push`, `/release`, `/cv go`, `/republi
 
 ## Delivery
 
-A project declares "done" under a `## Delivery` heading in its CLAUDE.md (e.g. `merged to master`, `deployed to staging`). Default: merged to default branch.
+A project declares "done" under a `## Delivery` heading in its `AGENTS.md` or `CLAUDE.md` (e.g. `merged to master`, `deployed to staging`). Default: merged to default branch.
 
 ## Task tracking
 
-Discover a TODO mid-work → append to the repo's TODO file (location per repo CLAUDE.md; default `docs/TODO.md`, create if absent).
+Discover a TODO mid-work → append to the repo's TODO file (location per repo `AGENTS.md` / `CLAUDE.md`; default `docs/TODO.md`, create if absent).
 
 ## Session history (mnemo)
 
@@ -122,7 +119,7 @@ The `mnemo` MCP server indexes all session transcripts — the primary source fo
 ## Skill & continuous improvement
 
 - After running a skill (`~/.claude/skills/`), reflect on reusable insights — new edge cases, better patterns, script bugs surfaced during the run — and propose changes to the skill or its companion files. Integrate only with user consent. After modifying a skill → `/republish-skills`.
-- At a natural stopping point, reflect on insights worth adding to a CLAUDE.md (patterns, conventions, workflow preferences, corrections) and propose them. Apply only with consent.
+- At a natural stopping point, reflect on insights worth adding to shared agent instructions (patterns, conventions, workflow preferences, corrections) and propose them. Prefer **`AGENTS.md`** (global `~/.claude/AGENTS.md` or project-level) for multi-tool content; use `CLAUDE.md` only for Claude-specific material. Apply only with consent.
 
 ## Context window
 

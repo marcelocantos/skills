@@ -1,6 +1,6 @@
 ---
 name: oracle-first
-description: Verification-economics method for AI-assisted work. Use when porting or migrating legacy code, replicating an existing system's behaviour ("match the old app exactly"), doing visual/physics/feel parity work, authoring the correctness spec for new code (property tests, invariants, TLA+), designing acceptance criteria for a target, planning verification for a codebase analysis, or when repeated tweak-and-check against human judgment isn't converging.
+description: Verification-economics method for AI-assisted work. Use when porting or migrating legacy code, replicating an existing system's behaviour ("match the old app exactly"), doing visual/physics/feel parity work (especially spatial/geometry), authoring the correctness spec for new code (property tests, invariants, TLA+), designing acceptance criteria for a target, planning verification for a codebase analysis, or when repeated tweak-and-check against human judgment isn't converging.
 user-invocable: true
 ---
 
@@ -108,7 +108,9 @@ term — the fix differs per term:
 2. **Never iterate against a human perceptual signal.** "Feels off" is
    a veto-oracle: high sensitivity, ~1 bit per round-trip, zero
    direction. Iterate against analysis or a machine oracle; spend human
-   perception only as a final accept/reject gate.
+   perception only as a final accept/reject gate. For spatial/geometry
+   claims, the gradient form is rule 13 (reconstructable geometry, not
+   screenshot thrash).
 3. **"Replicate X exactly" → port the generative model, not the
    output.** Approximating with different primitives then tuning toward
    the reference is an unsatisfiable spec — different equations, different
@@ -190,6 +192,34 @@ term — the fix differs per term:
     catches injected faults, has absorbed every past escape, survives
     adversarial probing with diminishing returns, and has a tracked
     false-accept rate.
+13. **Spatial / geometric parity: compress residual into reconstructable
+    geometry; pixels are a veto, not a gradient.** When the correctness
+    claim is placement, transform, silhouette, or visual layout under a
+    shared pose, do **not** iterate against screenshots or VLM captions
+    alone. Spatial systems hide the bug behind a lossy chain
+    (world/mesh/matrices → pixels → words); each step discards the
+    degrees of freedom you need. Instrument *before* the lossy steps:
+    - Inject the same *logical* pose (portable quantities: lon/lat,
+      front+up in a **named** basis, viewport roll) — not raw matrices
+      unless bases are proven identical.
+    - Read state back from the **live** system (reconstruct; do not
+      echo the last inject).
+    - Emit machine-readable geometry in tagged frames: centres, frames,
+      world/viewport AABBs, angular error, basis labels.
+    - Compare **invariants** (centre angular separation, AABB offset
+      normalized by globe/extent, containment) under ceteris paribus;
+      never raw matrix equality across engines.
+    - Fix the largest **structural** residual first (wrong generative
+      model of the pose, mixed bases, wrong face-user formula). Coefficient
+      thrash on the wrong model is infinite; one correct basis conversion
+      can end a day of screenshot thrash.
+    Bandwidth rule: keep iterating the harness until the residual fits
+    in a few numbers a human or agent can hold ("centre 0°, AABB offset
+    0.34 half-diagonals, bases disagree ~34°"). "The white blob is wrong
+    somewhere" is too high-entropy to search. Unifying coordinate systems
+    is optional; **tagging and converting at the boundary** is mandatory.
+    Vision stays the final accept/reject (rule 2). Full theory and the
+    yourworld silhouette case: doctrine §4 "Spatial residual compression".
 
 ## When analysing a codebase or planning
 
