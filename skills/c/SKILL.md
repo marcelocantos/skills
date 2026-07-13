@@ -17,15 +17,16 @@ bounded chain and returns every compaction oldest-first.
 
 ## Steps
 
-1. **Identify this session.** Invoke `mcp__mnemo__mnemo_self` with
-   a short random nonce (e.g. 8 hex chars). Include the literal
+1. **Identify this session.** Call the mnemo MCP tool `mnemo_self`
+   (qualified name may be `mnemo__mnemo_self` depending on the harness)
+   with a short random nonce (e.g. 8 hex chars). Include the literal
    string `mnemo:self:<nonce>` in the same message's text so the
    server can correlate. The tool returns this session's ID.
 
-2. **Fetch the chain compactions.** Invoke `mcp__mnemo__mnemo_restore`
-   with `session_id=<id from step 1>`. It returns a pre-formatted
-   multi-span summary (targets, files, decisions, open threads per
-   span), oldest-first.
+2. **Fetch the chain compactions.** Call `mnemo_restore` (or
+   `mnemo__mnemo_restore`) with `session_id=<id from step 1>`. It
+   returns a pre-formatted multi-span summary (targets, files,
+   decisions, open threads per span), oldest-first.
 
 3. **Present verbatim.** Relay the tool output to the user with at
    most a one-line framing. Do **not** re-summarise — the output is

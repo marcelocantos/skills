@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # push.sh — Thin wrapper around `git push`.
 #
-# Exists because ~/.claude/settings.json denies `Bash(git push *)` —
-# direct `git push` calls from Claude hit the deny rule and stall.
-# Calls from inside a shell script (the outer command being
-# `~/.claude/skills/push/push.sh ...`, not `git push ...`) sidestep
-# that match, the same way `merge.sh` does for `gh pr merge` and
-# `git reset --hard`.
+# Exists because Claude's ~/.claude/settings.json denies `Bash(git push *)`
+# — direct `git push` from that harness hit the deny rule and stall.
+# Grok does not need the wrapper for deny-rule reasons, but keep the
+# script as the skill's single push entrypoint so both harnesses share
+# one path. Calls from inside the script (outer command =
+# `~/.claude/skills/push/push.sh ...`) sidestep Claude's match, the same
+# way `merge.sh` does for `gh pr merge` and `git reset --hard`.
 #
 # Forwards every argument verbatim to `git push`. Use for the
 # routine PR-flow push (`-u origin <branch>`); leave force-pushes

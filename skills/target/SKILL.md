@@ -14,7 +14,7 @@ auto-rendered view updated by bullseye after every mutation.
 Run `~/.claude/skills/target/gather.sh` directly (it is already `chmod +x`
 — do **not** wrap it in `bash`, just invoke the path as the command).
 Parse its output:
-- `# delivery` — the project's delivery definition from CLAUDE.md
+- `# delivery` — the project's delivery definition from AGENTS.md / CLAUDE.md
   (default: "merged to default branch")
 - `# git-state` — current branch, open PRs, recent merges on the
   default branch, for implied target evaluation

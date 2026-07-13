@@ -28,18 +28,38 @@ git diff --stat 2>/dev/null || true
 section "diff-cached-stat"
 git diff --cached --stat 2>/dev/null || true
 
-# --- Project CLAUDE.md ---
-section "claude-md"
-if [ -f CLAUDE.md ]; then
-    cat CLAUDE.md
-else
+# --- Project agent instructions ---
+section "agent-docs"
+any_doc=0
+for f in AGENTS.md CLAUDE.md Claude.md; do
+    if [ -f "$f" ]; then
+        any_doc=1
+        echo "## $f"
+        cat "$f"
+        echo
+    fi
+done
+if [ "$any_doc" -eq 0 ]; then
     echo "(none)"
 fi
 
-# --- Auto-memory ---
+# --- Session notes / memory ---
 section "memory"
-MEMORY_DIR="$HOME/.claude/projects/$(pwd | tr '/.' '-')/memory"
-if [ -d "$MEMORY_DIR" ]; then
+# Prefer Grok session dir; fall back to Claude Code auto-memory layout.
+if command -v python3 >/dev/null 2>&1; then
+    encoded=$(python3 -c 'import os, urllib.parse; print(urllib.parse.quote(os.getcwd(), safe=""))')
+    GROK_DIR="$HOME/.grok/sessions/$encoded"
+else
+    GROK_DIR=""
+fi
+CLAUDE_MEM="$HOME/.claude/projects/$(pwd | tr '/.' '-')/memory"
+MEMORY_DIR=""
+if [ -n "$GROK_DIR" ] && [ -d "$GROK_DIR" ]; then
+    MEMORY_DIR="$GROK_DIR"
+elif [ -d "$CLAUDE_MEM" ]; then
+    MEMORY_DIR="$CLAUDE_MEM"
+fi
+if [ -n "$MEMORY_DIR" ] && [ -d "$MEMORY_DIR" ]; then
     for f in "$MEMORY_DIR"/*.md; do
         [ -f "$f" ] || continue
         echo "## $(basename "$f")"
