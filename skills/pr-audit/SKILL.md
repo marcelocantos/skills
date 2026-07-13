@@ -38,8 +38,9 @@ For each open PR, assign exactly one classification:
   merged after this one was opened — the target state likely already
   reflects the new reality, or a newer target-only PR has overwritten
   the same edit.
-- Any PR for a project listed as obsolete in the user's auto-memory
-  (check `~/.claude/projects/-Users-marcelo-think/memory/MEMORY.md`).
+- Any PR for a project listed as obsolete in durable notes — prefer
+  `mnemo_search` / `mnemo_recent_activity` for "obsolete" / retired
+  projects rather than Claude auto-memory paths.
 
 ### ✅ `merge-now`
 - Not a target-only PR.
@@ -52,10 +53,10 @@ For each open PR, assign exactly one classification:
 
 ### 📋 `target-only-leave-open`
 - Only file touched is `bullseye.yaml`, AND no superseding merge.
-- Per global CLAUDE.md, these intentionally stay open until the
-  substantive work lands. Just count them; don't recommend action
-  unless the count for a single repo exceeds 3 (then suggest a manual
-  consolidation pass).
+- Per global agent policy (AGENTS.md / CLAUDE.md), these intentionally
+  stay open until the substantive work lands. Just count them; don't
+  recommend action unless the count for a single repo exceeds 3 (then
+  suggest a manual consolidation pass).
 
 ### 🚧 `resolve-conflicts`
 - `mergeable: CONFLICTING` or `mergeStateStatus: DIRTY`.

@@ -26,11 +26,12 @@ notifications.
 
 ## Step 1 — Discover repos
 
-Find all repositories with a `CLAUDE.md` in the root. Search under
-`~/work/github.com/` — the CLAUDE.md sits at depth 3 (`org/repo/CLAUDE.md`):
+Find all repositories with agent instruction files in the root
+(`AGENTS.md` and/or `CLAUDE.md`). Search under `~/work/github.com/` —
+files sit at depth 3 (`org/repo/<file>`):
 
 ```bash
-find ~/work/github.com -mindepth 3 -maxdepth 3 -name CLAUDE.md -exec dirname {} \;
+find ~/work/github.com -mindepth 3 -maxdepth 3 \( -name AGENTS.md -o -name CLAUDE.md -o -name Claude.md \) -exec dirname {} \; | sort -u
 ```
 
 **Exclude forks**: Check the "Known Forks" section at the bottom of
@@ -80,8 +81,8 @@ For language detection: check for `go.mod` (Go), `Cargo.toml` (Rust), `package.j
 Read `~/.claude/managed-repos.md`. The table uses `org/repo` as the repo
 identifier (e.g. `marcelocantos/dais`, `squz/multimaze`). For each repo:
 - If already in the table, update its columns
-- If new (has CLAUDE.md but not in table), add it
-- If in the table but no longer has CLAUDE.md, keep it but add `(removed)` to Notes
+- If new (has AGENTS.md or CLAUDE.md but not in table), add it
+- If in the table but no longer has either agent doc, keep it but add `(removed)` to Notes
 
 Update the `Last scanned` date.
 
@@ -90,7 +91,7 @@ Maintain a "Known Forks" section after the managed repos table. Format:
 ```markdown
 ## Known Forks
 
-These repos have a `CLAUDE.md` but are forks of upstream projects.
+These repos have agent docs but are forks of upstream projects.
 They are excluded from compliance checks.
 
 - `anz-bank/decimal`

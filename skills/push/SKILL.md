@@ -42,7 +42,7 @@ as the command.
 
 ### 1a. Check for `pr-workflow: skip`
 
-Read the project's `## Gates` section from `CLAUDE.md` (per the merge
+Read the project's `## Gates` section from `AGENTS.md` or `CLAUDE.md` (per the merge
 rules in step 7). If the resolved gates contain
 `pr-workflow: skip` (typically declared as
 `override: [pr-workflow: skip]`), the project has opted out of the PR
@@ -126,8 +126,8 @@ Repeat until CI is green or the user decides to stop.
 
 Once CI is green, enforce the project's delivery gates before merging.
 
-1. Read the project's `## Gates` section from CLAUDE.md to determine the
-   profile (default: `base`).
+1. Read the project's `## Gates` section from `AGENTS.md` or `CLAUDE.md`
+   to determine the profile (default: `base`).
 2. Read `~/.claude/gates/base.yaml` and the profile YAML (if not base).
    Merge them: profile gates add to base; `override: [gate: skip]`
    removes specific base gates.
@@ -155,7 +155,7 @@ Once all gates pass:
    earlier steps (push to feature branch, PR creation, fix-and-repush
    for CI failures) run autonomously without prompting — that is
    pre-authorised by the global "Pull requests" directive in
-   `~/.claude/CLAUDE.md`. The squash-merge to the default branch is
+   `~/.claude/CLAUDE.md` / `AGENTS.md`. The squash-merge to the default branch is
    the one irreversible action, so confirm with the user before
    running it. (If a manual `pre-merge` gate has already collected
    approval, don't double-prompt.)

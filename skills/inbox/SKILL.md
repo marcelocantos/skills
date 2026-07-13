@@ -4,10 +4,11 @@ description: Pull cross-session inbox notes addressed to this repo (or a given d
 user-invocable: true
 ---
 
-Receive directory-addressed inbox notes left by another Claude Code
-session, backed by the mnemo MCP server (🎯T65). A note is addressed to
-a **directory** — usually a repo root. `/inbox` reads the notes waiting
-for *this* session's directory; `/inbox <path>` reads another's.
+Receive directory-addressed inbox notes left by another agent session
+(Grok or Claude), backed by the mnemo MCP server (🎯T65). A note is
+addressed to a **directory** — usually a repo root. `/inbox` reads the
+notes waiting for *this* session's directory; `/inbox <path>` reads
+another's.
 
 This is the consumer half of the inbox primitive. The producer half is
 `/post` (a thin wrapper over `mnemo_note_post`).
@@ -24,7 +25,7 @@ than reading any files by hand.
 
   Equivalently, `mnemo_note_recv(inbox: ".")` resolves `"."` against
   the session's *initial* cwd on the daemon side — but that requires the
-  daemon to have bound this MCP connection to its Claude Code session.
+  daemon to have bound this MCP connection to its agent session.
   If a `"."` call errors with "the calling session's cwd is unknown",
   establish the binding once via the `mnemo_self` nonce dance (call
   `mnemo_self` with no argument, emit the returned nonce in your reply so

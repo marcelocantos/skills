@@ -49,7 +49,7 @@ Always verify correctness after enabling.
 
 **Fix**: enable parallelism at the right granularity. For make, set
 `MAKEFLAGS := -j` in the Makefile (don't pass `-j` on the command
-line — see global CLAUDE.md rule).
+line — see global AGENTS.md / CLAUDE.md rule).
 
 **Risk**: Low for compilation, Medium for tests (races and shared
 fixtures), High for Docker (layer interdependencies).

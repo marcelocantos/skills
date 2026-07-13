@@ -120,7 +120,7 @@ act on it mechanically:
 - **Line starts with `**Execute now**: Work in parallel on N frontier
   targets…`** — tied top-focus targets. Emit a preamble naming each
   target in the fan-out (one line each: `🎯T<ID> — <name>`), then fan
-  out via parallel Agent calls per the Teams directive in CLAUDE.md,
+  out via parallel Agent calls per the Teams / fan-out directive in AGENTS.md / CLAUDE.md,
   one agent per target, each agent reading its target's inline details
   from the frontier section.
 
@@ -149,7 +149,7 @@ act on it mechanically:
 
 ### PR boundary (applies to every Execute-now path)
 
-**One PR per objective — this is hard rule #1 in CLAUDE.md.** Working
+**One PR per objective — this is hard rule #1 in AGENTS.md / CLAUDE.md.** Working
 through several targets in a session does **not** mean one PR each. A
 composite target and its sub-targets (🎯T1.1, T1.2, …) ship as a single
 PR, with each sub-target landing as a commit on one branch. Never open a

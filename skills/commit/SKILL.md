@@ -94,7 +94,7 @@ Create the commit using a HEREDOC for the message:
 git commit -m "$(cat <<'EOF'
 <message>
 
-Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+Co-Authored-By: <current agent — Claude … <noreply@anthropic.com> or Grok … <noreply@x.ai>>
 EOF
 )"
 ```

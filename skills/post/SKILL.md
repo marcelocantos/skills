@@ -4,9 +4,10 @@ description: Post a cross-session inbox note to another repo/session via mnemo (
 user-invocable: true
 ---
 
-Leave a directory-addressed inbox note for another Claude Code session
-to pick up, backed by the mnemo MCP server (🎯T65). This is the producer
-half of the inbox primitive; the consumer reads it with `/inbox`.
+Leave a directory-addressed inbox note for another agent session (Grok
+or Claude) to pick up, backed by the mnemo MCP server (🎯T65). This is
+the producer half of the inbox primitive; the consumer reads it with
+`/inbox`.
 
 Usage: `/post <inbox> <body>`
 
