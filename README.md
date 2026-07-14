@@ -20,7 +20,7 @@ Also includes my global [`CLAUDE.md`](CLAUDE.md) directives and the [`convergenc
 - **[`/progress-report`](skills/progress-report/SKILL.md)** — Generate and publish a weekly progress report from git activity across all repos.
 - **[`/push`](skills/push/SKILL.md)** — Push current work through a PR-based CI workflow. Creates branch and PR if needed.
 - **[`/release`](skills/release/SKILL.md)** — Publish a release — version, release notes, CI, Homebrew tap, tag, and GitHub release.
-- **[`/remind`](skills/remind/SKILL.md)** — Schedule a reminder that fires as a Slack DM at a future time. Uses claude.ai routines so the reminder survives session restarts, machine reboots, and weeks-to-months horizons. Also lists and cancels existing reminders.
+- **[`/remind`](skills/remind/SKILL.md)** — >
 - **[`/republish-skills`](skills/republish-skills/SKILL.md)** — Sync ~/.claude/skills/ to the marcelocantos/skills GitHub repo.
 - **[`/sync-globals`](skills/sync-globals/SKILL.md)** — sync-globals
 - **[`/target`](skills/target/SKILL.md)** — Manage targets — desired states for the project.

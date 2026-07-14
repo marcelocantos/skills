@@ -116,7 +116,11 @@ term — the fix differs per term:
    the reference is an unsatisfiable spec — different equations, different
    phase portrait; no coefficient bridges them. Extract the reference's
    actual mechanism (constraints, algorithms, hand-set constants) and
-   reproduce *that*.
+   reproduce *that*. Includes **ordering / sort keys / multi-stage
+   pipelines**: a bake-time sequence (array index, file rank) is often
+   *not* the runtime generative model — e.g. Stage-5 data may freeze
+   `index()` while runtime re-sorts with `(index ≥ band, −size)`. Matching
+   the baked list is the wrong model; matching the runtime key is the port.
 4. **The spec must be executable.** Prose specs leak — they can only
    state what someone already knows is load-bearing. Extract the
    reference into a runnable oracle (`oracle.cpp`, conformance suite,
@@ -139,7 +143,11 @@ term — the fix differs per term:
    analytically) from Lyapunov amplification (exponential; unclosable
    across engines). Gate on per-step epsilon + distributional/
    qualitative invariants at long horizons. Bit-exact long-horizon match
-   across different engines is impossible — don't chase it.
+   across different engines is impossible — don't chase it. Same bound
+   for **intentional RNG** in the reference (e.g. random neighbour
+   separation on a carousel): after the deterministic generative head is
+   green, mid/tail sequence differences are residual class-3 /
+   distributional — not a class-1 exact-list obligation.
 8. **Oracle work splits three ways.** *Design* (what to measure,
    acceptance semantics, discipline) needs the human — but once per
    oracle class, not per project. *Implementation* is fully delegable.
@@ -179,7 +187,11 @@ term — the fix differs per term:
       the code and confirm the oracle catches them (csp ships
       intentionally-buggy TLA+ variants). An oracle green on known-broken
       code is weak; mutation catch-rate is how you *measure* oracle
-      strength.
+      strength. Also **instrument the instrument**: if projected AABBs
+      are empty/sentinel while world-space bounds are finite, that is
+      control-plane failure (pose/zoom/MVP NaN), not missing geometry —
+      sanitize harness state so the oracle cannot permanently brick
+      itself (e.g. finite zoom clamp; reject non-finite injects).
     - **Probe for unknowns** — adversarial audits whose output is new
       *spec*, run loop-until-dry; diminishing new findings is the
       convergence signal.
@@ -213,6 +225,9 @@ term — the fix differs per term:
       model of the pose, mixed bases, wrong face-user formula). Coefficient
       thrash on the wrong model is infinite; one correct basis conversion
       can end a day of screenshot thrash.
+    - **Harness health:** projected geometry empty/sentinel while world
+      geometry is finite ⇒ camera/MVP/zoom poison, not "mesh gone." Heal
+      the control plane before chasing layout residuals.
     Bandwidth rule: keep iterating the harness until the residual fits
     in a few numbers a human or agent can hold ("centre 0°, AABB offset
     0.34 half-diagonals, bases disagree ~34°"). "The white blob is wrong
@@ -228,7 +243,9 @@ Produce, as part of the analysis:
 - **Oracle inventory** — what machine-checkable ground truth exists;
   what's missing for the dominant judgment costs.
 - **Harness classes required** — reuse before building; one-off vs
-  recurring.
+  recurring. Dual-app HTTP/UDP residual harnesses are a *class*: keep
+  them **debug-only** (`#ifndef NDEBUG` / Release defines `NDEBUG`) so
+  store builds never bind observe ports or soft-inject production state.
 - **Acceptance criteria per target, split by verification class** —
   never bundle decidable checks with perceptual sign-off in one
   criterion (the target inherits the p of its most-perceptual clause).
@@ -267,12 +284,16 @@ gates every completion claim.
 
 Corollary — the discipline gate (self-check, or a maker/checker sub-agent)
 fires at the **V boundary** (about to demo / attest / retire), not at
-code-start. Two failure modes to catch there, both live escapes if missed:
+code-start. Three failure modes to catch there, all live escapes if missed:
 - **demo-before-V** — attesting a capability works with V never run (rule 9;
   the executor's "done" is unverified until the oracle adjudicates it).
 - **oracle substitution** — an *adjacent* green check ("it compiles", "frames
   flow", "it connects") treated as coverage for the deferred fidelity property
   it does not test (rule 11). *"The frame arrived" is not "the frame is right."*
+  Includes **soft-follow that rewrites product state** (e.g. UDP force-order
+  of a list): cells matching the original *under follow* is not the product
+  property. V for product behaviour runs with follow **off** (or with inject
+  that does not bypass the generative path under test).
 
 ## Skill improvement
 

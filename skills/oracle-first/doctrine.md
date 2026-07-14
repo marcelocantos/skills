@@ -119,6 +119,9 @@ illegible; the oracle makes it legible one divergence at a time."
 the oracle. Constraint: every fix must trace to a *structural
 divergence in the reference source*, never to "this constant shrinks
 the error." Gradient + structural constraint = system identification.
+Same trap when the harness *rewrites* the system under test (soft UDP
+force-order, golden list injection): the residual shrinks because the
+product path was bypassed, not because the generative model matches.
 
 **Lyapunov-bounded acceptance.** For dynamical systems, measure
 divergence as a function of horizon. Systematic per-step error grows
@@ -127,7 +130,10 @@ exponentially and is unclosable across different engines. Acceptance =
 per-step epsilon (measured floor) + distributional/qualitative
 invariants beyond the chaos horizon (fishtail rate, slide distance,
 turn direction). Bit-exact long-horizon cross-engine match is a
-category error.
+category error. **Intentional RNG** in the reference (neighbour-shuffle
+tails, seed-from-`random_device`) is the same bound: after the
+deterministic generative head is green, exact mid/tail sequences are
+not a class-1 obligation.
 
 **Oracle work splits three ways.** *Design* — what to measure,
 acceptance semantics, epistemic discipline — is design-under-
@@ -164,7 +170,10 @@ A trustworthy new-code oracle emerges from six moves:
    ships intentionally-buggy TLA+ variants for exactly this). An oracle
    green on known-broken code is weak; **mutation catch-rate is how you
    measure oracle strength**, the new-code analogue of "does the test
-   fail on master" for a port.
+   fail on master" for a port. Also **instrument the instrument**:
+   harness self-poison (NaN zoom → null MVP → empty projected AABBs while
+   world geometry stays finite) makes the oracle report "blank" with no
+   gradient — heal control-plane state; do not retune geometry.
 5. *Probe for unknowns* — adversarial audits whose deliverable is new
    *spec*, not just fixes, run loop-until-dry: diminishing new findings
    across rounds is the convergence signal (and open-ended classes like
@@ -304,15 +313,34 @@ Operationally:
    face-user formula). Coefficient thrash on the wrong model is infinite;
    one correct basis conversion can end a day of screenshot thrash.
    Unifying coordinate systems is optional; **tagging and converting at
-   the boundary is mandatory.**
+   the boundary is mandatory.** Same question for **non-spatial
+   generative keys** (sort order, trial bands, bake-time index vs runtime
+   re-sort): matching a frozen file sequence when the reference re-sorts
+   at runtime is the wrong model — port the key, not the baked list.
+6. *Harness health (instrument the instrument).* Empty or sentinel
+   *projected* AABBs (`min=+∞`, `max=−∞`) while *world* AABBs remain a
+   finite sphere/mesh ⇒ camera/MVP/zoom control-plane death (often NaN
+   zoom after pinch), not missing geometry. Read meta for null
+   `cam_dist` / all-null MVP; sanitize injects and heal the spring so the
+   dual-oracle cannot permanently blank the subject. Force-order /
+   soft-follow that rewrites level lists is **oracle substitution** for
+   the product path — V for "chooses the right order" runs with follow
+   off.
+7. *Bounded residual after the structural head is green.* When the
+   reference intentionally randomises tails (carousel neighbour
+   separation), dual-app exact mid-list match is not required; gate the
+   deterministic head (trial band + size sort) and treat RNG tails as
+   residual judgment / distributional.
 
 Economics: for spatial/port/parity work the harness is not overhead on
 the fix — **it is the fix's precondition.** High setup once × high
 information per cycle beats high friction × 1-bit veto loops. Dual-app
 UDP is not required for every bug; a single-app dump of local centre,
-face matrix, and projected AABB is often enough. VLMs remain good at
-"still broken / looks like the old app" and bad at "which Euler angle
-and which basis."
+face matrix, and projected AABB is often enough. When dual-app HTTP/UDP
+*is* the harness class, compile it **debug-only** (`#ifndef NDEBUG`;
+Release defines `NDEBUG`) so store binaries never bind observe ports or
+soft-inject production state. VLMs remain good at "still broken / looks
+like the old app" and bad at "which Euler angle and which basis."
 
 *Case (yourworld → yourworld2 silhouette, 2026-07):* days of
 tweak-screenshot thrash (culling, roll, free-floating localRot) did not
