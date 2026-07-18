@@ -263,6 +263,21 @@ Corollary: an agent "better at keeping going" may be worse at knowing
 when it can't — persistence without escalation calibration is
 unverified autonomy.
 
+**Independence is a function of automation, not locality** (owner
+ruling, 2026-07-18, stock-car-racing 🎯T15). The separation of duties
+above is about *who adjudicates* — harness output vs executor
+narrative — not about which machine runs the check. A local pre-push
+hook whose verdict is an exit code over a results file is exactly as
+independent as the same command in CI, and faster; `--no-verify` is a
+deliberate, visible override, the moral equivalent of force-merging
+past a red check. Sequence enforcement accordingly: automated local
+gate first, mutation-drill it (a gate is trusted only after catching a
+planted failure), and migrate the same commands into a CI layer at the
+production boundary — the point where CI's genuine additions
+(environment-drift detection, independence from any single machine's
+configuration) are worth their feedback-loop latency. Defaulting to
+"set up CI" as the first enforcement move optimises the wrong term.
+
 **Unverified autonomy is negative value.** Work that can't be checked
 is deferred, concentrated verification debt (the "ran for weeks — now
 inspect 200 screens" trap). Oracles raise the autonomy ceiling;

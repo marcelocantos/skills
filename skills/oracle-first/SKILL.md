@@ -156,7 +156,16 @@ term — the fix differs per term:
 9. **Attestation ≠ execution.** An agent's "done" is an unverified
    channel (documented false-completion cases). Completion claims are
    validated by an oracle or an independent reviewing agent, never by
-   the agent that did the work.
+   the agent that did the work. Corollary — **independence is a
+   function of automation, not locality**: a gate is independent when
+   the *harness* adjudicates (exit codes, results files — never the
+   executor's narrative), regardless of which machine runs it. A
+   drilled local pre-push hook is as independent as CI and much
+   faster; don't default to "set up CI" as the first enforcement move.
+   Build the validation suite locally, mutation-drill the gate, and
+   migrate the same commands into a CI layer at the production
+   boundary — where CI's real additions (environment-drift detection,
+   independence from one machine's configuration) start to matter.
 10. **Unverified autonomy is negative value.** Long unattended runs
     without an oracle don't reduce the human's verification burden —
     they concentrate and defer it. Raise autonomy only as far as the
