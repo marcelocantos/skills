@@ -102,11 +102,21 @@ A project declares "done" under a `## Delivery` heading in its `AGENTS.md` or `C
 
 ## Task tracking
 
-Discover a TODO mid-work → append to the repo's TODO file (location per repo `AGENTS.md` / `CLAUDE.md`; default `docs/TODO.md`, create if absent).
+Discover followable work mid-task → file a bullseye target (via the bullseye MCP tools, never by hand-editing `bullseye.yaml`). TODO files are banned: don't create `docs/TODO.md` or append to one; if a repo still has one, promote its live entries to targets and delete it.
 
 ## Session history (mnemo)
 
 The `mnemo` MCP server indexes all session transcripts — the primary source for session history (what was worked on, when, decisions, discussion). Prefer it over reconstructing narrative from git log or auto-memory. bullseye owns target state; mnemo owns history. Auto-memory stores stable facts mnemo can't provide (preferences, architectural decisions, external constraints) — don't duplicate session logs there. Reach for mnemo when the user references prior work or you need cross-repo context. Tools: `mnemo_recent_activity`, `mnemo_search`, `mnemo_status`, `mnemo_sessions`, `mnemo_read_session`.
+
+## Google Drive local mirror
+
+Google Drive for desktop mirrors all Drive content at
+`~/Library/CloudStorage/GoogleDrive-marcelo.cantos@gmail.com/` (`My Drive/` +
+`Shared drives/`, e.g. `Shared drives/Minicades SD2/` for Minicades art
+drops). Read files there directly instead of the Drive MCP connector, which
+caps downloads at 10 MB and returns base64. Files hydrate on first read —
+large ones may take a moment. The Drive MCP tools remain useful for search
+and metadata; the mirror is for content.
 
 ## Tools, output & task conventions
 

@@ -350,9 +350,11 @@ B.5 (release notes), B.6 (release.yml creation), and B.7 (gate check incl. tests
 
 1. As soon as B.4 step 2 has decided the version, kick off B.7's test run in the background:
    ```
-   Bash(command: "<project-test-command>", run_in_background: true)
+   Bash(command: "<ci-test-command>", run_in_background: true)
    ```
    The harness will notify when the test run finishes — do not poll, do not sleep.
+
+   **`<ci-test-command>` is CI's exact test invocation, not the project's default.** Read the test step out of the CI workflow (`grep -A2 'go test\|cargo test\|pytest\|npm test' .github/workflows/*.yml`) and run *that* command verbatim — flags included. Divergence here ships green-locally/red-on-CI failures: sawmill v0.17.0's release-prep tests passed locally with the documented `go test ./... -count=1` while CI ran `-count=1 -race` and failed the PR (the `-race`-adjacent slowdown exposed a real timing bug that fast local runs masked). If the project's `make test` / documented command differs from CI's, that divergence is itself a release-PR fix: align the Makefile (or docs) with CI, and prefer adding a `scripts/hooks/pre-push` hook running the CI-identical suite so the gap stays closed. When no CI workflow exists, fall back to the project's documented test command.
 2. In the foreground, draft release notes (B.5) and write the workflow file (B.6, if needed). These are file edits and `git add` / `git commit` operations on the parent's working tree; they don't conflict with the background test run.
 3. When the test-run notification arrives, fold its result into the gate check (B.7).
 4. Only after all three substeps are settled do you commit the bundled release-prep changes and push the PR.
