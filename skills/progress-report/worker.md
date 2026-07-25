@@ -109,11 +109,45 @@ per-repo globs from the progress-reports fleet file
 never fold them into Metrics ☲. Commits that only touch excluded paths still
 count toward ℂ.
 
+### Maintain `data/line-excludes.yaml` (mandatory check)
+
+While scanning repos and reading diffs, **actively maintain** the fleet exclude
+file:
+
+`~/work/github.com/marcelocantos/progress-reports/data/line-excludes.yaml`
+
+Do this **before** freezing headline ☲ for the draft (re-run `gather.sh` for
+the week if you change the file mid-pass).
+
+**When to add or extend entries**
+
+| Situation | Action |
+|-----------|--------|
+| **New repo** appears in gather output | Inspect tree for goldens, fixtures, verdicts, amalgamations, generated corpora, lifted third-party trees outside `vendor/`. Add an `org/repo:` block if any would materially inflate ☲. |
+| **New bulk content** in an existing repo | Same inspection for paths first seen this week (new `golden/`, `verdicts/`, `testdata/`, `fixtures/`, large amalgamation, Unity-regenerated dumps, etc.). Append globs under that `org/repo:` key. |
+| **Existing exclude still wrong** | Tighten or broaden globs if `landed-excluded` is huge but product source is still polluted, or if over-exclusion is dropping real authored code. |
+
+**What to list:** non-authored or oracle/fixture bulk that must stay committed
+but should not score as hand-authored source. Prefer directory globs
+(`verdicts/**`, `golden/**`) over one-off files.
+
+**What not to list:** ordinary product source and tests; paths already covered
+by `**/vendor/**` or `**/node_modules/**` (optional to document, not required).
+
+**How to verify:** after editing, re-run `gather.sh` for the same window and
+confirm the repo’s `landed:` kloc is plausible and `landed-excluded` / 
+`exclude-config:` reflect the new globs. Stage the updated
+`data/line-excludes.yaml` with the weekly report (Phase 3).
+
+**Draft disclosure:** if you added or changed excludes this run, say so briefly
+in the metrics honesty note (which `org/repo` globs, why).
+
 Then follow guide sections 1.1–1.5 and section 4 (authorship). Use `~/work/github.com/` as the scan root.
 
-For each active repo, read commit diffs to understand the substance of the changes. Use parallel subagents where possible (e.g. one per organisation or per repo) for the deeper analysis.
+For each active repo, read commit diffs to understand the substance of the changes. Use parallel subagents where possible (e.g. one per organisation or per repo) for the deeper analysis. **While doing so, apply the line-excludes maintenance check above** — new repos and new bulk paths are the primary triggers.
 
-Present a summary of active repos, commit counts, and key themes before proceeding.
+Present a summary of active repos, commit counts, key themes, and any
+`line-excludes.yaml` updates before proceeding.
 
 ## Phase 2: Write the report
 
