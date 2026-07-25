@@ -102,11 +102,12 @@ This script scans all repos under `~/work/` for commits in the half-open window
 `[start, end)`, collecting per-repo commit logs and diff stats. Parse its output
 to identify active repos and key metrics.
 
-**Line stats exclude `**/vendor/**` and `**/node_modules/**`** (pathspecs in
-`gather.sh`). Headline ☲ and per-repo ±lines use the `landed:` line only. When a
-repo also has `landed-vendor-excluded: +N/-M`, footnote that bulk — do not fold
-it into the Metrics table or the executive-summary key metrics line. Commits that
-only touch vendor still count toward ℂ.
+**Line stats** exclude global `**/vendor/**` and `**/node_modules/**`, plus
+per-repo globs from the progress-reports fleet file
+`data/line-excludes.yaml` (see `exclude-schema.md`). Headline ☲ uses the
+`landed:` line only. Footnote `landed-excluded: +N/-M` and `exclude-config:` —
+never fold them into Metrics ☲. Commits that only touch excluded paths still
+count toward ℂ.
 
 Then follow guide sections 1.1–1.5 and section 4 (authorship). Use `~/work/github.com/` as the scan root.
 

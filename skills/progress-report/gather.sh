@@ -49,22 +49,110 @@ WORK_ROOT="$HOME/work"
 # daily breakdown (this bit a Unity repo's iOS build dir in a prior run).
 PRUNE_DIRS=(vendor node_modules .build build Build Builds Library Temp obj Pods DerivedData)
 
-# Pathspecs excluded from *line* stats (insertions/deletions/files changed).
-# Commits still count if they touch only these paths; we just refuse to let
-# vendored trees inflate ☲. These are intentional copies (ge→spyder player
-# vendor snapshots, amalgamation drops under vendor/src, header trees under
-# vendor/include, …) — kept in-repo for builds, ignored for progress honesty.
-# git pathspec magic: exclude every path under a directory named vendor or
-# node_modules at any depth (player/vendor, third_party/vendor, …).
-STAT_EXCLUDE_PATHSPECS=(
+# Global pathspecs always excluded from *line* stats (insertions/deletions/
+# files changed). Commits still count if they only touch these paths.
+# Per-repo extras: single fleet file in the progress-reports repo
+# (data/line-excludes.yaml) — see exclude-schema.md. Override path with
+# PROGRESS_LINE_EXCLUDES.
+STAT_EXCLUDE_DEFAULTS=(
     ':(exclude,glob)**/vendor/**'
     ':(exclude,glob)**/node_modules/**'
 )
-# Inverse of the above — used only for an optional "excluded bulk" footnote.
-STAT_VENDOR_ONLY_PATHSPECS=(
+STAT_EXCLUDE_ONLY_DEFAULTS=(
     ':(glob)**/vendor/**'
     ':(glob)**/node_modules/**'
 )
+
+PROGRESS_REPORTS_DIR="${PROGRESS_REPORTS_DIR:-$HOME/work/github.com/marcelocantos/progress-reports}"
+LINE_EXCLUDES_FILE="${PROGRESS_LINE_EXCLUDES:-$PROGRESS_REPORTS_DIR/data/line-excludes.yaml}"
+
+# Strip a YAML list-item path (quotes, inline comments, whitespace).
+_yaml_list_path() {
+    local pat="$1"
+    pat="${pat%%#*}"
+    pat="${pat#"${pat%%[![:space:]]*}"}"
+    pat="${pat%"${pat##*[![:space:]]}"}"
+    if [[ "$pat" == \"*\" && "$pat" == *\" ]]; then
+        pat="${pat:1:${#pat}-2}"
+    elif [[ "$pat" == \'*\' && "$pat" == *\' ]]; then
+        pat="${pat:1:${#pat}-2}"
+    fi
+    printf '%s' "$pat"
+}
+
+# Parse LINE_EXCLUDES_FILE once into:
+#   LINE_EXCLUDE_INDEX  — temp file of "org/repo|glob" rows
+#   EXTRA_DEFAULT_GLOBS — array of extra global globs from `defaults:`
+# YAML subset only (no anchors/multiline). Safe if the file is missing.
+LINE_EXCLUDE_INDEX="$(mktemp)"
+EXTRA_DEFAULT_GLOBS=()
+trap 'rm -f "$tmpfile" "$LINE_EXCLUDE_INDEX"' EXIT
+
+if [[ -f "$LINE_EXCLUDES_FILE" ]]; then
+    section=""   # defaults | repos | (empty)
+    cur_repo=""
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        line="${line%$'\r'}"
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ -z "${line// /}" ]] && continue
+
+        if [[ "$line" =~ ^defaults:[[:space:]]*$ ]]; then
+            section=defaults
+            cur_repo=""
+            continue
+        fi
+        if [[ "$line" =~ ^repos:[[:space:]]*$ ]]; then
+            section=repos
+            cur_repo=""
+            continue
+        fi
+        # Other top-level key
+        if [[ "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*: ]] && [[ ! "$line" =~ ^[[:space:]] ]]; then
+            section=""
+            cur_repo=""
+            continue
+        fi
+
+        # Under repos: "  org/repo:" (2-space indent, key ends with :)
+        if [[ "$section" == "repos" && "$line" =~ ^[[:space:]]{2}([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+):[[:space:]]*$ ]]; then
+            cur_repo="${BASH_REMATCH[1]}"
+            continue
+        fi
+
+        # List item
+        if [[ "$line" =~ ^[[:space:]]+-[[:space:]]+(.+)$ ]]; then
+            pat="$(_yaml_list_path "${BASH_REMATCH[1]}")"
+            [[ -z "$pat" ]] && continue
+            if [[ "$section" == "defaults" ]]; then
+                EXTRA_DEFAULT_GLOBS+=("$pat")
+            elif [[ "$section" == "repos" && -n "$cur_repo" ]]; then
+                printf '%s|%s\n' "$cur_repo" "$pat" >> "$LINE_EXCLUDE_INDEX"
+            fi
+        fi
+    done < "$LINE_EXCLUDES_FILE"
+fi
+
+# Merge hard-coded defaults + optional defaults: from the fleet file.
+for g in "${EXTRA_DEFAULT_GLOBS[@]+"${EXTRA_DEFAULT_GLOBS[@]}"}"; do
+    STAT_EXCLUDE_DEFAULTS+=(":(exclude,glob)${g}")
+    STAT_EXCLUDE_ONLY_DEFAULTS+=(":(glob)${g}")
+done
+
+# Look up org/repo label in the fleet index. Sets REPO_EXCLUDE_* arrays.
+load_repo_excludes() {
+    local label="$1"
+    REPO_EXCLUDE_SPECS=()
+    REPO_EXCLUDE_ONLY_SPECS=()
+    REPO_EXCLUDE_LABELS=()
+    [[ -s "$LINE_EXCLUDE_INDEX" ]] || return 0
+    local pat
+    while IFS= read -r pat; do
+        [[ -z "$pat" ]] && continue
+        REPO_EXCLUDE_SPECS+=(":(exclude,glob)${pat}")
+        REPO_EXCLUDE_ONLY_SPECS+=(":(glob)${pat}")
+        REPO_EXCLUDE_LABELS+=("$pat")
+    done < <(awk -F'|' -v l="$label" '$1==l {print $2}' "$LINE_EXCLUDE_INDEX")
+}
 
 # Emit each repo's .git directory under WORK_ROOT (sorted), pruning PRUNE_DIRS
 # at any depth. Submodules have a .git *file* (gitlink), not a dir, so
@@ -114,15 +202,16 @@ AUTHOR="$(git config --global user.name 2>/dev/null || true)"
 
 # Collect results into a temp file so we can count and sort.
 tmpfile="$(mktemp)"
-trap 'rm -f "$tmpfile"' EXIT
+trap 'rm -f "$tmpfile" "$LINE_EXCLUDE_INDEX"' EXIT
 
 total_landed=0
 total_inflight=0
 total_repos=0
 total_ins=0
 total_del=0
-total_vendor_ins=0
-total_vendor_del=0
+total_excl_ins=0
+total_excl_del=0
+repos_with_local_excludes=0
 
 # Determine a repo's default branch. Prefers origin/HEAD, then master, then
 # main, then the currently checked-out branch. Echoes the branch name.
@@ -194,37 +283,45 @@ while IFS= read -r gitdir; do
     inflight_count=0
     [[ -n "$inflight_log" ]] && inflight_count="$(echo "$inflight_log" | wc -l | tr -d ' ')"
 
-    # Landed diff stats (the headline churn — what actually shipped).
-    # Pathspecs drop vendor/node_modules trees so cross-repo copies of
-    # amalgamations (sqlite3.c) and header drops do not dominate ☲.
+    # Per-repo excludes from progress-reports data/line-excludes.yaml.
+    load_repo_excludes "$repo_label"
+    exclude_specs=("${STAT_EXCLUDE_DEFAULTS[@]}" "${REPO_EXCLUDE_SPECS[@]+"${REPO_EXCLUDE_SPECS[@]}"}")
+    exclude_only_specs=("${STAT_EXCLUDE_ONLY_DEFAULTS[@]}" "${REPO_EXCLUDE_ONLY_SPECS[@]+"${REPO_EXCLUDE_ONLY_SPECS[@]}"}")
+    if [[ ${#REPO_EXCLUDE_SPECS[@]} -gt 0 ]]; then
+        repos_with_local_excludes=$((repos_with_local_excludes + 1))
+    fi
+
+    # Landed diff stats (headline churn — what shipped, minus excluded paths).
     landed_stat="$(git -C "$repo_dir" log "$default_branch" --since="$SINCE_ARG" \
         "${until_args[@]}" "${author_args[@]}" --no-merges --shortstat --format="" \
-        -- . "${STAT_EXCLUDE_PATHSPECS[@]}" 2>/dev/null | sum_shortstat)"
+        -- . "${exclude_specs[@]}" 2>/dev/null | sum_shortstat)"
     read -r l_files l_ins l_del <<< "$landed_stat"
 
-    # Vendored bulk that was excluded above — reported only when non-zero so
-    # the worker can footnote "excluded +N vendor" without re-scanning.
-    landed_vendor_stat="$(git -C "$repo_dir" log "$default_branch" --since="$SINCE_ARG" \
+    # Bulk that was excluded — footnote only when non-zero.
+    landed_excl_stat="$(git -C "$repo_dir" log "$default_branch" --since="$SINCE_ARG" \
         "${until_args[@]}" "${author_args[@]}" --no-merges --shortstat --format="" \
-        -- "${STAT_VENDOR_ONLY_PATHSPECS[@]}" 2>/dev/null | sum_shortstat)"
-    read -r v_files v_ins v_del <<< "$landed_vendor_stat"
+        -- "${exclude_only_specs[@]}" 2>/dev/null | sum_shortstat)"
+    read -r x_files x_ins x_del <<< "$landed_excl_stat"
 
     # In-flight diff stats (work-in-progress churn, reported separately).
     inflight_stat="$(git -C "$repo_dir" log --all --not "$default_branch" --since="$SINCE_ARG" \
         "${until_args[@]}" "${author_args[@]}" --no-merges --shortstat --format="" \
-        -- . "${STAT_EXCLUDE_PATHSPECS[@]}" 2>/dev/null | sum_shortstat)"
+        -- . "${exclude_specs[@]}" 2>/dev/null | sum_shortstat)"
     read -r f_files f_ins f_del <<< "$inflight_stat"
 
     # Write this repo's block to the temp file.
     {
         echo "# repo: $repo_label (default branch: $default_branch)"
         echo "$landed_log"
-        echo "landed: $landed_count commits, $l_files file changes, +$l_ins/-$l_del (on $default_branch; excl. vendor/node_modules)"
-        if [[ "${v_ins:-0}" -gt 0 || "${v_del:-0}" -gt 0 ]]; then
-            echo "landed-vendor-excluded: $v_files file changes, +$v_ins/-$v_del (under vendor/ or node_modules/ — not in headline)"
+        echo "landed: $landed_count commits, $l_files file changes, +$l_ins/-$l_del (on $default_branch; excl. progress-report paths)"
+        if [[ ${#REPO_EXCLUDE_LABELS[@]} -gt 0 ]]; then
+            echo "exclude-config: line-excludes.yaml[$repo_label] → ${REPO_EXCLUDE_LABELS[*]}"
+        fi
+        if [[ "${x_ins:-0}" -gt 0 || "${x_del:-0}" -gt 0 ]]; then
+            echo "landed-excluded: $x_files file changes, +$x_ins/-$x_del (defaults + line-excludes.yaml — not in headline)"
         fi
         if [[ "$inflight_count" -gt 0 ]]; then
-            echo "in-flight: $inflight_count commits, $f_files file changes, +$f_ins/-$f_del (unmerged branches; excl. vendor/node_modules)"
+            echo "in-flight: $inflight_count commits, $f_files file changes, +$f_ins/-$f_del (unmerged branches; excl. progress-report paths)"
         fi
         echo ""
     } >> "$tmpfile"
@@ -234,8 +331,8 @@ while IFS= read -r gitdir; do
     total_repos=$((total_repos + 1))
     total_ins=$((total_ins + l_ins))
     total_del=$((total_del + l_del))
-    total_vendor_ins=$((total_vendor_ins + v_ins))
-    total_vendor_del=$((total_vendor_del + v_del))
+    total_excl_ins=$((total_excl_ins + x_ins))
+    total_excl_del=$((total_excl_del + x_del))
 
 done < <(find_repos)
 
@@ -252,10 +349,12 @@ echo "# summary"
 echo "Repos with activity: $total_repos"
 echo "Total landed commits: $total_landed"
 echo "Total in-flight commits: $total_inflight"
-echo "Total landed lines (excl. vendor/node_modules): +$total_ins/-$total_del"
-if [[ "$total_vendor_ins" -gt 0 || "$total_vendor_del" -gt 0 ]]; then
-    echo "Total landed lines under vendor/node_modules (excluded from headline): +$total_vendor_ins/-$total_vendor_del"
+echo "Total landed lines (excl. progress-report paths): +$total_ins/-$total_del"
+if [[ "$total_excl_ins" -gt 0 || "$total_excl_del" -gt 0 ]]; then
+    echo "Total landed lines excluded from headline: +$total_excl_ins/-$total_excl_del"
 fi
+echo "Repos with line-excludes.yaml entries: $repos_with_local_excludes"
+echo "Line excludes file: $LINE_EXCLUDES_FILE"
 echo "Period: since \"$SINCE\""
 if [[ -n "$AUTHOR" ]]; then
     echo "Author filter: $AUTHOR"
@@ -264,8 +363,8 @@ else
 fi
 echo "Note: headline metrics count landed (default-branch) commits only;"
 echo "in-flight commits live on unmerged branches and are reported separately."
-echo 'Note: line stats exclude paths under **/vendor/** and **/node_modules/**'
-echo '(kept in-repo for builds; omitted from ☲ so cross-repo vendor copies do not dominate).'
+echo 'Note: line stats always exclude **/vendor/** and **/node_modules/**,'
+echo 'plus globs in progress-reports data/line-excludes.yaml (per org/repo).'
 
 # Daily active repo counts.
 # For each day from SINCE to today, count how many repos had at least one
