@@ -86,7 +86,7 @@ _yaml_list_path() {
 # YAML subset only (no anchors/multiline). Safe if the file is missing.
 LINE_EXCLUDE_INDEX="$(mktemp)"
 EXTRA_DEFAULT_GLOBS=()
-trap 'rm -f "$tmpfile" "$LINE_EXCLUDE_INDEX"' EXIT
+# Trap set after tmpfile is created (below) so both temps are cleaned.
 
 if [[ -f "$LINE_EXCLUDES_FILE" ]]; then
     section=""   # defaults | repos | (empty)
