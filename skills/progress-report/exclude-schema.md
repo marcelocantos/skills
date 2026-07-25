@@ -45,6 +45,18 @@ repos:
 - Generated trees that must stay committed but should not score as authorship
 - Amalgamations **not** under `vendor/` (prefer moving under `vendor/` long-term)
 
+### Maintenance (every `/progress-report` run)
+
+`worker.md` requires the agent to **consider updating this file** whenever it:
+
+1. Sees a **new repo** in gather output, or
+2. Sees **new bulk content** in an existing repo (first-time goldens, verdicts,
+   fixtures, amalgamations, generated dumps, etc.).
+
+Workflow: edit globs → re-run `gather.sh` for the week → use the new `landed:`
+figures in the draft → stage `data/line-excludes.yaml` with the report commit.
+Do **not** put `.progress-report.yaml` (or similar) inside project repos.
+
 ### gather.sh output
 
 ```

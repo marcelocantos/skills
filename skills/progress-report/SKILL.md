@@ -30,9 +30,13 @@ Follow guide section 6 for the README updates, then publish:
    generalist-years + multiplier, net-lines activity signal) — see guide
    section 6. It is a scannable mirror of the Totals, not a new source of
    figures.
-5. Stage the new report, updated README, achievements, charts, and cache
-   together in a single commit on `master`.
+5. Stage the new report, updated README, achievements, charts, cache, and
+   any `data/line-excludes.yaml` updates from the worker together in a
+   single commit on `master`.
 6. Push: `git push`.
+
+The worker must keep `data/line-excludes.yaml` current (new repos / new
+fixture-or-vendor-like bulk) — see `worker.md` and `exclude-schema.md`.
 
 When the worker produced **multiple single-week reports** (a catch-up run
 covering more than one pending week), repeat steps 2–3 once per week — one
