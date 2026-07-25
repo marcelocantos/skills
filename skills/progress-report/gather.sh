@@ -49,6 +49,23 @@ WORK_ROOT="$HOME/work"
 # daily breakdown (this bit a Unity repo's iOS build dir in a prior run).
 PRUNE_DIRS=(vendor node_modules .build build Build Builds Library Temp obj Pods DerivedData)
 
+# Pathspecs excluded from *line* stats (insertions/deletions/files changed).
+# Commits still count if they touch only these paths; we just refuse to let
+# vendored trees inflate ☲. These are intentional copies (ge→spyder player
+# vendor snapshots, amalgamation drops under vendor/src, header trees under
+# vendor/include, …) — kept in-repo for builds, ignored for progress honesty.
+# git pathspec magic: exclude every path under a directory named vendor or
+# node_modules at any depth (player/vendor, third_party/vendor, …).
+STAT_EXCLUDE_PATHSPECS=(
+    ':(exclude,glob)**/vendor/**'
+    ':(exclude,glob)**/node_modules/**'
+)
+# Inverse of the above — used only for an optional "excluded bulk" footnote.
+STAT_VENDOR_ONLY_PATHSPECS=(
+    ':(glob)**/vendor/**'
+    ':(glob)**/node_modules/**'
+)
+
 # Emit each repo's .git directory under WORK_ROOT (sorted), pruning PRUNE_DIRS
 # at any depth. Submodules have a .git *file* (gitlink), not a dir, so
 # `-type d` already skips them; this additionally prunes nested independent
@@ -102,6 +119,10 @@ trap 'rm -f "$tmpfile"' EXIT
 total_landed=0
 total_inflight=0
 total_repos=0
+total_ins=0
+total_del=0
+total_vendor_ins=0
+total_vendor_del=0
 
 # Determine a repo's default branch. Prefers origin/HEAD, then master, then
 # main, then the currently checked-out branch. Echoes the branch name.
@@ -174,22 +195,36 @@ while IFS= read -r gitdir; do
     [[ -n "$inflight_log" ]] && inflight_count="$(echo "$inflight_log" | wc -l | tr -d ' ')"
 
     # Landed diff stats (the headline churn — what actually shipped).
+    # Pathspecs drop vendor/node_modules trees so cross-repo copies of
+    # amalgamations (sqlite3.c) and header drops do not dominate ☲.
     landed_stat="$(git -C "$repo_dir" log "$default_branch" --since="$SINCE_ARG" \
-        "${until_args[@]}" "${author_args[@]}" --no-merges --shortstat --format="" 2>/dev/null | sum_shortstat)"
+        "${until_args[@]}" "${author_args[@]}" --no-merges --shortstat --format="" \
+        -- . "${STAT_EXCLUDE_PATHSPECS[@]}" 2>/dev/null | sum_shortstat)"
     read -r l_files l_ins l_del <<< "$landed_stat"
+
+    # Vendored bulk that was excluded above — reported only when non-zero so
+    # the worker can footnote "excluded +N vendor" without re-scanning.
+    landed_vendor_stat="$(git -C "$repo_dir" log "$default_branch" --since="$SINCE_ARG" \
+        "${until_args[@]}" "${author_args[@]}" --no-merges --shortstat --format="" \
+        -- "${STAT_VENDOR_ONLY_PATHSPECS[@]}" 2>/dev/null | sum_shortstat)"
+    read -r v_files v_ins v_del <<< "$landed_vendor_stat"
 
     # In-flight diff stats (work-in-progress churn, reported separately).
     inflight_stat="$(git -C "$repo_dir" log --all --not "$default_branch" --since="$SINCE_ARG" \
-        "${until_args[@]}" "${author_args[@]}" --no-merges --shortstat --format="" 2>/dev/null | sum_shortstat)"
+        "${until_args[@]}" "${author_args[@]}" --no-merges --shortstat --format="" \
+        -- . "${STAT_EXCLUDE_PATHSPECS[@]}" 2>/dev/null | sum_shortstat)"
     read -r f_files f_ins f_del <<< "$inflight_stat"
 
     # Write this repo's block to the temp file.
     {
         echo "# repo: $repo_label (default branch: $default_branch)"
         echo "$landed_log"
-        echo "landed: $landed_count commits, $l_files file changes, +$l_ins/-$l_del (on $default_branch)"
+        echo "landed: $landed_count commits, $l_files file changes, +$l_ins/-$l_del (on $default_branch; excl. vendor/node_modules)"
+        if [[ "${v_ins:-0}" -gt 0 || "${v_del:-0}" -gt 0 ]]; then
+            echo "landed-vendor-excluded: $v_files file changes, +$v_ins/-$v_del (under vendor/ or node_modules/ — not in headline)"
+        fi
         if [[ "$inflight_count" -gt 0 ]]; then
-            echo "in-flight: $inflight_count commits, $f_files file changes, +$f_ins/-$f_del (unmerged branches)"
+            echo "in-flight: $inflight_count commits, $f_files file changes, +$f_ins/-$f_del (unmerged branches; excl. vendor/node_modules)"
         fi
         echo ""
     } >> "$tmpfile"
@@ -197,6 +232,10 @@ while IFS= read -r gitdir; do
     total_landed=$((total_landed + landed_count))
     total_inflight=$((total_inflight + inflight_count))
     total_repos=$((total_repos + 1))
+    total_ins=$((total_ins + l_ins))
+    total_del=$((total_del + l_del))
+    total_vendor_ins=$((total_vendor_ins + v_ins))
+    total_vendor_del=$((total_vendor_del + v_del))
 
 done < <(find_repos)
 
@@ -213,6 +252,10 @@ echo "# summary"
 echo "Repos with activity: $total_repos"
 echo "Total landed commits: $total_landed"
 echo "Total in-flight commits: $total_inflight"
+echo "Total landed lines (excl. vendor/node_modules): +$total_ins/-$total_del"
+if [[ "$total_vendor_ins" -gt 0 || "$total_vendor_del" -gt 0 ]]; then
+    echo "Total landed lines under vendor/node_modules (excluded from headline): +$total_vendor_ins/-$total_vendor_del"
+fi
 echo "Period: since \"$SINCE\""
 if [[ -n "$AUTHOR" ]]; then
     echo "Author filter: $AUTHOR"
@@ -221,6 +264,8 @@ else
 fi
 echo "Note: headline metrics count landed (default-branch) commits only;"
 echo "in-flight commits live on unmerged branches and are reported separately."
+echo "Note: line stats exclude paths under **/vendor/** and **/node_modules/**"
+echo "(kept in-repo for builds; omitted from ☲ so cross-repo vendor copies do not dominate)."
 
 # Daily active repo counts.
 # For each day from SINCE to today, count how many repos had at least one
