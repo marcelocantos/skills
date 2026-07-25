@@ -264,8 +264,8 @@ else
 fi
 echo "Note: headline metrics count landed (default-branch) commits only;"
 echo "in-flight commits live on unmerged branches and are reported separately."
-echo "Note: line stats exclude paths under **/vendor/** and **/node_modules/**"
-echo "(kept in-repo for builds; omitted from ☲ so cross-repo vendor copies do not dominate)."
+echo 'Note: line stats exclude paths under **/vendor/** and **/node_modules/**'
+echo '(kept in-repo for builds; omitted from ☲ so cross-repo vendor copies do not dominate).'
 
 # Daily active repo counts.
 # For each day from SINCE to today, count how many repos had at least one
