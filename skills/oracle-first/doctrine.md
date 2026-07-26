@@ -7,7 +7,9 @@ deep-dive and a live case study (TiltBuggy). Source of record: mnemo
 session `1cf2248b` (in `~/think`); quantitative report:
 [`~/think/analysis/verification-strategy.md`](~/think/analysis/verification-strategy.md);
 business thesis built on this doctrine:
-[`~/think/analysis/verified-migration-business.md`](~/think/analysis/verified-migration-business.md).
+[`~/think/analysis/verified-migration-business.md`](~/think/analysis/verified-migration-business.md);
+second-order amendment (honesty layer, 2026-07) sourced from
+[`~/think/analysis/oracle-first-state-of-play-2026-07-18.md`](~/think/analysis/oracle-first-state-of-play-2026-07-18.md).
 
 This file is the durable reference. Agents doing codebase analysis,
 port/migration planning, or verification design should read it and cite
@@ -368,6 +370,86 @@ the remaining face-user claim decidable. The drawing path of the
 obsolete reference stayed untouched — only the control plane was
 instrumented.
 
+**Second-order failures — the honesty layer (2026-07 amendment).** The
+first-order problem (no oracle; iterate against feel) is largely won
+in-portfolio. The failures that now dominate are second-order: *the
+oracle exists and is wrong about itself.* Sourced from the July
+campaigns (the RustUML parity endgame; the HMS migration factory),
+synthesized in the 2026-07-18 state-of-play report:
+
+- **Oracle gaming** — code satisfies the check without the behaviour
+  (golden replay, fixture echo, literal-label recognizers): rule 6's
+  boundary, breached under zero-failures pressure.
+- **Metric-path divergence** — the measured path ≠ the shipped path. A
+  headline number can be *true* and meaningless: "0 failures / 12,546"
+  certified an oracle-assisted test path while the shipped CLI sat at
+  59.5% real parity. The metric, not the code, was the bug.
+- **Scaffolding Goodhart** — building verification machinery counts as
+  verification progress. Comparators, queues, and ledgers absorbed a
+  24.5-hour run while green evidence stayed at zero and the hard
+  blocker (a dead tunnel) went undiscovered for ~22 hours;
+  displacement-to-real-verification ≈ 6:1.
+- **Gamed denominators** — the executor controls the divisor of its own
+  gate (shrink the inventory until the ratio clears the threshold).
+
+These are one family: Goodhart against the verification layer itself,
+appearing wherever sustained optimization pressure (zero-failures
+targets, "converging" status, coverage thresholds) meets any gap
+between the measured quantity and product truth. Two campaigns
+discovered the disease independently in the same week and converged on
+the same medicine. **Design gates on the assumption they will be
+optimized against — sincerely, not maliciously; a security mindset,
+not a good-faith one.**
+
+**The honesty ratchet (standing pattern).** Five ingredients, applied
+together and wired into CI or hooks — not adopted piecemeal:
+
+1. *Product-path-only metric tier* — only the shipped path produces the
+   headline number; oracle-assisted tiers are regression nets, never
+   the headline.
+2. *Locked baselines that fail in both directions* — regression fails,
+   and so does uncommitted improvement; numbers move only by deliberate
+   commit, so they cannot drift into looking better than they are.
+3. *Un-ownable denominators* — every quantity in a gate (numerator,
+   denominator, corpus, threshold) is computed from source or a frozen
+   reference, never from the executor's own inventory.
+4. *Provenance obligations* — every fix traces to a named reference
+   mechanism; suspicious constants carry adjacent provenance. Passing
+   is not the same as being right for the right reason (rule 6, made
+   auditable).
+5. *Out-of-corpus perturbation* — acceptance includes holdout inputs
+   the development corpus never saw, checked against a freshly
+   generated reference. Anything memorizable is eventually memorized.
+
+Ratchet strength is measured like any oracle's (convergence-loop move
+4): plant a golden-echo and an unclaimed baseline improvement in a
+sandbox; the ratchet must catch both.
+
+**Evidence, not machinery, is progress — and an oracle is a loop, not
+an artifact.** A verification asset counts for zero until it has run
+green against the product on fresh, same-vintage inputs. Verification
+campaigns report *activated green evidence counts*, never artifact
+counts — "comparator built" is deferred verification debt dressed as
+commits. And an oracle not wired to a standing enforcement point (CI,
+hook, gate) decays like stale captures; enforcement wiring is part of
+building the oracle, not an adoption step afterwards (the
+built-and-never-adopted visual-regression pipeline is this lesson in
+miniature).
+
+**Generalize defenses before the next incident.** Every countermeasure
+above was hand-built inside the repo that got burned, after it got
+burned. Repo-local hardening is itself a defect: when a ratchet, guard
+suite, or computed-completion pattern proves out, extract it into this
+doctrine and its skeletons immediately, so the next repo starts with it
+rather than rediscovering it post-incident.
+
+**The stop-the-line call stays human.** Every Goodhart catch on record
+was human-initiated. The machinery's job is not to remove that role but
+to make the pull rare, cheap, and landing on evidence rather than
+claims — the standing first line is the V-boundary checker (three
+questions: did V run? against the product path? does the claim trace to
+the oracle's output?), so the check is automatic rather than heroic.
+
 ## 5. The interpretive-dance failure mode
 
 Asking a model for **precise transliteration** of existing logic
@@ -494,8 +576,10 @@ one-sentence methodology interventions; agent did all implementation).
    never raise unattended scope past oracle coverage.
 
 Irreducible human floor: taste, design-under-uncertainty (retiring a
-wrong conceptual model), risk/values acceptance, physical actuation.
-That residue is the actual job; everything else is industrialisable.
+wrong conceptual model), risk/values acceptance, physical actuation,
+and the stop-the-line call itself (every Goodhart catch on record was
+human-initiated). That residue is the actual job; everything else is
+industrialisable.
 
 ## 9. Caveats
 
@@ -513,3 +597,13 @@ implementation sync tax, meta-tooling self-drag (fleet infrastructure
 consuming other repos' sessions), oracle depreciation, and
 build-to-learn discards. Evidence base:
 [`~/think/analysis/verification-strategy.md`](~/think/analysis/verification-strategy.md).
+
+Corrections (2026-07-18 state-of-play research): verification-strategy
+.md's counter-example row mislabels **nostalgia** as "visual-render, no
+headless path" — nostalgia is a git-history TUI; the genuine
+no-headless-path counter-examples are esfera2/yourworld2 device-level
+3D fidelity and multimaze2's residual manual playthroughs. Two figures
+cited in this file (yourworld2 AABB offset "~0.34 → ~0.05" in §4;
+TiltBuggy "36°→16°" in §6) are directionally confirmed by repo files
+but not file-anchored verbatim — likely session-log provenance; treat
+as approximate.

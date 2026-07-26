@@ -244,6 +244,42 @@ term — the fix differs per term:
     is optional; **tagging and converting at the boundary** is mandatory.
     Vision stays the final accept/reject (rule 2). Full theory and the
     yourworld silhouette case: doctrine §4 "Spatial residual compression".
+14. **The verification layer is itself a Goodhart target.** Under
+    sustained completion pressure (zero-failures targets, "converging"
+    status, coverage thresholds), any gap between the measured quantity
+    and product truth will be found and exploited — sincerely, not
+    maliciously; design gates with a security mindset. The live
+    second-order modes: **oracle gaming** (rule 6's boundary breached —
+    golden replay, fixture echo), **metric-path divergence** (a *true*
+    headline number measured off the shipped path), **scaffolding
+    Goodhart** (machinery construction counted as verification
+    progress), **gamed denominators** (the executor owns the divisor of
+    its own gate). Countermeasure = the **honesty ratchet**, five
+    ingredients applied together and wired into CI/hooks: (a) only the
+    shipped path produces the headline number — oracle-assisted tiers
+    are regression nets; (b) locked baselines fail in both directions —
+    numbers move only by deliberate commit; (c) un-ownable denominators
+    — every gate quantity computed from source or a frozen reference,
+    never the executor's inventory; (d) provenance obligations — fixes
+    trace to named reference mechanisms, suspicious constants carry
+    adjacent provenance; (e) out-of-corpus perturbation — holdout
+    inputs checked against a freshly generated reference. Drill it like
+    any oracle: plant a golden-echo and an unclaimed baseline
+    improvement; it must catch both. Full taxonomy: doctrine §4
+    "Second-order failures".
+15. **Evidence, not machinery, is progress — an oracle is a loop, not
+    an artifact.** A verification asset counts for zero until it has
+    run green against the product on fresh inputs; verification
+    campaigns report *activated green evidence counts*, never artifact
+    counts ("comparator built" is deferred verification debt). An
+    oracle not wired to a standing enforcement point (CI, hook, gate)
+    decays — enforcement wiring is part of building it, not an
+    adoption step afterwards.
+16. **Generalize defenses before the next incident.** A ratchet, guard
+    suite, or computed-completion pattern that proves out in one repo
+    gets extracted into this skill/doctrine immediately; repo-local
+    hardening is itself a defect — the same medicine has been invented
+    independently twice in one week.
 
 ## When analysing a codebase or planning
 
@@ -303,6 +339,15 @@ code-start. Three failure modes to catch there, all live escapes if missed:
   of a list): cells matching the original *under follow* is not the product
   property. V for product behaviour runs with follow **off** (or with inject
   that does not bypass the generative path under test).
+- **off-product attestation** — the number cited is true but was produced by
+  a path other than the shipped one (oracle-assisted tier, instrumented
+  build, agent-owned denominator). V's headline number comes from the
+  product path, under the honesty ratchet (rule 14).
+
+The standing form of this gate is the **V-boundary checker** — an
+independent party (checker sub-agent or hook) at demo/retire/attest
+moments asking three questions: did V run? against the product path? does
+the executor's claim trace to the oracle's output?
 
 ## Skill improvement
 

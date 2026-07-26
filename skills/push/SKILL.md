@@ -97,12 +97,21 @@ Skip steps 2–9 in the direct-push case.
 
 ### 5. Wait for CI
 
-- Find the latest check suite for the PR's head SHA and monitor it:
+- Prefer **required** checks when the repo has any (ruleset / branch
+  protection). Non-required jobs (e.g. advisory cloud Windows while the
+  project gates on a local VM — mnemo/csp `windows-vm-validated`) must
+  not block the wait:
   ```
-  gh pr checks <number> --watch
+  if gh pr checks <number> --required 2>/dev/null | grep -q .; then
+    gh pr checks <number> --required --watch
+  else
+    gh pr checks <number> --watch
+  fi
   ```
-- If all checks pass, report success.
-- If any check fails:
+- If all watched checks pass, report success. Mention any still-running
+  or failed *non-required* checks as informational (do not treat them as
+  merge blockers).
+- If a watched check fails:
   1. Print the failed check names and their URLs.
   2. For each failure, fetch the log and diagnose the root cause:
      ```
