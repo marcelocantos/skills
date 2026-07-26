@@ -57,6 +57,10 @@ Before renaming a symbol, finding references, migrating an API across files, add
 
 At session start for any web-based project → [`web-development.md`](~/.claude/web-development.md) (smoke testing, deep links, sample data, visual verification).
 
+## Mobile development
+
+Before device onboarding, real-device deploy/smoke, fleet coverage or buy advice, or spyder-driven mobile work → [`mobile-development.md`](~/.claude/mobile-development.md) (spyder-first workflow, inventory, fleet matrix pointer, iOS ID trap). Lab coverage write-up: `~/think/lab/device-fleet-coverage.md`. Host Mac specs for ML are in [`hardware.md`](~/.claude/hardware.md) — not the phone shelf.
+
 ## Background processes and waiting
 
 - Never write `sleep N && <check>` — the harness blocks long leading sleeps, and the pattern can't react to early completion. If you catch yourself writing `sleep`, pick the right primitive below.
