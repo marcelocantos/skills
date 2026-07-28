@@ -31,14 +31,38 @@ gh pr merge "$pr" --squash --delete-branch 2> >(
 # 2. Fetch the updated remote (prune stale remote-tracking refs).
 git fetch origin --prune
 
-# 3. Switch to the default branch.
-git checkout "$default_branch"
+# 3/4. Sync the default branch to the squash-merged remote.
+#
+#    Normal case: check it out here and hard-reset (after a squash merge,
+#    local master has N pre-squash commits while origin has one squashed
+#    commit; rebase would replay the originals, reset is safe — the
+#    squash captured everything).
+#
+#    Worktree case: when the default branch is checked out in a DIFFERENT
+#    worktree (e.g. this script runs from a .claude/worktrees/* checkout
+#    while the main checkout holds master), git refuses to check it out
+#    here. Skipping the sync silently lets the main checkout drift
+#    further behind on every merge — instead, sync it *in place* over
+#    there, but only fast-forward and only if that tree is clean; any
+#    local commits or dirty state make it the owner's problem, reported
+#    loudly rather than touched.
+owner=$(git worktree list --porcelain | awk -v b="refs/heads/$default_branch" '
+    /^worktree /   { wt = substr($0, 10) }
+    $0 == "branch " b { print wt; exit }')
+here=$(git rev-parse --show-toplevel)
 
-# 4. Hard-reset to the squash-merged remote.
-#    After a squash merge, local master has N pre-squash commits while
-#    origin/master has one squashed commit. Rebase fails trying to
-#    replay the originals. Reset is safe — the squash captured everything.
-git reset --hard "origin/$default_branch"
+if [ -z "$owner" ] || [ "$owner" = "$here" ]; then
+    git checkout "$default_branch"
+    git reset --hard "origin/$default_branch"
+elif [ -z "$(git -C "$owner" status --porcelain --untracked-files=no)" ] \
+     && git -C "$owner" merge-base --is-ancestor "$default_branch" "origin/$default_branch"; then
+    git -C "$owner" merge --ff-only "origin/$default_branch"
+    echo "note: $default_branch fast-forwarded in its worktree at $owner"
+else
+    echo "WARNING: $default_branch is checked out at $owner but cannot be" >&2
+    echo "fast-forwarded (dirty tree or local commits). Sync it there with:" >&2
+    echo "    git -C $owner pull --rebase" >&2
+fi
 
 # 5. Delete the local feature branch (if it still exists).
 if git rev-parse --verify "$feature_branch" >/dev/null 2>&1; then
