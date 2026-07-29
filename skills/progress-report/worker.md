@@ -240,4 +240,25 @@ where the achievement is biggest.
 Include the updated `docs/achievements.md` in the draft output so the
 user can review changes alongside the report.
 
+### Per-repo pages
+
+Follow guide section 7 end to end:
+
+1. **Backfill sweep first** (guide 7.4): enumerate qualifying repos across
+   the whole series, fold aliases, diff against `docs/repos/*.md`, and
+   create any missing pages from the full series of reports. Use parallel
+   subagents when more than a couple of pages are missing. This is the
+   normal path for populating `docs/repos/` — never treat backfill as a
+   separate job.
+2. **Weekly maintenance** (guide 7.3): update the page of every repo with
+   a dedicated section in this week's report(s); create pages for repos
+   that crossed the inclusion threshold.
+3. **Index** (guide 7.5): keep `docs/repos/README.md` in sync — new pages
+   get category entries, below-threshold repos get "Minor appearances"
+   lines.
+
+In the draft output, list the page files created and updated (paths plus a
+one-phrase reason each) — do not inline full page text; the user reviews
+the files in the working tree.
+
 Return the full draft report text as your result.
