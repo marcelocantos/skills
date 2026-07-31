@@ -24,6 +24,7 @@ Also includes my global [`CLAUDE.md`](CLAUDE.md) directives and the [`convergenc
 - **[`/release`](skills/release/SKILL.md)** — Publish a release — version, release notes, CI, Homebrew tap, tag, and GitHub release.
 - **[`/remind`](skills/remind/SKILL.md)** — >
 - **[`/republish-skills`](skills/republish-skills/SKILL.md)** — Sync ~/.claude/skills/ to the marcelocantos/skills GitHub repo.
+- **[`/retro`](skills/retro/SKILL.md)** — Mine the last week of session transcripts for concrete improvements to the system itself — skills, tools, MCP servers, scripts, CLAUDE.md/AGENTS.md, permissions, hooks. Produces an evidence-backed, ranked proposal list, applies the approved ones, and files targets for the rest.
 - **[`/sync-globals`](skills/sync-globals/SKILL.md)** — sync-globals
 - **[`/target`](skills/target/SKILL.md)** — Manage targets — desired states for the project.
 - **[`/todo`](skills/todo/SKILL.md)** — Summarise and manage open TODOs for this project via mnemo, and triage them toward convergence targets.

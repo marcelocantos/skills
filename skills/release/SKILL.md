@@ -218,24 +218,60 @@ This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (lat
 
     Resolve this before committing any release-prep changes so Phases 4–5 have a clean working tree to operate on.
 
-13. **macOS CI shell-script compatibility (bash 3.2)**: GitHub's macOS
-    runners ship **bash 3.2** (Apple froze it at the last GPLv2 release), so
-    any shell script a macOS CI job invokes — or that a macOS end-user runs
-    with stock `/bin/bash` — must avoid bash 4+ features. Grep the scripts
-    `release.yml` (and `ci.yml`) run on macOS, plus any user-facing
-    build/install script the release distributes, for:
+13. **macOS shell-script compatibility (bash 3.2)**: macOS ships **bash 3.2**
+    (Apple froze it at the last GPLv2 release), so this applies to *every*
+    shell script the release distributes for anyone to run on a Mac — not just
+    the ones CI invokes, and not just build/install scripts. A product whose
+    runtime *is* a shell script (an ingest pipeline, a wrapper, a daemon
+    launcher) is the highest-risk case and the easiest to overlook, because
+    nothing in CI or on the dev Mac executes it under 3.2.
+
+    Constructs to grep for:
     - `declare -A` (associative arrays), `mapfile` / `readarray` — bash 4+,
-      hard failures (`declare: -A: invalid option`).
+      hard failures (`mapfile: command not found`, which `set -e` turns into an
+      aborted run).
     - `"${arr[@]}"` on a possibly-empty array under `set -u` — bash <4.4
       errors with "unbound variable"; needs the `${arr[@]+"${arr[@]}"}` guard.
-    `bash -n` does **not** catch these (they fail at runtime, not parse), so
-    grep for the tokens and, on this machine, verify by actually running the
-    script under `/bin/bash` — it is 3.2.57, the same version the runner has.
-    Any hit is a release-PR fix, not a post-tag surprise. This is a
-    parent-context grep, **not** part of the items 7–11 fan-out. The trap is
-    that the bug is invisible locally when Homebrew's bash 5.x shadows
-    `/bin/bash` on the dev Mac — it surfaces only on the runner, and if
-    `release.yml` builds it, only *after* the tag is cut.
+    - **Multi-line process substitution** — `< <(` whose body spans lines dies
+      at *runtime* with ``bad substitution: no closing `)' in <(``. Restructure
+      through a temp file.
+
+    `bash -n` catches **none** of these — including the process-substitution
+    case, which parses cleanly and then fails when reached. Grepping is a
+    starting point, not the check.
+
+    **The check is a CI job, not a grep.** A grep is a one-time audit that
+    decays the moment someone writes `mapfile` again; per the *Verification
+    honesty* directive, an oracle is a loop, not an artifact. If the project
+    distributes shell scripts for macOS, it needs a macOS CI job that:
+    - **asserts `/bin/bash` really is 3.x** — without this the job can pass
+      while testing nothing, which is worse than not having it;
+    - syntax-checks every distributed script under `/bin/bash`;
+    - runs the script test suite with bash 3.2 shimmed first on `PATH`
+      (`ln -sf /bin/bash "$RUNNER_TEMP/bash32/bash"`), so `#!/usr/bin/env bash`
+      in the scripts *and their test mocks* resolves to 3.2.
+
+    Verify locally the same way — `/bin/bash` on this machine is 3.2.57, the
+    same version the runner has. The trap is that the bug is invisible locally
+    when Homebrew's bash 5.x shadows `/bin/bash`, and invisible in CI when the
+    script suite runs on Ubuntu: neither oracle covers the combination that
+    actually fails.
+
+    **Sibling trap — missing GNU tools degrade silently.** The same class bites
+    without any bash-version involvement: macOS has no GNU `timeout`, `sed -i`
+    semantics differ, `stat` flags differ. A script that probes for a tool and
+    carries on without it (`TIMEOUT_BIN="$(command -v timeout || true)"`) turns
+    a missing dependency into a *silently disabled feature* — in one real case,
+    every per-call timeout and the run watchdog became no-ops, removing the
+    protection that stops a stalled call wedging all future scheduled runs.
+    Check that any such tool is a **declared formula dependency** (e.g.
+    `coreutils`), and that the CI job installs it so the guarded path is
+    genuinely exercised rather than skipped.
+
+    This is a parent-context check, **not** part of the items 7–11 fan-out.
+    Any hit is a release-PR fix, not a post-tag surprise — and if
+    `release.yml` builds the affected script, the surprise lands only *after*
+    the tag is cut.
 
 Proceed straight to B.3 — no approval prompt.
 
@@ -572,7 +608,7 @@ The split-in-time case only arises when the user has interrupted Phase B and ask
    rid=$(gh run list --workflow=release.yml --event workflow_dispatch --limit 1 --json databaseId -q '.[0].databaseId')
    gh run watch "$rid" --exit-status
    ```
-   Rationale: macOS runners use bash 3.2 (see B.1 item 13) and differ from the dev Mac (Homebrew bash 5.x shadows `/bin/bash`), so a script that builds locally can still fail only on the runner. Because the real build fires on `release: published` — i.e. *after* the tag exists — a script bug there forces a **re-cut** (delete + recreate the release and move the tag). The `workflow_dispatch` dry-run builds and link-tests without uploading, so it catches the failure while the tag can still move freely. This is the dynamic complement to B.1 item 13's static grep; run it whenever the release workflow's macOS path executes project shell scripts. Skip it otherwise.
+   Rationale: macOS runners use bash 3.2 (see B.1 item 13) and differ from the dev Mac (Homebrew bash 5.x shadows `/bin/bash`), so a script that builds locally can still fail only on the runner. Because the real build fires on `release: published` — i.e. *after* the tag exists — a script bug there forces a **re-cut** (delete + recreate the release and move the tag). The `workflow_dispatch` dry-run builds and link-tests without uploading, so it catches the failure while the tag can still move freely. This is the dynamic complement to B.1 item 13 (which owns the standing CI job); run it whenever the release workflow's macOS path executes project shell scripts. Skip it otherwise.
 
 5. **Create the release**: Use `gh release create` which both tags and creates the release:
    ```bash
