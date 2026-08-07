@@ -392,8 +392,10 @@ Run `mnemo_discover_patterns` with `days` set to the window. It detects
 transcript access that bypasses mnemo (direct JSONL reads, greps over the
 projects directory) and query shapes repeated across ≥3 sessions —
 literal evidence for "this deserves a saved template or a dedicated tool".
-Repeated query shapes should become `query_templates` entries; propose the
-`mnemo_define` call in the report.
+Repeated query shapes are evidence that a shape deserves a first-class
+affordance — propose one in the report. (mnemo's saved-query-template
+tools were retired in 🎯T143.1: defined and executed zero times between
+them in four months.)
 
 ---
 

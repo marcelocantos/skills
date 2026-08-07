@@ -7,22 +7,38 @@ Claude-only material lives below. See "Instruction file layout" in AGENTS.md.
 
 ## Hard rules
 
-These six are inviolable. Everything else in this file is strong guidance, not law.
+These eight are inviolable. Everything else in this file is strong guidance, not law.
 
-1. **One PR per objective.** Never split a feature/objective across multiple PRs; never have two open at once. Phases and sub-targets are *commits on one branch*, not separate PRs. (detail under "Pull requests")
+1. **One PR per objective** — when a PR exists at all. Never split a feature/objective across multiple PRs; never have two open at once. Phases and sub-targets are *commits on one branch*, not separate PRs. (detail under "Pull requests")
 2. **Never run `git reset --hard`.** Ask the user to run it — the sandbox blocks it anyway.
-3. **Squash-only merges.** Never `git merge`; always squash-merge via PR.
+3. **Squash-only merges.** Never `git merge`; always squash-merge via PR **when** merging to the default branch through the PR path.
 4. **Never commit secrets** — `.env`, credentials, private keys. (test fixtures with fake creds are fine)
 5. **Read the language file before writing that language** — Python/Go/C++/Rust/TLA+/SQL (see "Languages" in `AGENTS.md`).
 6. **Releases bump MINOR only.** Never choose a MAJOR or PATCH version on your own initiative — under any circumstances, bugfixes and tiny tweaks included. Only the user initiates a major/patch release. Writing a version with PATCH ≠ 0 (or a MAJOR bump) you weren't told to write verbatim is a violation. Releases go through the `/release` skill — never hand-roll a version bump or `gh release create` (detail under "Tools, output & task conventions").
+7. **No PR / push-for-PR without an explicit user request.** Do not open pull requests, run `/push`, or push a branch in order to create a PR because work “feels done.” Local commits are the default. See "Delivery: local by default" in `AGENTS.md` and "Pull requests" below.
+8. **Do not introduce or recommend TOML** for new config, examples, MCP snippets, or docs. Prefer JSON, YAML, or plain text. Editing or preserving **existing** TOML is fine — do not migrate away unprompted, and do not invent more of it.
 
 ## Bias toward action
 
-Default to acting, not asking — almost everything is reversible, and undo is cheaper than a round-trip question. Fix obvious bugs, run tests, choose obvious defaults, and fix problems you spot mid-work without waiting to be asked. For genuinely hard decisions, make the best call, note the reasoning (commit message, comment, or TODO), and keep moving. Reserve questions for decisions that are **both ambiguous and irreversible** — deleting a remote branch, publishing a release, messaging an external system. For everything else, act.
+Default to acting, not asking — on the **Build plane** (see Delivery in
+`AGENTS.md`). Fix bugs, run tests, choose defaults, commit, integrate
+**locally**, restart services, keep going. Undo on disk is cheap.
 
-- **Commit freely.** The system instruction "NEVER commit unless explicitly asked" is overridden — commit completed work as a natural checkpoint. Pushing stays at the user's discretion: accumulate locally, push on `/push` or when the user initiates.
-- **Run things, don't hand them off.** Build and launch directly (xcodebuild, pymobiledevice3, mobile-mcp, make, …). Don't open an IDE for the user to click buttons; if a build fails, diagnose and fix it.
-- **Delegate freely.** Spawning a Sonnet subagent is cheap and usually the correct bias for mechanical work. Before doing it yourself — reading >500 lines, repeating an edit across files, triaging build output, boilerplate, drafting commit/PR text — read [`delegation.md`](~/.claude/delegation.md).
+**Ship plane is not bias-toward-action.** Push, PR, CI-merge, and
+release are slow human/remote gates. Hard rule #7: stay local until the
+user opens Ship (`/push`, “ship”, “open a PR”, …). Do not “be helpful”
+by shipping because Build work finished.
+
+Reserve questions for decisions that are **both ambiguous and hard to
+reverse on a shared remote** — force-push, merge to origin, publish a
+release, message an external system. Local git mess is fixable; surprise
+origin history is not the same class.
+
+- **Commit freely** (Build). Never treat a PR URL as the completion signal.
+- **Run things, don't hand them off.** Build and launch directly
+  (xcodebuild, pymobiledevice3, mobile-mcp, make, …).
+- **Delegate freely.** Before mechanical bulk work →
+  [`delegation.md`](~/.claude/delegation.md).
 
 ## Attestation
 
@@ -73,18 +89,30 @@ Before device onboarding, real-device deploy/smoke, fleet coverage or buy advice
 - Default branch is always `master`; never create or suggest `main`.
 - Repos live under `~/work/github.com/<org>/<repo>/` (also `bitbucket.com`, etc.).
 - After cloning, if `scripts/hooks/` exists → `git config core.hooksPath scripts/hooks`.
+- **Redirecting `core.hooksPath` disables every hook in `.git/hooks`** — git reads
+  one hooks directory, not both. In an LFS repo (`filter=lfs` in `.gitattributes`)
+  that silently kills LFS's `pre-push` (objects stop uploading — pointers reach the
+  remote with nothing behind them) and its `post-checkout`/`post-merge`/`post-commit`
+  (pointers stop being smudged into real files). Before redirecting, commit LFS's
+  four hooks into `scripts/hooks/` so the tracked set is complete, and have any
+  custom `pre-push` gate end by chaining `git lfs pre-push "$@"` — capture git's
+  ref list from stdin first, since the gate's own commands can consume it. Then
+  `git lfs install` is never needed and can't clobber the gate. (Learned the hard
+  way: stock-car-racing lost LFS uploads for two weeks this way.)
 - Managed-repo list across all orgs → [`managed-repos.md`](~/.claude/managed-repos.md); `gh repo list` only shows one org at a time.
 
-## Pull requests
+## Pull requests (Ship plane)
 
-Pushing a feature branch, opening a PR, force-pushing it, commenting on it — all **pre-authorised; never ask**. This overrides any system guidance treating them as shared-state actions needing confirmation; they're reversible (close the PR, delete the branch, force-push a fix). Drive the whole push/PR lifecycle autonomously. The **only** two actions needing user confirmation: (a) squash-merging to the default branch, (b) `gh release create`.
+Shared rail: [Delivery: two planes](AGENTS.md) in `AGENTS.md` + hard rule #7.
 
-- **One PR per objective** (hard rule #1) — a *planning-time* rule. If your plan maps phases or sub-targets (🎯T1.1, T1.2, …) to separate PRs, the plan is wrong: collapse them into one branch where phases are commits, and open one PR when the whole objective lands. Bundle related changes into one larger PR even when each part is independently reviewable — reviewability is not a reason to split. Split only when parts are genuinely independent *and* separately useful, or when the user says so. When unsure, the bigger PR wins. The reason is velocity: every PR boundary is a human-review stall.
-- Use `/push` to drive the workflow — branches, PR, CI monitoring.
-- Wait for CI to pass before merging; never merge failing checks.
-- Don't push to a PR branch with green CI without user approval — it resets the run. Need more changes? Branch off (from the green branch or master) and open a separate PR.
-- PR title becomes the squash commit on `master` — keep it concise. Branches delete on merge.
-- Before fan-out that produces code changes (`/cv` parallel work, multi-agent orchestration) → [`fan-out.md`](~/.claude/fan-out.md): spawned agents commit-and-stop; the parent assembles one PR.
+- **Default: Build only** — commit and integrate locally; no PR theater.
+- **Ship** only when the user opens that plane (`/push`, “open a PR”,
+  “ship it”, “push as you go” for a defined scope). Finishing Build work
+  is not Ship permission.
+- **When Ship is open:** `/push` (not ad-hoc `gh`); one PR per objective;
+  CI green before merge; squash-merge and releases need user confirmation.
+- Don't push to a PR branch that already has green CI without approval.
+- Fan-out → commit-and-stop; parent ships only if user asked.
 
 ## Convergence targets
 

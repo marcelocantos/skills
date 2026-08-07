@@ -1,6 +1,6 @@
 ---
 name: post
-description: Post a cross-session inbox note to another repo/session via mnemo (a thin wrapper over mnemo_note_post).
+description: Post a cross-session inbox note to another repo/session via mnemo (a thin wrapper over mnemo_note op=post).
 user-invocable: true
 ---
 
@@ -22,7 +22,7 @@ Usage: `/post <inbox> <body>`
 Call:
 
 ```
-mnemo_note_post(inbox: "<inbox>", body: "<body>")
+mnemo_note(op: "post", inbox: "<inbox>", body: "<body>")
 ```
 
 `from_session` and `from_repo` are stamped automatically from your MCP

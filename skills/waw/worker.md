@@ -78,11 +78,6 @@ If the last build or test run had failures, surface them prominently —
 they're likely the most urgent thing to deal with. If everything was
 green, say so briefly.
 
-## Open TODOs
-
-Invoke the `/todo` skill to surface open TODO items for the project.
-Include its output as this section.
-
 ## Target status
 
 Call `bullseye_summary(cwd)` (where `cwd` is the project's working

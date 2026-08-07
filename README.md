@@ -17,7 +17,7 @@ Also includes my global [`CLAUDE.md`](CLAUDE.md) directives and the [`convergenc
 - **[`/inbox`](skills/inbox/SKILL.md)** — Pull cross-session inbox notes addressed to this repo (or a given directory) via mnemo, and optionally wait for one to arrive.
 - **[`/open-source`](skills/open-source/SKILL.md)** — Open-source a project — audit, fix, document, publish, and release.
 - **[`/oracle-first`](skills/oracle-first/SKILL.md)** — Verification-economics method for AI-assisted work. Use when porting or migrating legacy code, replicating an existing system's behaviour ("match the old app exactly"), doing visual/physics/feel parity work (especially spatial/geometry), authoring the correctness spec for new code (property tests, invariants, TLA+), designing acceptance criteria for a target, planning verification for a codebase analysis, or when repeated tweak-and-check against human judgment isn't converging.
-- **[`/post`](skills/post/SKILL.md)** — Post a cross-session inbox note to another repo/session via mnemo (a thin wrapper over mnemo_note_post).
+- **[`/post`](skills/post/SKILL.md)** — Post a cross-session inbox note to another repo/session via mnemo (a thin wrapper over mnemo_note op=post).
 - **[`/pr-audit`](skills/pr-audit/SKILL.md)** — Audit open PRs across all owned repos and recommend cleanup actions (close superseded, merge ready, poke contrib reviewers, fan-in synchronized rollouts).
 - **[`/progress-report`](skills/progress-report/SKILL.md)** — Generate and publish a weekly progress report from git activity across all repos.
 - **[`/push`](skills/push/SKILL.md)** — Push current work through a PR-based CI workflow. Creates branch and PR if needed.
@@ -27,7 +27,6 @@ Also includes my global [`CLAUDE.md`](CLAUDE.md) directives and the [`convergenc
 - **[`/retro`](skills/retro/SKILL.md)** — Mine the last week of session transcripts for concrete improvements to the system itself — skills, tools, MCP servers, scripts, CLAUDE.md/AGENTS.md, permissions, hooks. Produces an evidence-backed, ranked proposal list, applies the approved ones, and files targets for the rest.
 - **[`/sync-globals`](skills/sync-globals/SKILL.md)** — sync-globals
 - **[`/target`](skills/target/SKILL.md)** — Manage targets — desired states for the project.
-- **[`/todo`](skills/todo/SKILL.md)** — Summarise and manage open TODOs for this project via mnemo, and triage them toward convergence targets.
 - **[`/vera`](skills/vera/SKILL.md)** — Semantic code search, regex pattern search, and symbol lookup across a local repository. Returns ranked markdown codeblocks with file path, line range, content, and optional symbol info. Use `vera search` for conceptual/behavioral queries (how a feature works, where logic lives, exploring unfamiliar code). Use `vera grep` for exact strings, regex patterns, imports, and TODOs. Use `vera references` to trace callers/callees. Use rg only for bulk find-and-replace or files outside the index.
 - **[`/waw`](skills/waw/SKILL.md)** — "Where Are We?" — Context restoration after being AFK. Default is a quick recap; `/waw all` runs the full deep briefing.
 - **[`/ytt`](skills/ytt/SKILL.md)** — Fetch a YouTube video's transcript and ingest it into ~/think/knowledge/youtube/ as a synopsis with key takeaways. Updates the knowledge-base index and commits.

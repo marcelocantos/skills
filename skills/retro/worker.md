@@ -68,7 +68,8 @@ the other by reading the actual transcript around the top rows:
 
 - `mnemo_search` with `expand: "segment"` for a phrase from the error text;
 - `mnemo_read_session` on a cited `session_id` when you need the sequence;
-- `mnemo_tool_result` when the truncated `sample` column is not enough.
+- `mnemo_query` against `messages` (filtering `tool_use_id`) when the
+  truncated `sample` column is not enough.
 
 Drill into, at minimum: the top 3 rows of A1, every distinct signature in
 A4, every hit in B3, every B1 interrupt cluster, and every broken trigger

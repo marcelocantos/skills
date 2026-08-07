@@ -305,14 +305,6 @@ forward only those. One run forwarded Icebergs after explicit request.
 | Forwarded without confirm | Treat as a bug in process — never skip Step 5 |
 | Wrong year | Session "today" is source of truth for default year |
 
-## Resources
-
-| Resource | URL | When |
-|----------|-----|------|
-| Missing receipt template | https://docs.google.com/document/d/1FgeAFbu87m1xPxqFGOE1nj5-ZM0g2yeR/edit | Receipt not in Gmail / lost paper slip — user fills this for the claim |
-
-Point the user at the template when a claimable spend has no email receipt (cash, lost attachment, merchant never emailed). Do not invent a substitute receipt; the template is the official stand-in.
-
 ## Do not
 
 - Treat "found receipt" as "work expense"

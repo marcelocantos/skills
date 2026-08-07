@@ -4,10 +4,23 @@ End-to-end logic for generating a weekly progress report for Marcelo Cantos. Sca
 
 ## Context
 
-- **Report repo**: `~/work/github.com/marcelocantos/progress-reports`
+- **Public report repo**: `~/work/github.com/marcelocantos/progress-reports`
+- **Private commercial companion**: `~/work/github.com/marcelocantos/progress-reports-private`
 - **Repos root**: `~/work/github.com/`
-- **Organisations**: `squz`, `marcelocantos`, `arr-ai`, `anz-bank`
-- **Guide**: `docs/guide.md` in the report repo — read it in full before starting
+- **Organisations**: `squz`, `marcelocantos`, `arr-ai`, `anz-bank`, plus client orgs (`Health-Management-Systems`, `minicadesmobile`) as they appear in gather
+- **Guide**: `docs/guide.md` in the public report repo — read it in full before starting (includes **Dual-home series**)
+
+### Dual-home rule (mandatory)
+
+Commercial descriptive detail must not land in the public repo.
+
+| Classifier | Destination |
+|------------|-------------|
+| `Health-Management-Systems/*`, `minicadesmobile/*`, `squz/*` **except** `squz/ge` | **Private** full narrative |
+| `squz/ge` and all other public open-source work | **Public** full narrative |
+| Metrics tables (all repos) | **Public** (names + numbers) |
+
+When a week has commercial narrative: write the public report with **stubs + private links**, and write a companion `progress-reports-private/reports/weekly-report-<end>.md` with the commercial extracts. Commercial per-repo pages and commercial achievement rows update only under the private repo. Phase 3 publishes public as today; also push the private companion (direct to private `master`).
 
 ## Progress reporting
 
