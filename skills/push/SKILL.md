@@ -9,6 +9,12 @@ user-invocable: true
 Push the current branch through CI via a pull request. Creates a feature
 branch and PR if they don't already exist.
 
+**Invocation gate:** run this skill only when the user explicitly asked
+to push/PR/ship (e.g. typed `/push`, “open a PR”, “ship this”). Do **not**
+invoke it because a task finished, a target was achieved, or “it’s ready
+for review.” Outer default is local commits only (global AGENTS.md
+Delivery + hard rule #7).
+
 ## Steps
 
 ### 0. Sweep merged branches
@@ -160,14 +166,12 @@ Once CI is green, enforce the project's delivery gates before merging.
 
 Once all gates pass:
 
-1. **This is the single approval point in the push lifecycle.** All
-   earlier steps (push to feature branch, PR creation, fix-and-repush
-   for CI failures) run autonomously without prompting — that is
-   pre-authorised by the global "Pull requests" directive in
-   `~/.claude/CLAUDE.md` / `AGENTS.md`. The squash-merge to the default branch is
-   the one irreversible action, so confirm with the user before
-   running it. (If a manual `pre-merge` gate has already collected
-   approval, don't double-prompt.)
+1. **Squash-merge is the approval point inside `/push`.** Entering this
+   skill is already an explicit user request to run the PR path; earlier
+   steps (push feature branch, create PR, fix-and-repush for CI) may run
+   without re-asking. The squash-merge to the default branch still
+   needs user confirmation before it runs. (If a manual `pre-merge` gate
+   already collected approval, don't double-prompt.)
 2. Run the merge script:
    ```
    ~/.claude/skills/push/merge.sh <pr-number> <default-branch> <feature-branch>

@@ -12,7 +12,7 @@ fresh session that is continuing earlier work) to pick up with the
 targets, decisions, files, and open threads from prior spans.
 
 Backed by the mnemo compactor: a background summariser writes a
-compaction per active span; `mnemo_restore` walks the `/clear`-
+compaction per active span; `mnemo_ops` (op=restore) walks the `/clear`-
 bounded chain and returns every compaction oldest-first.
 
 ## Steps
@@ -23,8 +23,8 @@ bounded chain and returns every compaction oldest-first.
    string `mnemo:self:<nonce>` in the same message's text so the
    server can correlate. The tool returns this session's ID.
 
-2. **Fetch the chain compactions.** Call `mnemo_restore` (or
-   `mnemo__mnemo_restore`) with `session_id=<id from step 1>`. It
+2. **Fetch the chain compactions.** Call `mnemo_ops` (op=restore) (or
+   `mnemo_ops(op: "restore")`) with `session_id=<id from step 1>`. It
    returns a pre-formatted multi-span summary (targets, files,
    decisions, open threads per span), oldest-first.
 
@@ -36,7 +36,7 @@ bounded chain and returns every compaction oldest-first.
 
 ## If there is no compaction yet
 
-If `mnemo_restore` says "No compactions available yet for this
+If `mnemo_ops` (op=restore) says "No compactions available yet for this
 session chain", that means either this is a brand-new session with
 nothing upstream, or the prior span was too short/idle for the
 background compactor (runs every 5 minutes) to have fired. Say so

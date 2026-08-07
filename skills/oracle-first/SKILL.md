@@ -166,6 +166,20 @@ term — the fix differs per term:
    migrate the same commands into a CI layer at the production
    boundary — where CI's real additions (environment-drift detection,
    independence from one machine's configuration) start to matter.
+
+   **Anchors vs report nodes** (shared vocabulary with bullseye 🎯T56 /
+   graph-engineering evaluation): an **anchor** is a check that cannot
+   be argued with — tests that *ran*, CI green on the *shipped* path,
+   a released artifact. A **report node** is narrative ("should pass",
+   a summary of the worker's own run). Topology and prose reports do
+   not buy truth; anchors do. Anti-pattern: an "audit" that only
+   re-reads the worker's summary (same system grading itself).
+
+   **Fresh-context verifier:** the worker must not grade its own work
+   in the same transcript. Prefer a new subagent, a new tool/command
+   run, or CI — a verifier that shares the worker's context is a
+   report node wearing an oracle costume. Same independence duty as
+   the harness rule above; named so agents and humans share the word.
 10. **Unverified autonomy is negative value.** Long unattended runs
     without an oracle don't reduce the human's verification burden —
     they concentrate and defer it. Raise autonomy only as far as the
@@ -348,6 +362,21 @@ The standing form of this gate is the **V-boundary checker** — an
 independent party (checker sub-agent or hook) at demo/retire/attest
 moments asking three questions: did V run? against the product path? does
 the executor's claim trace to the oracle's output?
+
+### Lenses, hidden edges, fan-in (process notes)
+
+- **Multiple lenses.** Where residue is large, split acceptance rather
+  than one soft LGTM: **correctness** oracle, **freshness/staleness**,
+  **provenance**. Bundle only when a single machine check covers all.
+- **False independence.** Parallel workers sharing a worktree or a
+  rate-limited API have **hidden edges**. Isolation (worktree, separate
+  cwd) is part of the verification plan, not only a speed hack.
+- **Fan-in layering.** On large fan-out: batch → summarize → synthesize;
+  never dump all raw results into one judge (context collapse). Evidence
+  over machinery still applies.
+- **When a loop is enough.** If work has no real parallel width (the
+  fake-edge test finds no independent jobs), one loop + one oracle is
+  correct — do not build a graph for ceremony.
 
 ## Skill improvement
 
