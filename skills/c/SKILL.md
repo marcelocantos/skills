@@ -17,16 +17,25 @@ bounded chain and returns every compaction oldest-first.
 
 ## Steps
 
-1. **Identify this session.** Call the mnemo MCP tool `mnemo_self`
-   (qualified name may be `mnemo__mnemo_self` depending on the harness)
-   with a short random nonce (e.g. 8 hex chars). Include the literal
-   string `mnemo:self:<nonce>` in the same message's text so the
-   server can correlate. The tool returns this session's ID.
+1. **Identify the session to restore.** Call `mnemo_sessions` with the
+   current repo and `session_type: "interactive"`, and take the most
+   recent session other than this one — that is the span `/clear` just
+   ended.
 
-2. **Fetch the chain compactions.** Call `mnemo_ops` (op=restore) (or
-   `mnemo_ops(op: "restore")`) with `session_id=<id from step 1>`. It
-   returns a pre-formatted multi-span summary (targets, files,
-   decisions, open threads per span), oldest-first.
+   This replaced `mnemo_self`, removed 2026-08-07. That tool used a
+   nonce round-trip: emit `mnemo:self:<nonce>`, wait for the transcript
+   to be ingested, then ask which session contained it. It depended on
+   ingest having caught up mid-turn and recorded **2 nonces in four
+   months** against 11 calls. The recency heuristic here is less precise
+   in principle and works more often in practice; when it picks wrong,
+   the restored summary is visibly about other work, so pass an explicit
+   `session_id` from `mnemo_sessions` instead.
+
+2. **Fetch the chain compactions.** Call `mnemo_ops(op: "restore")` with
+   `session_id=<id from step 1>`. It returns a pre-formatted multi-span
+   summary (targets, files, decisions, open threads per span),
+   oldest-first — and it walks the `/clear`-bounded chain from that id,
+   so landing anywhere in the chain restores the whole chain.
 
 3. **Present verbatim.** Relay the tool output to the user with at
    most a one-line framing. Do **not** re-summarise — the output is

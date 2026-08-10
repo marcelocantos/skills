@@ -71,7 +71,7 @@ Before renaming a symbol, finding references, migrating an API across files, add
 
 ## Web development
 
-At session start for any web-based project → [`web-development.md`](~/.claude/web-development.md) (smoke testing, deep links, sample data, visual verification).
+At session start for any web-based project → [`web-development.md`](~/.claude/web-development.md) (smoke testing, deep links, sample data, visual verification; **CSS/layout: never trust judgment — verify real render**).
 
 ## Mobile development
 
