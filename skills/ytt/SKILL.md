@@ -55,8 +55,8 @@ follow it verbatim:
 This is the same contract the scheduled `ingest` path feeds to its
 synopsis agent, so the interactive and automated paths stay identical.
 In chat-only mode, skip the `# <title>` and `Source:` lines and present
-the Synopsis and Key Takeaways inline; otherwise honour the contract as
-written.
+the Synopsis, Critique (when warranted), and Key Takeaways inline;
+otherwise honour the contract as written.
 
 ### 4. Ingest (default)
 
