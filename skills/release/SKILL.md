@@ -365,25 +365,23 @@ Determine the next version number. **Do not ask for confirmation** — just use 
 
    **No version macros found**: If a C/C++ library has no version macros at all, note this as a gap in the Phase B report. Don't block the release.
 
-#### B.4a: Retire diff-satisfied targets (bullseye projects only)
+#### B.4a: Sweep leftover open targets (bullseye projects only)
 
 **Skip this substep** if the project does not use bullseye.
 
-The global AGENTS.md / CLAUDE.md directive *"target lifecycle changes ride the PR that triggers them"* means any active bullseye target whose acceptance is satisfied entirely by the changes in this release must be retired **inside the release-prep PR**, not as a follow-up commit/PR after the tag. The release skill is responsible for finding these targets and retiring them before the branch is pushed.
+Coded is done. A target whose fix is in this release should already
+have been achieved in the landing PR. This step is a sweep for
+leftovers, not a second lifecycle.
 
-**Procedure:**
+1. **Gather candidates.** Pull `🎯T*` references out of every commit message in `# commits_since_last_tag`. Add any still-active target whose name/acceptance describes work the release notes claim.
 
-1. **Gather candidates.** Pull `🎯T*` references out of every commit message in `# commits_since_last_tag`. Add to the candidate list any frontier target whose name/acceptance describes work the release notes are now claiming as shipped.
+2. **Retire if the code landed.** If the fix is in the diff, retire it — even if acceptance still talks about a tag, Homebrew, or "the released binary". Do not keep a sibling whose only remaining work is `/release`.
 
-2. **Check acceptance.** For each candidate, fetch its acceptance with `bullseye_get` and decide whether the diff in this release satisfies every criterion. Be honest: if even one criterion is unmet (e.g., "documented in agents-guide.md" and the guide wasn't updated), the target is not yet achievable and stays open.
+3. **Leave it open only if the code itself is unfinished** (a criterion the diff does not satisfy, e.g. "documented in agents-guide.md" and the guide was not updated).
 
-3. **Retire each fully-satisfied target.** Call `bullseye_retire(cwd, id)`. The 🎯T22 auto-commit machinery folds the `bullseye.yaml` change into a commit on the release-prep branch automatically.
+4. **List the retirements in the Phase B report.**
 
-4. **List the retirements in the Phase B report** so the user sees which targets the release closes.
-
-**What this substep does NOT cover:** *release-readiness meta-targets* — targets like *"v0.N.0 is shipped"* whose acceptance literally requires the release to exist. Those legitimately cannot retire here because the release doesn't exist yet. They are Phase C step 11's job.
-
-The distinction is simple: if the target's acceptance is met by the **diff** in this PR, retire here (B.4a); if it's met by the **release event itself** (tag exists, formula in tap, brew install works), retire in Phase C step 11. A feature target like "add subdivide tool" is the first kind; a target like "v0.29.0 is published to the Homebrew tap" is the second.
+Do not create "v0.N.0 is shipped" / "released binary has the fix" targets. Shipping is `/cv`'s unreleased-fixes → `/release` path, not a target status. A recurrence after ship is a new report.
 
 #### B.5–B.7: Concurrent bracket
 
@@ -692,29 +690,12 @@ The split-in-time case only arises when the user has interrupted Phase B and ask
     - Homebrew install command (if tap was set up): `brew install marcelocantos/tap/<project>`
     - Confirmation that the new version is installed locally (include the `--version` output)
 
-11. **Retire release-readiness meta-targets and clean the tree**: This
-    step is narrow on purpose. Targets whose acceptance is satisfied
-    by the **PR diff** were already retired in Phase B.4a (per the
-    global *"lifecycle changes ride the PR that triggers them"*
-    directive). What's left for this step are *release-readiness
-    meta-targets* — targets whose acceptance literally requires the
-    release to exist (tag created, formula in tap, brew install
-    works, etc.). If such a target exists and its acceptance is now
-    met, retire it via `bullseye_retire`. Then run
-    `~/.claude/skills/release/finalize.sh <version> [target-id]` to
-    commit any resulting `bullseye.yaml` diff locally (no push). This
-    enforces the invariant *"after /release returns, `bullseye.yaml`
-    is clean"* — `/cv` and other gates rely on it.
-
-    **Do not retire diff-satisfied feature targets here.** That
-    produces a follow-up `Update bullseye.yaml` commit hanging off
-    local master with no PR — exactly the situation the global
-    directive forbids. If you find yourself reaching for
-    `bullseye_retire` on a feature target at this step, the
-    retirement belongs back in Phase B.4a; the release PR has
-    already merged, so the next-best recovery is a small chore PR
-    naming the slip (the release skill update of 2026-05-20
-    documents this failure mode).
+11. **Clean the tree**: If `bullseye.yaml` is dirty, run
+    `~/.claude/skills/release/finalize.sh <version>` to commit it
+    locally (no push). Do **not** retire targets here. Achievement
+    happened when the code landed (B.4a is the leftover sweep).
+    Hunting for "the tag exists now" targets is how retirements
+    lag the fix and then get shoved into the next push.
 
 ## Error handling
 

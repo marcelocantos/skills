@@ -122,6 +122,7 @@ Before starting any new work (user request, session start, resuming): call `bull
 - Targets, not GitHub issues, are the canonical record of followable work (exceptions: upstream third-party repos, or explicit user instruction).
 - Discover out-of-scope work mid-task → add a target, don't fix inline or drop a bare TODO. Target turns out wrong → fix the target first, then revisit the plan. The target is the source of truth.
 - Target lifecycle rides the PR that changes it — update `bullseye.yaml` in the same diff (raise a new target, refresh acceptance, or retire). No follow-up "retire X" PRs; the merge is the lifecycle event. Use `converging` only for work genuinely spanning multiple PRs.
+- Achieve when the code lands. Do not file "the released binary has the fix" siblings, and do not assign-to-owner waiting for `/release`. If the symptom is still there after ship, that is a new report (reopen or a new target).
 - After achieving a target → `/cv`. Decomposition model and tool reference → [`convergence.md`](~/.claude/convergence.md).
 
 ## Gates
