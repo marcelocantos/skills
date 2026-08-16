@@ -92,7 +92,10 @@ Always use the 🎯T*N* prefix when referring to targets.
 - A target is a desired **state**, not a task. Write it as an
   assertion: "All tests pass on Windows" not "Fix Windows tests."
 - Acceptance criteria should be verifiable — ideally by reading code,
-  running a command, or checking CI output.
+  running a command, or checking CI output. Do not write criteria
+  that require a tag, Homebrew, or an installed release. Coded is
+  done; shipping is `/cv` → `/release`. Recurrence after ship is a
+  new report.
 - Three tracking systems, one flow: **TODOs** are the inbox,
   **targets** are the backlog (desired states), **GitHub issues** are
   the public interface. Items flow upward — TODOs get triaged into
