@@ -45,7 +45,7 @@ Read the transcript output end-to-end. Identify:
 ### 3. Compose the synopsis
 
 The output format (structure, TL;DR line, slug rules, and the machine
-contract `build-index.sh` parses) is defined in one place — read it and
+contract `ytt build-index` parses) is defined in one place — read it and
 follow it verbatim:
 
 ```
@@ -81,7 +81,7 @@ Skip this step if the user qualified the command to suppress ingest.
    the video title. One synopsis file per directory.
 4. **Regenerate the index:**
    ```bash
-   bash ~/work/github.com/marcelocantos/ytt/scripts/playlist-ingest/build-index.sh
+   ytt build-index
    ```
    This rewrites `~/think/knowledge/youtube/youtube-knowledge-base.md`
    from all `meta.json` + synopsis pairs, sorted newest-first.
@@ -111,5 +111,5 @@ response.
   The `.md` filename is a topic slug, not the title.
 - Output structure, the TL;DR line format, and slug rules live in
   `synopsis-contract.md` (see step 3) — the single source of truth
-  shared with the scheduled `ingest` path and the `build-index.sh`
+  shared with the scheduled `ingest` path and the `ytt build-index`
   parser. Don't restate them here.
