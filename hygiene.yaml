@@ -1,0 +1,415 @@
+# hygiene.yaml — declared current-reality posture for skills.
+# Schema reference: the `hygiene` skill (~/.claude/skills/hygiene/SKILL.md).
+# Validate with `/hygiene`; aggregate the fleet with `/hygiene fleet`.
+#
+# This repo is a Git snapshot of ~/.claude/skills/ plus copies of global
+# CLAUDE.md / convergence.md. Agents edit the install tree; cvfile !publish
+# rsyncs here. No application binary, no tests, no GitHub Actions.
+
+schema_version: 1
+
+repo: skills
+aspires: 3
+floors:            # per-dimension held-tier ratchet; below floor => DRIFT
+  correctness: 0   # no tests, no CI; four Python files py_compile only
+  security: 2      # GitHub secret scanning + push protection hold
+  quality: 0       # ruff/shellcheck are local-only; nothing in CI
+  deps: 0          # uv inline deps are name-only; no lockfile
+  release: 1       # cvfile !publish dumps the tree; no tags or GitHub releases
+  governance: 0    # README + .gitignore yes; LICENSE missing (GitHub license null)
+  build: 0         # no compile / no Actions; cvfile is a publish recipe
+  docs: 1          # README catalogue + convergence.md
+  perf: 0          # a skill dump has no in-repo benchmarks
+  vcs: 0           # no committed hooks; master unprotected
+  agent: 2         # CLAUDE.md + bullseye.yaml; AGENTS.md is not published
+
+tiers:
+  1: baseline    # LICENSE + README + .gitignore; tests build & run
+  2: maintained  # full matrix, examples run, lint/format, release + governance
+  3: hardened    # formal specs, security scanning, SBOM/signing, fuzzing, perf
+
+items:
+
+  # ============================== CORRECTNESS =============================
+  - id: correctness.tests
+    dim: correctness
+    desc: pytest (or equivalent) covers hygiene_check and companion scripts
+    state: planned
+    cadence: continuous
+    enforce: blocking
+    tier: 1
+    reason: >-
+      No test files, pytest.ini, Makefile, or CI. Fleet-facing Python and
+      bash (hygiene_check.py, release/discover.sh, commit/gather.sh) have
+      only py_compile / bash -n.
+    evidence: {absent: {ci_job: ci.yml#test}}
+
+  - id: correctness.ci
+    dim: correctness
+    desc: Tests run on every push/PR in GitHub Actions
+    state: planned
+    cadence: continuous
+    enforce: blocking
+    tier: 2
+    reason: No .github/workflows (Actions total_count 0).
+    evidence: {absent: {file: {path: .github/workflows}}}
+
+  - id: correctness.fuzzing
+    dim: correctness
+    desc: Fuzz harnesses over YAML/markdown parsers in skill scripts
+    state: skipped
+    cadence: continuous
+    enforce: informational
+    tier: 3
+    reason: Snapshot of markdown skills plus small Python/bash; no shipped parser product.
+    evidence: {absent: {ci_job: ci.yml#fuzz}}
+
+  # =========================== SECURITY / SUPPLY ==========================
+  - id: security.secret-scan
+    dim: security
+    desc: GitHub secret scanning enabled on the repo
+    state: enforced
+    cadence: continuous
+    enforce: blocking
+    tier: 2
+    evidence:
+      gh_setting:
+        key: security_and_analysis.secret_scanning.status
+        equals: enabled
+
+  - id: security.push-protection
+    dim: security
+    desc: Secret-scanning push protection enabled
+    state: enforced
+    cadence: once-must-hold
+    enforce: blocking
+    tier: 2
+    evidence:
+      gh_setting:
+        key: security_and_analysis.secret_scanning_push_protection.status
+        equals: enabled
+
+  - id: security.gitleaks
+    dim: security
+    desc: Secret scanning (gitleaks) in pre-commit and/or CI
+    state: planned
+    cadence: continuous
+    enforce: warning
+    tier: 3
+    reason: GitHub native scanning holds; no gitleaks config or CI job.
+    evidence: {absent: {scanner: {tool: gitleaks}}}
+
+  - id: security.sast
+    dim: security
+    desc: Static application security testing (CodeQL)
+    state: skipped
+    cadence: continuous
+    enforce: informational
+    tier: 3
+    reason: Markdown skill dump with a handful of scripts; CodeQL would not add a useful signal.
+    evidence: {absent: {ci_job: ci.yml#codeql}}
+
+  - id: security.dependabot
+    dim: security
+    desc: Dependabot security updates enabled
+    state: skipped
+    cadence: periodic:30d
+    enforce: informational
+    tier: 3
+    reason: No lockfile or packaged ecosystem; Dependabot security updates are disabled.
+    evidence:
+      absent:
+        gh_setting:
+          key: security_and_analysis.dependabot_security_updates.status
+          equals: enabled
+
+  - id: security.actions-perms
+    dim: security
+    desc: GitHub Actions default token permissions scoped to least privilege
+    state: skipped
+    cadence: once-must-hold
+    enforce: informational
+    tier: 3
+    reason: No workflows exist to permission.
+    evidence: {absent: {ci_step: {workflow: ci.yml, name: permissions}}}
+
+  # ============================== CODE QUALITY ============================
+  - id: quality.lint-ci
+    dim: quality
+    desc: ruff and/or shellcheck run as a CI gate
+    state: planned
+    cadence: continuous
+    enforce: warning
+    tier: 2
+    reason: >-
+      Local ruff check is clean and shellcheck is installed, but neither is
+      wired to CI and the repo has no ruff.toml / .shellcheckrc.
+    evidence: {absent: {ci_step: {workflow: ci.yml, name: lint}}}
+
+  - id: quality.format
+    dim: quality
+    desc: Format check (ruff format / shfmt) enforced in CI
+    state: planned
+    cadence: continuous
+    enforce: warning
+    tier: 2
+    reason: No format config or CI format step.
+    evidence: {absent: {ci_step: {workflow: ci.yml, name: format}}}
+
+  # =========================== DEPENDENCY HEALTH ==========================
+  - id: deps.lockfile
+    dim: deps
+    desc: Python uv deps are pinned (lockfile or version pins in script headers)
+    state: planned
+    cadence: per-release
+    enforce: warning
+    tier: 2
+    reason: >-
+      hygiene_check.py / hygiene_portfolio.py declare dependencies = ["pyyaml"]
+      with no version pin and no uv.lock / requirements.txt.
+    evidence: {absent: {file: {path: uv.lock}}}
+
+  - id: deps.dependabot
+    dim: deps
+    desc: Dependabot (or equivalent) watches ecosystems in this repo
+    state: skipped
+    cadence: periodic:30d
+    enforce: informational
+    tier: 3
+    reason: No packaged ecosystem; Dependabot would have nothing to bump.
+    evidence: {absent: {file: {path: .github/dependabot.yml}}}
+
+  # ========================== RELEASE & VERSIONING =======================
+  - id: release.publish
+    dim: release
+    desc: cvfile !publish rsyncs ~/.claude/skills/ and commits the snapshot
+    state: present
+    cadence: per-release
+    enforce: warning
+    tier: 1
+    evidence: {file: {path: cvfile, matches: '!publish:'}}
+
+  - id: release.tags
+    dim: release
+    desc: Git tags mark published snapshots
+    state: planned
+    cadence: per-release
+    enforce: informational
+    tier: 2
+    reason: git tag list is empty; publish commits on the current branch with no tag.
+    evidence:
+      absent:
+        command: test -n "$(git tag -l)"
+
+  - id: release.changelog
+    dim: release
+    desc: A maintained CHANGELOG records user-visible skill changes
+    state: planned
+    cadence: per-release
+    enforce: informational
+    tier: 3
+    reason: History lives in git ("Update skills from ~/.claude/skills"); no CHANGELOG.md.
+    evidence: {absent: {file: {path: CHANGELOG.md}}}
+
+  - id: release.github-release
+    dim: release
+    desc: GitHub Releases publish versioned artifacts
+    state: skipped
+    cadence: per-release
+    enforce: informational
+    tier: 3
+    reason: Snapshot mirror, not a versioned product; gh release list is empty.
+    evidence: {absent: {ci_job: release.yml#release}}
+
+  # ============================ GOVERNANCE / META ========================
+  - id: governance.readme
+    dim: governance
+    desc: README catalogues available skills
+    state: present
+    cadence: once-must-hold
+    enforce: blocking
+    tier: 1
+    evidence: {file: {path: README.md, matches: 'Available Skills'}}
+
+  - id: governance.license
+    dim: governance
+    desc: Root LICENSE present (README claims Apache-2.0; GitHub licenseInfo is null)
+    state: planned
+    cadence: once-must-hold
+    enforce: blocking
+    tier: 1
+    reason: No LICENSE / LICENSE.md / COPYING; git log --all -- LICENSE is empty.
+    evidence: {absent: {file: {path: LICENSE}}}
+
+  - id: governance.gitignore
+    dim: governance
+    desc: .gitignore covers local agent/build state
+    state: present
+    cadence: once-must-hold
+    enforce: warning
+    tier: 1
+    evidence: {file: {path: .gitignore, matches: '(?m)^\.(claude|mk)/$'}}
+
+  - id: governance.squash-only
+    dim: governance
+    desc: Repo is squash-merge only
+    state: enforced
+    cadence: once-must-hold
+    enforce: blocking
+    tier: 2
+    evidence: {gh_setting: {key: allow_merge_commit, equals: false}}
+
+  - id: governance.delete-branch
+    dim: governance
+    desc: Delete-branch-on-merge is enabled
+    state: enforced
+    cadence: once-must-hold
+    enforce: blocking
+    tier: 2
+    evidence: {gh_setting: {key: delete_branch_on_merge, equals: true}}
+
+  - id: governance.security-md
+    dim: governance
+    desc: SECURITY.md documents the vulnerability-disclosure process
+    state: planned
+    cadence: once-must-hold
+    enforce: informational
+    tier: 3
+    reason: Public repo without a published disclosure policy.
+    evidence: {absent: {file: {path: SECURITY.md}}}
+
+  # ================================= BUILD ===============================
+  - id: build.ci
+    dim: build
+    desc: CI builds or validates the tree on every push
+    state: planned
+    cadence: continuous
+    enforce: blocking
+    tier: 1
+    reason: No .github/workflows; publish is a local cvfile recipe that git pushes.
+    evidence: {absent: {ci_job: ci.yml#build}}
+
+  - id: build.cvfile
+    dim: build
+    desc: Root cvfile declares the !publish snapshot recipe
+    state: present
+    cadence: once-must-hold
+    enforce: informational
+    tier: 2
+    evidence: {file: {path: cvfile, matches: 'skills_src'}}
+
+  # ============================ DOCUMENTATION ============================
+  - id: docs.readme
+    dim: docs
+    desc: README documents the skill catalogue and Apache-2.0 claim
+    state: present
+    cadence: once-must-hold
+    enforce: blocking
+    tier: 1
+    evidence: {file: {path: README.md, matches: 'Apache-2.0'}}
+
+  - id: docs.convergence
+    dim: docs
+    desc: convergence.md is published alongside CLAUDE.md
+    state: present
+    cadence: once-must-hold
+    enforce: informational
+    tier: 1
+    evidence: {file: {path: convergence.md}}
+
+  - id: docs.agents-md
+    dim: docs
+    desc: AGENTS.md is published (CLAUDE.md @imports it)
+    state: planned
+    cadence: once-must-hold
+    enforce: warning
+    tier: 2
+    reason: >-
+      CLAUDE.md @imports AGENTS.md and links to it, but cvfile copies only
+      CLAUDE.md and convergence.md. GitHub clones have a dangling import.
+    evidence: {absent: {file: {path: AGENTS.md}}}
+
+  - id: docs.md-links
+    dim: docs
+    desc: Internal markdown links resolve (skills/docs/link-check.sh)
+    state: planned
+    cadence: continuous
+    enforce: informational
+    tier: 2
+    reason: >-
+      link-check.sh exists but currently reports broken links (AGENTS.md,
+      LICENSE, plus ~/.claude paths in the copied global CLAUDE.md). Not a gate.
+    evidence: {absent: {ci_step: {workflow: ci.yml, name: Check markdown links}}}
+
+  # ============================== PERFORMANCE ===========================
+  - id: perf.benchmarks
+    dim: perf
+    desc: Benchmark suite for skill scripts
+    state: planned
+    cadence: per-release
+    enforce: informational
+    tier: 3
+    reason: A skill snapshot has no in-repo benchmark suite.
+    evidence: {absent: {file: {path: benches}}}
+
+  # ============================== VCS / HISTORY =========================
+  - id: vcs.branch-protection
+    dim: vcs
+    desc: Default branch is protected (required checks / no force-push)
+    state: planned
+    cadence: once-must-hold
+    enforce: warning
+    tier: 2
+    reason: Branch protection 404; rulesets empty; no required CI.
+    evidence:
+      absent:
+        command: gh api repos/marcelocantos/skills/branches/master/protection --silent
+
+  - id: vcs.pre-commit-hook
+    dim: vcs
+    desc: Committed git hooks (scripts/hooks) gate locally before commit
+    state: planned
+    cadence: once-must-hold
+    enforce: informational
+    tier: 3
+    reason: No scripts/hooks; core.hooksPath is the default .git/hooks.
+    evidence: {absent: {file: {path: scripts/hooks/pre-commit}}}
+
+  # =================== AGENT-READINESS / ONBOARDING ====================
+  - id: agent.claude-md
+    dim: agent
+    desc: CLAUDE.md present (conventions discoverable by agents)
+    state: present
+    cadence: once-must-hold
+    enforce: warning
+    tier: 1
+    evidence: {file: {path: CLAUDE.md}}
+
+  - id: agent.bullseye
+    dim: agent
+    desc: bullseye.yaml present (convergence targets discoverable)
+    state: present
+    cadence: once-must-hold
+    enforce: informational
+    tier: 2
+    evidence: {file: {path: bullseye.yaml}}
+
+  - id: agent.agents-md
+    dim: agent
+    desc: AGENTS.md present as the shared instruction source
+    state: planned
+    cadence: once-must-hold
+    enforce: warning
+    tier: 3
+    reason: CLAUDE.md is an adapter over AGENTS.md, which is not copied into this repo.
+    evidence: {absent: {file: {path: AGENTS.md}}}
+
+  - id: agent.cli-help
+    dim: agent
+    desc: Product CLI exposes --help / --version / --help-agent
+    state: skipped
+    cadence: once-must-hold
+    enforce: informational
+    tier: 3
+    reason: Not a CLI product; entry points are SKILL.md files invoked by agents.
+    evidence: {absent: {file: {path: cmd}}}
