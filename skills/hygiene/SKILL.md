@@ -121,3 +121,6 @@ mechanical rather than prose):
   cross-tool calls become useful.
 - `gh_setting` evidence needs an authenticated `gh`; `command` evidence
   runs in the repo root — keep declared commands cheap and side-effect-free.
+- Related: `/entropy-audit` (architecture, redundancy, SDLC-drift) invokes
+  this skill in full mode. `/hygiene` stays a fast independent validator
+  and must not invoke entropy-audit.
