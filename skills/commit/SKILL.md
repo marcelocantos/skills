@@ -35,6 +35,7 @@ tree. It emits labelled sections — parse each section by its
 | Section | Contents | How to use |
 |---|---|---|
 | `# scope` | `full-tree` or a list of paths | Confirms what was scoped; if paths were given, only those paths appear in subsequent sections |
+| `# ledger` | `(none)`, or `<path> dirty\|clean` for the in-repo `bullseye.yaml` | If `dirty`, always stage that path — it is part of the work, not bookkeeping. Scope does not exclude it (gather.sh already includes its diff). External/shadow ledgers report `(none)` |
 | `# status` | `git status --short --branch` output (always full tree) | Detect branch, staged/unstaged/untracked counts |
 | `# log` | Last 5 commits (oneline) | Infer commit message style for the project |
 | `# staged-stat` | `git diff --cached --stat` | Quick overview of what's already staged |
@@ -64,6 +65,10 @@ files, ask for confirmation before staging them.
 
 Stage everything else. Prefer `git add <file1> <file2> ...` over
 `git add -A`.
+
+If `# ledger` is `dirty`, that path is required staging — even when
+the user scoped other files, and even when everything else is already
+cached. Do not omit `bullseye.yaml` as unrelated.
 
 ### 4. Draft message
 
@@ -123,4 +128,6 @@ If the commit fails due to a pre-commit hook:
 - Never push after committing — that's `/push`'s job.
 - Never skip hooks (`--no-verify`).
 - Always use HEREDOC for the commit message to preserve formatting.
-- If all changes are already staged (cached), don't re-add them.
+- If all changes are already staged (cached), don't re-add them —
+  except a dirty `# ledger` path, which must still be added.
+- Never leave a dirty in-repo `bullseye.yaml` out of the commit.

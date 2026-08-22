@@ -10,7 +10,10 @@ Method for deciding where verification effort goes before generation
 effort. Full theory, evidence, and case studies:
 [`doctrine.md`](~/.claude/skills/oracle-first/doctrine.md). Read it when
 planning a port/migration or a verification strategy; the rules below
-suffice for quick classification.
+suffice for quick classification. Owner-visible product paths (whole
+product, thin user slice) are journeys — see
+[`journeys.md`](~/.claude/journeys.md); this skill still decides *what*
+the slice must decide.
 
 ## Two oracle modes — read this first
 

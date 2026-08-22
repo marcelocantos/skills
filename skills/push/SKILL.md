@@ -39,8 +39,12 @@ Run `~/.claude/skills/push/preflight.sh` and parse its output. It is
 already `chmod +x` — do **not** wrap it in `bash`, just invoke the path
 as the command.
 
+- Check `# ledger`: if the line ends with ` dirty`, **stop** and
+  tell the user to `/commit` first — pushing now would leave origin's
+  intent ledger stale. Do not auto-commit the yaml here.
 - Check `# working-tree`: if `dirty`, **stop** and tell the user to
-  commit first.
+  commit first. (A dirty ledger already stopped above; this catches
+  every other uncommitted file.)
 - Use `# branch`, `# default-branch`, and `# on-default-branch` to
   understand where HEAD is and route the next step.
 - Use `# upstream` to determine whether the branch already tracks a

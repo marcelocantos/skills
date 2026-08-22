@@ -121,7 +121,7 @@ Before starting any new work (user request, session start, resuming): call `bull
 - Targets are desired states written as assertions, not tasks: "All tests pass on Windows", not "Fix Windows tests". Numbered 🎯T1, 🎯T1.1 — always use the prefix, no space after 🎯.
 - Targets, not GitHub issues, are the canonical record of followable work (exceptions: upstream third-party repos, or explicit user instruction).
 - Discover out-of-scope work mid-task → add a target, don't fix inline or drop a bare TODO. Target turns out wrong → fix the target first, then revisit the plan. The target is the source of truth.
-- Target lifecycle rides the PR that changes it — update `bullseye.yaml` in the same diff (raise a new target, refresh acceptance, or retire). No follow-up "retire X" PRs; the merge is the lifecycle event. Use `converging` only for work genuinely spanning multiple PRs.
+- Target lifecycle rides the commit that changes it — a dirty in-repo `bullseye.yaml` always stages with the work (`/commit` does this; `/push` refuses if it is still dirty). No yaml-only follow-up commits. No follow-up "retire X" PRs; the merge is the lifecycle event. Use `converging` only for work genuinely spanning multiple PRs.
 - Achieve when the code lands. Do not file "the released binary has the fix" siblings, and do not assign-to-owner waiting for `/release`. If the symptom is still there after ship, that is a new report (reopen or a new target).
 - After achieving a target → `/cv`. Decomposition model and tool reference → [`convergence.md`](~/.claude/convergence.md).
 
@@ -153,6 +153,7 @@ and metadata; the mirror is for content.
 
 ## Tools, output & task conventions
 
+- Before adding, skipping, or citing owner-visible product E2E → [`journeys.md`](~/.claude/journeys.md) (also in `AGENTS.md` Domains).
 - Before WebFetch/curl/custom scripts for a domain task → [`tools.md`](~/.claude/tools.md); a dedicated CLI is likely installed.
 - Before creating a repo, a source file, or `.gitignore`, or configuring an MCP server → [`conventions.md`](~/.claude/conventions.md) (licensing, repo hygiene, CLI-binary specs, config formats, build flags, MCP config).
 - **Releases (mandatory, not optional):** every release goes through the `/release` skill — never hand-roll a version bump or `gh release create`. Opening [`conventions.md`](~/.claude/conventions.md) (Versioning) first is required. Versions are MINOR-only — see Hard rule #6.
