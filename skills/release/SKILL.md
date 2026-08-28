@@ -14,30 +14,29 @@ End-to-end skill for cutting a release of an existing project. Covers discovery,
 - **Default branch**: `master`
 - **Release platforms**: macOS arm64 + Linux x86_64 + Linux arm64
 - **Binaries**: Always build via CI — never build release binaries locally
-- **Homebrew tap**: `marcelocantos/homebrew-tap` — uses [homebrew-releaser](https://github.com/Justintime50/homebrew-releaser) GitHub Action for automated formula generation and publishing
+- **Homebrew tap**: per project, reported by `discover.sh` as `homebrew_tap_repo` (from `tapper.yaml`; default `marcelocantos/homebrew-tap`; Canticode products use `canticode/homebrew-tap`). Publisher is `homebrew_publisher`: **`tapper`** (preferred — `tapper push` from the dev Mac after the release exists, token in the macOS keychain) or **`homebrew-releaser`** (legacy — the GitHub Action in `release.yml` with a `HOMEBREW_TAP_TOKEN` secret)
 - **Versioning (HARD HALT — global Hard rule #6)**: Semantic versioning (`vMAJOR.MINOR.PATCH`). All releases bump MINOR (reset PATCH to 0). **Never select a MAJOR or PATCH version yourself, under any circumstances** — bugfixes, hotfixes, and tiny tweaks all ship as minor. The only exception is a version the user named *verbatim in this conversation*; inferring "this is small, so patch" is the exact rationalisation this rule forbids. If the version about to be written has PATCH ≠ 0 or bumps MAJOR and the user did not name that exact version this conversation → **STOP, do not proceed** — it is an error, not a judgement call.
 - **Pre-1.0 → 1.0 shakeout**: A 1.0 release locks in a backwards-compatibility contract — after 1.0, breaking changes require forking the project (e.g., `foo` → `foo2`, see Phase B.3) rather than a major bump. Before cutting 1.0, the public API must have accumulated **at least 1 month** with no backwards-incompatible changes since the last breaking release. Historical SemVer practice was to scale shakeout by surface size (3+ months for >50 items); in the LLM-coding era, real-world API exercise compresses sharply, so a flat 1-month minimum suffices regardless of surface size. If a breaking change is judged necessary mid-shakeout, the clock **resets** from the new breaking release's tag date. See B.3a for the gate.
 - **Tag ownership**: The release tag is created **once** by `gh release create` locally. CI workflows must **never** create tags or releases — they only build artifacts and upload them to the existing release.
+- **Shipping path (HARD — default is gated push, not a PR)**: Read `# shipping_path` from `discover.sh`. **`gated-push` is the norm** — commit release prep on the default branch, run the local gate, `git push origin <default>`, then `gh release create`. Do **not** open a release-prep PR, do **not** wait on GHA *test* jobs, do **not** run `merge.sh`. **`pr-fallback` is the exception** — Health-Management-Systems, minicadesmobile, arr-ai, third-party forks, and any `*/homebrew-tap` repo (plus an explicit `release_shipping: pr` in AGENTS.md / CLAUDE.md). Only on `pr-fallback` does this skill use a feature branch, PR, `gh pr checks`, and `merge.sh`. Inbound contributor PRs on public include-set repos stay possible; this skill never treats an inbound PR as the owner release path.
 
 ## Parallelization
 
 The skill has substantial parallelizable structure. Default to running independent work in parallel — the wall-clock and token wins are large, and the global directive's "default to parallel" bias applies with full force here. The skill historically read as a serial pipeline; it is not one.
 
-**Fan out Phase B.1's audits (items 7–11).** CLI flag audit, agent-guide check (incl. gotcha staleness), README freshness, vendor licence attribution, and language-binding test coverage are independent read-only investigations with bounded outputs. Spawn each as an explore or general-purpose subagent and assemble the digests in the parent. These subagents must **not** commit, push, or open PRs — they investigate and report. Any fixes the audits surface are made in the parent context as part of the release-prep PR.
+**Fan out Phase B.1's audits (items 7–11).** CLI flag audit, agent-guide check (incl. gotcha staleness), README freshness, vendor licence attribution, and language-binding test coverage are independent read-only investigations with bounded outputs. Spawn each as an explore or general-purpose subagent and assemble the digests in the parent. These subagents must **not** commit, push, or open PRs — they investigate and report. Any fixes the audits surface are made in the parent context as part of the release-prep commits (on default for gated-push; on the release-prep branch for pr-fallback).
 
 **Run B.5, B.6, and B.7 concurrently.** Once `discover.sh` output is parsed and the version number is decided in B.4 step 2, these substeps have no cross-dependencies:
 
-- **B.7 (tests)** is the long pole — kick it off via `Bash(run_in_background: true)` first so it overlaps everything else.
+- **B.7 (tests / local gate)** is the long pole — kick it off via `Bash(run_in_background: true)` first so it overlaps everything else.
 - **B.5 (release notes drafting)** runs in the foreground while tests execute.
 - **B.6 (release.yml creation, conditional)** runs in the foreground alongside B.5.
 - **B.3 (breaking-change audit, post-1.0 only)** also belongs in this bracket — an independent `git diff` against the public surface.
 - **B.4 step 3 (version-string commit)** can run alongside the above; it doesn't block B.5/B.6/B.7.
 
-Collect B.7's background result before committing the version bump and pushing the PR — a failing test run halts Phase B regardless of how clean the docs and workflow look.
+Collect B.7's background result before committing the version bump and pushing — a failing local gate / test run halts Phase B regardless of how clean the docs and workflow look.
 
-**Phase C step 7 (Go submodule tags) runs in parallel with step 8 (`gh run watch`).** They touch disjoint state.
-
-**The CI wait between PR push and `gh run watch` returning green has no useful parallel work** *if the audit fan-out happened before the PR was pushed*, which is the whole point of fanning out early. Late-arriving audit findings force a second PR cycle. If you find yourself wanting to do real work during the CI wait, the fan-out fired too late.
+**Phase C Go-submodule tags run in parallel with `gh run watch` on `release.yml`.** They touch disjoint state. Do **not** wait on test.yml / specs.yml as a release gate.
 
 ## Invocation
 
@@ -45,17 +44,17 @@ The user runs `/release`. No arguments needed — the skill discovers everything
 
 ## Workflow
 
-`/release` runs in **three phases**. The ideal scenario is fully unattended from start to finish — only stop and ask the user when there is a genuine reason to.
+`/release` runs in **three phases**. The ideal scenario is fully unattended from start to finish — only stop and ask the user when there is a genuine reason to. Bare `/release` is enough; do not ask the user to paste "ignore the PR chapters" instructions — this skill already defaults to gated push.
 
 1. **Phase A — Up-front clarification.** Starts with a **release-freeze kill switch**: if the project declares `release_freeze: "<reason>"` in AGENTS.md / CLAUDE.md, halt immediately with that reason and do not proceed. Otherwise, a very quick analysis to identify any information likely to be needed from the user *given the specific context of the work being released*. If nothing is genuinely uncertain, ask nothing and move straight to Phase B. Do not invent questions; do not ask out of habit. The default is zero questions.
 
-2. **Phase B — Unattended execution to a mergeable PR.** Run the entire prep workflow without per-phase approval gates: discovery, breaking-change audit, version bump, release notes, CI setup, push, PR open, CI wait, gate check. End by reporting current state, anything messy that happened during the run, and any concerns. Then **only stop for confirmation if a serious concern arose** about whether it's appropriate to complete the release (failing tests rewritten without justification, a breaking change found, an unresolved CI failure, a missing licence attribution, etc.). If everything is clean, proceed to Phase C without asking.
+2. **Phase B — Unattended prep to a gated-ready default branch (or, on pr-fallback only, a mergeable PR).** Discovery, breaking-change audit, version bump, release notes, CI setup (binaries/tap only), local gate, commits. End by reporting current state, anything messy, and any concerns. Then **only stop for confirmation if a serious concern arose**. If everything is clean, proceed to Phase C without asking.
 
-3. **Phase C — Complete the release.** Squash-merge the release PR, tag, run `gh release create`, monitor CI, install locally, report.
+3. **Phase C — Complete the release.** On **gated-push**: push default (hook runs the gate), `gh release create`, watch `release.yml` only, install locally, report. On **pr-fallback**: squash-merge via `merge.sh`, then the same tag / `release.yml` / brew steps.
 
 The detailed substeps below are sequenced under these three phases. Where the previous workflow asked *"Proceed to Phase N+1?"* between substeps, that question is gone — substeps run back-to-back unless something in Phase B's concerns list fires.
 
-**Merge ≠ tag.** The release-prep PR's merge into master and the `gh release create <tag>` action are two separate steps, decoupled in time. In a straight-through `/release` run with no user interruption, the original `/release` invocation authorises the entire pipeline — merge *and* tag *and* brew install — and the agent should not stop and ask between them; that's the "ideal scenario is fully unattended from start to finish" promise. Re-authorisation is only required when the user has interrupted and amended the flow (e.g. "hold the tag, I want to add more tests first", "merge and I'll come back later"). Master can keep accumulating *PRs* (not just commits — additional test scaffolding, follow-up doc fixes, new fixtures, anything) between a release-prep merge and the eventual tag; when the tag is cut, it points at whatever HEAD has at that moment. The PR title `Release v0.N.0` is a descriptive checkpoint, not a contractual commitment to tag immediately, and a held-but-untagged release is a normal long-lived state rather than a release in mid-flight.
+**Push ≠ tag.** Landing release-prep on the default branch and `gh release create <tag>` are two separate steps, decoupled in time. In a straight-through `/release` run with no user interruption, the original invocation authorises the entire pipeline — push *and* tag *and* brew install — and the agent should not stop and ask between them. Re-authorisation is only required when the user has interrupted and amended the flow (e.g. "hold the tag, I want to add more tests first"). Master can keep accumulating commits between a prep push and the eventual tag; when the tag is cut, it points at whatever HEAD has at that moment. A held-but-untagged release is a normal long-lived state.
 
 ### Phase A: Up-front clarification
 
@@ -63,7 +62,7 @@ The detailed substeps below are sequenced under these three phases. Where the pr
 
 **Before any other Phase A work**, run `~/.claude/skills/release/discover.sh` and read the `# release_freeze` field. If it is anything other than `(none)`:
 
-- **Halt immediately.** Do not proceed with any further discovery, version bump, release-notes drafting, branch creation, or PR work.
+- **Halt immediately.** Do not proceed with any further discovery, version bump, release-notes drafting, branch creation, push, or PR work.
 - Print the freeze reason verbatim to the user, with a one-line summary: *"This repo declares a release freeze in AGENTS.md / CLAUDE.md. /release is blocked until the directive is lifted."*
 - Tell the user explicitly that lifting the freeze requires editing the project's AGENTS.md / CLAUDE.md: remove the `release_freeze:` directive AND switch any port-freeze gate profile back to `base`.
 - Do not offer to lift the freeze on the user's behalf, do not suggest workarounds, do not propose bypassing the gate profile. The freeze exists because the product is in a state where shipping is wrong; that judgement is the user's to revoke.
@@ -78,12 +77,9 @@ Do a fast scan of the repo (latest tag, commits since, working-tree state, versi
 
 - The desired version bump differs from the default minor (only ask if there's a concrete signal — e.g., user said "patch release" earlier, or commits clearly indicate breaking changes that warrant a fork rather than a bump).
 - The release scope is unclear (e.g., uncommitted WIP unrelated to the release, or a pile of unpushed commits that may or may not be part of this release).
-- **Open PRs carry post-tag work** (`open_prs_with_release_work` reports a count > 0 from `discover.sh`). Each listed PR has commits not in the latest tag, so the release scope is genuinely ambiguous: the user may want to (a) wait for the PR to merge and release the resulting master, (b) bundle release-prep into the existing PR rather than open a sibling release-prep PR (honouring "one PR per session"), or (c) release current master independently and let the PR merge into a later release. Ask which — naming each open PR by number, ahead-count, and title from the discover.sh output. Skip the question only if the listed PRs are clearly orthogonal to the release (e.g., long-running dependabot bumps, draft RFCs); the default is to ask.
+- **Open PRs carry post-tag work** (`open_prs_with_release_work` reports a count > 0 from `discover.sh`). On **gated-push**, ask only when an open PR's commits are *not* already on default and might belong in this release — options: (a) wait for that PR to land then release, (b) land its commits onto local default (cherry-pick / merge) then release, or (c) release current default and leave the PR for a later cut. On **pr-fallback**, also offer bundling release-prep into that existing PR (one PR per objective). Skip the question when listed PRs are clearly orthogonal (dependabot, draft RFCs).
 
-  **Check an open PR for duplication before bundling it.** An open PR whose feature is *already on master* — a parallel reimplementation from another worker/session — is a real and easily-missed case: bundling it (cherry-pick or merge) lands the feature on top of its own successor and blows up in conflicts across the same files. Before deciding to fold an open PR into the release, verify its work isn't already present:
-  - Pull the target ID(s) from the PR title/commits and grep master's log for the same `🎯T<n>` / feature (`git log --oneline <latest-tag>..master | grep -iE '<target-id>|<feature keyword>'`).
-  - If the PR is a single commit, `git merge-base --is-ancestor <pr-tip> master` — a "NO" plus same-file overlap is the duplication signal.
-  When the feature is already on master, **do not cherry-pick/merge the PR** — close it as superseded (cite the master commit that shipped it, confirm the surface matches so no work is lost) and release master as-is. A cherry-pick that conflicts across the exact files the feature touches is the tell; treat it as "already shipped", not "needs manual conflict resolution".
+  **Check an open PR for duplication before folding it.** If the feature is already on master, close the PR as superseded (cite the master commit) and release master as-is — do not cherry-pick on top of its own successor.
 - A pre-1.0 → 1.0 transition is plausible and the user hasn't signalled intent. Note: a 1.0 cut is a **major** bump that the agent never initiates on its own — only the user can request it. If they do, B.3a's shakeout gate fires.
 - An MCP-server or service definition gap is suspected and the user's preference (ship anyway / block) is unclear.
 
@@ -115,23 +111,24 @@ This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (lat
 
 4. **CI workflows**: Check for existing `.github/workflows/` files, especially any release-related workflows.
 
-   **Default-branch CI status** — `discover.sh` reports the conclusion of the latest completed push run on the default branch as `# default_branch_ci_status` (format: `<conclusion>\t<workflow>\t<runId>\t<url>`). Read it before doing anything else in Phase 1, because it tells you whether you're starting from a healthy baseline or from a broken one:
+   **Default-branch CI status** — `discover.sh` reports the conclusion of the latest completed push run on the default branch as `# default_branch_ci_status`. On **gated-push** this is informational only (local gate is authoritative; leftover test.yml must not block the cut). On **pr-fallback**, a red baseline is a near-certain pre-release block — triage as below.
 
    - `success` — proceed normally.
-   - `failure` / `cancelled` / `timed_out` / `action_required` — **stop and triage**. The next push to the default branch (whether the release-prep PR or anything else) will inherit the same failures unless you address them. Pull the failing job log (`gh run view <runId> --log-failed | tail -60`), classify what broke, and decide:
-     - **Code/test failure that the release-prep PR should also fix** (e.g., a test enforcing a constraint a recent commit removed): roll the fix into the release-prep PR alongside the STABILITY/version changes. Mention it in the PR body so the reviewer sees the test was deliberately rewritten, not silently deleted.
-     - **Infrastructure failure unrelated to the code** (e.g., a deploy step's auth token expired, a flaky third-party action): name it in the Phase B report and move on — but only after confirming the failing job is genuinely orthogonal to the release artifacts. A red `test` job is not infrastructure; a red `Deploy to Fly.io` job whose `needs:` doesn't gate artifact upload usually is.
-     - **Pre-existing broken-test target that CI doesn't run** (e.g., a `swift test` failure when only `go test` is wired into CI): create a follow-up bullseye target for the fix, note it in the release-prep PR's "Known issues" / "Deferred" section, and proceed. Do **not** silently delete the broken tests as part of the release-prep PR — that's scope creep and obscures the regression.
-   - `skipped` / `neutral` — read the job names; usually fine, but worth a glance.
-   - `(no completed CI runs on <branch>)` — first-release-of-a-new-repo case. Proceed normally; CI will be exercised by the release-prep PR.
+   - `failure` / `cancelled` / `timed_out` / `action_required` — **triage**. Pull the failing job log (`gh run view <runId> --log-failed | tail -60`), classify what broke, and decide:
+     - **Code/test failure the release prep should also fix**: roll the fix into the release-prep commits. On pr-fallback, mention it in the PR body.
+     - **Infrastructure failure orthogonal to artifacts** (e.g. expired deploy token): name it in the Phase B report and move on. A red `test` job is not infrastructure.
+     - **Pre-existing broken-test target CI doesn't run**: file a bullseye follow-up, note Deferred, proceed. Do **not** silently delete broken tests as release prep.
+     - On **gated-push**, do not wait for a re-run of test.yml to go green before tagging.
+   - `skipped` / `neutral` — glance; usually fine.
+   - `(no completed CI runs on <branch>)` — first release or no workflows; proceed.
 
-5. **Homebrew tap**: Check if `marcelocantos/homebrew-tap` exists and whether it already has a formula for this project. Also check that the **`HOMEBREW_TAP_TOKEN` action secret is set on this repo** — `discover.sh` reports this as `homebrew_tap_token_secret` (`set` / `missing`). homebrew-releaser reads this secret to push the generated formula into the tap; when it's missing, the job fails with the unhelpful error *"You must provide all necessary environment variables."* on the first release.
+5. **Homebrew tap**: Read `homebrew_tap_repo` and `homebrew_publisher` from `discover.sh`; check that the tap exists and whether it already has a formula for this project (`# homebrew_tap` lists its Formula/). **When `homebrew_publisher` is `tapper`**, the token lives in the dev Mac's keychain: run `tapper token verify` and, if it fails, `tapper token import-gh` (or `import-op`); there is no Actions secret to manage and the rest of this step does not apply. **When it is `homebrew-releaser`**, also check that the **`HOMEBREW_TAP_TOKEN` action secret is set on this repo** — `discover.sh` reports this as `homebrew_tap_token_secret` (`set` / `missing`). homebrew-releaser reads this secret to push the generated formula into the tap; when it's missing, the job fails with the unhelpful error *"You must provide all necessary environment variables."* on the first release.
 
    **Existence only on the happy path — no proactive `op read`.** Action secrets are write-only: `set` means a value was stored, not that it still authenticates. That is fine. The token lives in CI so releases do not require local 1Password every time. Do **not** refresh `HOMEBREW_TAP_TOKEN` on every release, and do **not** probe the 1Password source PAT during discovery (that was removed from `discover.sh` for the same reason — Touch ID spam).
 
    **When `homebrew_tap_token_secret` is `missing`** (first release of a new repo, or never set): set it once from 1Password before tagging, using the **guarded** form below. When it is already `set`, leave it alone and proceed.
 
-   **When the homebrew job fails** after the tag (opaque `401 Unauthorized`, or *"You must provide all necessary environment variables"*): then — and only then — refresh from 1Password with the same guarded form and `gh run rerun <run-id> --failed`. If refresh still 401s, the PAT itself has lapsed: mint a new fine-grained PAT with access to `marcelocantos/homebrew-tap`, update the 1Password item, refresh again, re-run. See Phase C step 8 and B.6 known issues.
+   **When the homebrew job fails** after the tag (opaque `401 Unauthorized`, or *"You must provide all necessary environment variables"*): then — and only then — refresh from 1Password with the same guarded form and `gh run rerun <run-id> --failed`. If refresh still 401s, the PAT itself has lapsed: mint a new fine-grained PAT with access to the tap repo (`homebrew_tap_repo`), update the 1Password item, refresh again, re-run. See Phase C step 8 and B.6 known issues.
 
    **Guard the read — never pipe `op` straight into `gh secret set`.** If the 1Password CLI session is locked (`op` prints `account is not signed in` / `authorization timeout` to *stderr* and writes nothing to stdout), a bare `op read … | gh secret set …` pipes an **empty value** and silently overwrites a previously-valid token with nothing. Always read to a temp file, verify it's non-empty, and only then set the secret; on failure, surface `op`'s error and leave the existing secret untouched:
 
@@ -152,7 +149,7 @@ This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (lat
 
 6. **Repo description**: Check that the GitHub repo has a description set (`gh repo view --json description`). homebrew-releaser crashes on null descriptions. If missing, set one with `gh repo edit --description "..."`. Also verify the description is **accurate and up to date** — stale descriptions (e.g., referencing renamed concepts) should be updated.
 
-**Fan out items 7–11.** The next five items are independent read-only investigations. Spawn one Sonnet subagent per item in a single message (multiple Agent tool uses in one assistant turn) and have each return a short digest. Spawn-prompt rule: "investigate and report findings — do **not** commit, do **not** push, do **not** open a PR. The parent will collect digests and decide what to fix in the release-prep PR." See the Parallelization section above. Items 1–6 and item 12 stay in the parent — they are trivial reads of `discover.sh` output or single `git status` calls.
+**Fan out items 7–11.** The next five items are independent read-only investigations. Spawn one explore/general-purpose subagent per item in a single message and have each return a short digest. Spawn-prompt rule: "investigate and report findings — do **not** commit, do **not** push, do **not** open a PR. The parent will collect digests and decide what to fix in the release-prep commits." Items 1–6 and item 12 stay in the parent.
 
 7. **CLI flags audit**: If the project produces standalone binaries, check that the following flags exist and work:
 
@@ -175,7 +172,7 @@ This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (lat
 
    Required steps (all must be documented):
 
-   - Binary install command (e.g., `brew install marcelocantos/tap/<project>`)
+   - Binary install command (e.g., `brew install <tap-owner>/tap/<project>`, where `<tap-owner>` is the owner half of `homebrew_tap_repo`)
    - **Service start command** (e.g., `brew services start <project>`) — if the server runs as a persistent daemon, a Homebrew service definition is required (see Phase 4 step 3). Flag if the project listens on a port but has no service definition.
    - Grok Build: `grok mcp add --transport http <name> http://localhost:<port>/mcp` (writes `~/.grok/config.toml`)
    - Claude Code: `claude mcp add --scope user --transport http <name> http://localhost:<port>/mcp` (global install to `~/.claude.json`)
@@ -210,18 +207,17 @@ This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (lat
 
 12. **Working tree**: Verify the working tree is clean and up to date with the remote. If there are uncommitted changes or unpushed commits, flag them before proceeding. If the changes are unrelated WIP, the standard resolution is: `git stash push -u -m "WIP: ..."`, proceed with the release, then `git stash pop` at the end. Always restore the stash after the release completes.
 
-    **Ahead-N handling** — when `discover.sh` reports `unpushed` ≥ 1 on the default branch (not a feature branch), the choice between "fast-forward push then PR for release-prep" vs "single bundled PR" depends on the repo's merge strategy. Read `# merge_strategy` from the discover.sh output:
+    Read `# shipping_path` from discover.sh **before** Ahead-N handling.
 
-    - **`merge-commit-allowed`** — fast-forward push the unpushed commits to origin first, then open the release PR containing only the release-prep commit(s). The unpushed commits' atomic history survives on master verbatim. Do this automatically; don't ask the user.
-    - **`squash-only`** (the common case for owned repos under the global AGENTS.md / CLAUDE.md policy) — bundle the unpushed commits AND the release-prep commits into a single feature branch, open one PR, squash-merge to master. The squash collapses the per-commit history on master, but the per-commit detail is preserved on GitHub forever via the PR's commit list. Do not push to master directly; the global "always PR-flow" directive applies. Do this automatically; don't ask the user. Note the squash collapse in the Phase B report.
-    - **`rebase-allowed`** (without merge-commit) — same as `squash-only`. Rebase-merge would preserve atomic history on master, but for the release skill's purposes the bundled PR is cleaner.
-    - **`(gh api failed)` or `(gh not available...)`** — assume `squash-only` and proceed with the bundled PR. This is the safer default.
+    **Ahead-N on `gated-push` (default):** when `unpushed` ≥ 1 on the default branch, those commits are part of what will ship. Leave them on default; add release-prep commits on top; Phase C pushes once. Do **not** open a PR. Do **not** squash away atomic history unless the owner asked for a local squash before push. If HEAD is on a non-default branch, check out / fast-forward the default branch first (or halt and ask if the feature branch is the intended release scope).
 
-    If the fast-forward path is selected but **not practical** (origin has commits not in local master, i.e. `git push` would require a merge or rebase), fall back to the bundled PR. Note the collapse in the Phase B report.
+    **Ahead-N on `pr-fallback` only:** choose by `# merge_strategy`:
+    - **`merge-commit-allowed`** — fast-forward push unpushed commits to origin first, then open the release PR with only release-prep commits.
+    - **`squash-only` / `rebase-allowed` / gh-unavailable** — bundle unpushed + release-prep into one feature branch and one PR; note squash collapse in the Phase B report.
+    - If fast-forward is selected but not practical (origin has commits local lacks), fall back to the bundled PR.
+    Do not use a two-PR variant.
 
-    Do not use the two-PR variant (squash unpushed in one PR, release prep in another) under any merge strategy — same history loss as the bundled PR with double the CI churn, no upside.
-
-    Resolve this before committing any release-prep changes so Phases 4–5 have a clean working tree to operate on.
+    Resolve this before committing release-prep so later phases operate on a settled tree.
 
 13. **macOS shell-script compatibility (bash 3.2)**: macOS ships **bash 3.2**
     (Apple froze it at the last GPLv2 release), so this applies to *every*
@@ -385,22 +381,28 @@ Do not create "v0.N.0 is shipped" / "released binary has the fix" targets. Shipp
 
 #### B.5–B.7: Concurrent bracket
 
-B.5 (release notes), B.6 (release.yml creation), and B.7 (gate check incl. tests) **run concurrently**. The minimal harness:
+B.5 (release notes), B.6 (release.yml creation), and B.7 (local gate / tests) **run concurrently**. The minimal harness:
 
-1. As soon as B.4 step 2 has decided the version, kick off B.7's test run in the background:
+1. As soon as B.4 step 2 has decided the version, kick off B.7's gate run in the background:
    ```
-   Bash(command: "<ci-test-command>", run_in_background: true)
+   Bash(command: "<local-gate-command>", run_in_background: true)
    ```
-   The harness will notify when the test run finishes — do not poll, do not sleep.
+   The harness will notify when it finishes — do not poll, do not sleep.
 
-   **`<ci-test-command>` is CI's exact test invocation, not the project's default.** Read the test step out of the CI workflow (`grep -A2 'go test\|cargo test\|pytest\|npm test' .github/workflows/*.yml`) and run *that* command verbatim — flags included. Divergence here ships green-locally/red-on-CI failures: sawmill v0.17.0's release-prep tests passed locally with the documented `go test ./... -count=1` while CI ran `-count=1 -race` and failed the PR (the `-race`-adjacent slowdown exposed a real timing bug that fast local runs masked). If the project's `make test` / documented command differs from CI's, that divergence is itself a release-PR fix: align the Makefile (or docs) with CI, and prefer adding a `scripts/hooks/pre-push` hook running the CI-identical suite so the gap stays closed. When no CI workflow exists, fall back to the project's documented test command.
-2. In the foreground, draft release notes (B.5) and write the workflow file (B.6, if needed). These are file edits and `git add` / `git commit` operations on the parent's working tree; they don't conflict with the background test run.
-3. When the test-run notification arrives, fold its result into the gate check (B.7).
-4. Only after all three substeps are settled do you commit the bundled release-prep changes and push the PR.
+   **`<local-gate-command>` preference order:**
+   1. `make gate` / `cv gate` if the repo defines it (this is the owner gate).
+   2. Else the exact suite a pre-push hook runs, if present.
+   3. Else CI's exact test invocation from `.github/workflows/*` (flags included — sawmill v0.17.0 taught that `go test ./...` locally vs `-race` in CI ships bugs). If Makefile/`make test` diverges from CI, align them as a release-prep fix and prefer a pre-push hook so the gap stays closed.
+   4. Else the project's documented test command.
 
-   **Name the PR for its contents — not the version.** Under squash-only merges the PR title *becomes the commit message on master*, so a bare `Release v0.N.0` leaves master's history saying nothing about what shipped. The release number does **not** belong in the PR title at all — it is self-evident from the tag and the merge. Title the release-prep PR exactly as you would any feature PR: a descriptive summary of the release's headline change(s), with **no version number and no `Release` prefix** — e.g. `TODO discovery covers all known roots`, or `image OCR + semantic search`. Derive it from the `# commits_since_last_tag` / release-notes headline(s): one change → name it; several → the dominant one or a 2–4 word theme. The version lives on the `git tag` and the `gh release create --title` (`v0.N.0`) — that is where it is meaningful; the PR is not.
+   On **gated-push**, this local run *is* the blocking correctness gate — do not also wait for GHA test jobs. On **pr-fallback**, still run it locally; PR CI is an additional check after push.
+2. In the foreground, draft release notes (B.5) and write the workflow file (B.6, if needed).
+3. When the gate-run notification arrives, fold its result into B.7.
+4. Only after all three substeps are settled do you commit the bundled release-prep changes.
+   - **gated-push:** commit on the default branch. Do **not** open a PR. Push happens in Phase C (so a held-tag deferral can stop after local commits without having pushed).
+   - **pr-fallback only:** push a feature branch and open a PR. **Name the PR for its contents — not the version** (squash title becomes the master commit message). No `Release` prefix and no version in the title — e.g. `TODO discovery covers all known roots`. Version lives on the tag / `gh release create --title`.
 
-If any of the three fail, halt Phase B per the existing rules — the parallel structure does not change *what* counts as a serious concern, only *when* the work happens. See the Parallelization section.
+If any of the three fail, halt Phase B. See the Parallelization section.
 
 #### B.5: Release notes
 
@@ -443,7 +445,7 @@ Draft release notes from git history.
    ```
    Adjust the OS/arch in the tarball name to match the runner. Use `cv` instead of `make` in all build and test steps.
 
-2. **Add homebrew-releaser job**: Add a job that runs after binaries are uploaded, using [homebrew-releaser](https://github.com/Justintime50/homebrew-releaser):
+2. **Tap publishing**: Prefer **tapper** — add a `tapper.yaml` (`repo`, `tap.owner`/`tap.name`, `push.*` targets, `test`, `install_file: tapper/install.rb`, `formula_includes_file: tapper/formula_includes.rb`) plus a `release-tap` target/script that runs `tapper push --version <tag>` once the release assets exist; no Actions secret is needed and the tap can be any owner (see `marcelocantos/vellum` or `canticode/orthograph` for the shape). Only if the project must publish from CI, add a homebrew-releaser job that runs after binaries are uploaded, using [homebrew-releaser](https://github.com/Justintime50/homebrew-releaser):
 
    ```yaml
    homebrew:
@@ -452,7 +454,7 @@ Draft release notes from git history.
      steps:
        - uses: Justintime50/homebrew-releaser@v3
          with:
-           homebrew_owner: marcelocantos
+           homebrew_owner: <tap-owner>
            homebrew_tap: homebrew-tap
            github_token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
            formula_folder: Formula
@@ -468,7 +470,7 @@ Draft release notes from git history.
 
    Key setup requirements:
    - **`HOMEBREW_TAP_TOKEN` secret**: A shared PAT for all repos is stored in 1Password as the source of truth; each repo holds a write-only Actions copy. On a **new** repo (`homebrew_tap_token_secret: missing`), set it once with the guarded `op read` → `gh secret set` form in B.1 step 5. Do **not** re-set it on every subsequent release — that is CI's job. Refresh only after a homebrew job failure (see known issues below and Phase C step 8).
-   - The `homebrew-tap` repo must exist at `marcelocantos/homebrew-tap` with a `Formula/` directory.
+   - The tap repo (`homebrew_tap_repo`) must exist with a `Formula/` directory.
    - Binary tarballs must follow the naming convention `<project>-<version>-<os>-<arch>.tar.gz` where `<version>` has **no `v` prefix** (e.g., `myapp-1.2.0-darwin-arm64.tar.gz`). homebrew-releaser strips the `v` from the tag when searching for assets.
    - The `install` and `test` fields must match the project's actual binary name and CLI interface.
    - Add `depends_on` if the binary needs runtime dependencies.
@@ -492,7 +494,7 @@ Draft release notes from git history.
          error_log_path var/"log/<project>.log"
        end
      ```
-   - **Manual formula edit**: If homebrew-releaser doesn't support the needed service options, edit the formula in `marcelocantos/homebrew-tap` directly after the first release.
+   - **Manual formula edit**: If the publisher doesn't support the needed service options, edit the formula in the tap repo directly after the first release.
 
    The agents-guide should document both macOS (`brew services start`) and Linux (`systemd --user` unit file) setup. Flag if the project is a persistent server but has no service definition.
 
@@ -502,106 +504,69 @@ Draft release notes from git history.
 
 Enforce the project's delivery gates before releasing.
 
-1. Read the project's `## Gates` section from `AGENTS.md` or `CLAUDE.md`
-   to determine the profile (default: `base`).
-2. Read `~/.claude/gates/base.yaml` and the profile YAML (if not base).
-   Merge them: profile gates add to base; `override: [gate: skip]`
-   removes specific base gates.
-3. Check each `pre-release` gate (in addition to any `pre-merge` gates
-   that haven't already been satisfied):
+1. Read `# shipping_path` from discover.sh. Read the project's `## Gates` section from `AGENTS.md` or `CLAUDE.md` to determine the profile (default: `base`).
+2. Read `~/.claude/gates/base.yaml` and the profile YAML (if not base). Merge them: profile gates add to base; `override: [gate: skip]` removes specific base gates.
+3. Check each `pre-release` gate (and applicable `pre-merge` gates):
    - **automated**: Verify the condition. Report pass/fail.
-   - **routed**: Delegate to the named skill.
-   - **manual**: A `manual` gate is a **serious concern** in the Phase B sense — surface it in the Phase B report at the end of execution rather than stopping mid-stream. Do not present its prompt as an in-flight blocker.
-4. If any **automated** gate fails, that's a serious concern — surface it in the Phase B report.
+   - **routed**: Delegate to the named skill — **except** on `shipping_path=gated-push`, do **not** route `pr-workflow` through `/push`. Treat `pr-workflow` / `ci-green` (PR-CI) as **N/A**; the local gate run in B.5–B.7 is the correctness oracle (`gate-green`). Never skip both `ci-green` and the local gate.
+   - **manual**: Surface in the Phase B report at the end; do not present as an in-flight blocker.
+4. If any applicable **automated** gate fails, that's a serious concern — surface it in the Phase B report.
 
-**Run env-gated live tests as part of the `tests-exist` check.** Many
-projects gate expensive or API-costing tests behind an environment
-variable (`CLAUDIA_LIVE=1`, `RUN_LIVE_TESTS=1`, etc.) so they don't
-run during routine local development or in contributor CI. These
-tests are the exact ones that exercise the user-facing flow —
-skipping them at the release gate defeats the whole point of gating
-them separately. When running the test suite to verify
-`tests-exist`, inspect the project for such env var conventions
-(grep `t.Skip.*Getenv\|os.Getenv.*== ""` in `_test.go` files, or
-check README/CONTRIBUTING for a "how to run live tests" section) and
-re-run the suite with those variables set. Do not rely on the
-default `go test ./...` / `cargo test` / equivalent to exercise
-API-costing tests — its silence on those tests is by design, and
-also silent about whether the user-facing flow works.
+**Run env-gated live tests as part of the `tests-exist` check.** Many projects gate expensive or API-costing tests behind an environment variable (`CLAUDIA_LIVE=1`, `RUN_LIVE_TESTS=1`, etc.). When verifying `tests-exist`, re-run with those variables set (or prefer `make live` / `make test-live` when documented). A pass that only ran the non-live subset is not sufficient for a release. Name skipped live backends as residue, not a pass.
 
-If no such gating convention exists, the default run is sufficient.
-If the project has a specific command for live tests (e.g., a
-Makefile target like `make test-live`), prefer that over
-reconstructing the env vars by hand.
+**Shipping path — land release prep:**
 
-This check is part of the `tests-exist` gate in spirit even if the
-gate yaml doesn't mention it explicitly. A "tests exist" pass that
-only ran the non-live subset leaves the user-facing flow unverified
-and is not sufficient for a release.
-
-**Release-prep goes through a PR.** The `pr-workflow` pre-merge gate means release-skill work routes through a feature branch and PR, not a direct push to master. The release PR carries the version bump and any doc changes; CI must go green before squash-merge. If the project has no CI, the `pr-workflow` gate still applies — you still need to go through a PR, but CI waits are zero.
-
-**Release-prep PR is sometimes a no-op — skip it when there's nothing to commit.** When all release content has already landed via earlier PRs *and* the release introduces no new commits (no in-source version string to bump, no STABILITY.md snapshot to update, no dist regen, no release-notes file committed to the repo), there is nothing to PR. Opening an empty PR for the sole purpose of satisfying the `pr-workflow` gate creates churn without value: an empty diff, a green-CI placeholder, an immediate squash-merge. Don't do it. The `pr-workflow` gate is satisfied by *the PRs that landed the changes being released* — those already routed through a feature branch and CI. The release event itself (the `gh release create` in Phase C) is not a content change to master and doesn't need its own PR. Detect this case by checking that (a) the working tree is clean, (b) there are no in-source version strings to update, (c) discover.sh's dist target is empty, and (d) there are no other release-prep edits the skill would normally make. If all four hold, skip the PR step and proceed straight to Phase C with a one-line note in the Phase B report explaining the skip.
-
-**Always squash-merge release PRs via `~/.claude/skills/push/merge.sh`, never via raw `gh pr merge`.** After a squash-merge, local master has N pre-squash commits while origin/master has one squash commit with a different SHA — `git pull` fails to fast-forward, `rebase` re-applies already-merged content, and `merge` would create a merge commit (forbidden under squash-only). The only safe resolution is `git reset --hard origin/master`, which is normally a user-only operation. `merge.sh` bundles the squash-merge, the fetch, the checkout, the hard reset, and the local feature-branch cleanup into a single vetted script — pre-authorising the reset by virtue of being a known script. Invoke as:
+- **`gated-push` (default):** Release-prep commits land on the **default branch**. No feature branch, no `gh pr create`, no `gh pr checks`, no `merge.sh`. Never `git push --no-verify`. If there is nothing to commit (no version string, no STABILITY snapshot, no dist, no other prep edits) and the tree is clean, skip the commit step and proceed to Phase C with a one-line note.
+- **`pr-fallback` only:** Feature branch + PR; CI on the PR when present; squash-merge later via `~/.claude/skills/push/merge.sh` (never raw `gh pr merge`). Empty no-op PRs are still forbidden — if there is nothing to commit, skip the PR and proceed to Phase C.
 
 ```
+# pr-fallback only:
 ~/.claude/skills/push/merge.sh <pr-number> master <feature-branch>
 ```
 
-Calling `gh pr merge --squash` directly leaves the user staring at a diverged local master with no clean recovery — they have to run `git reset --hard origin/master` by hand every time. That is the bug `merge.sh` exists to prevent.
-
 #### B.8: End-of-Phase-B report and decision point
 
-After CI is green on the release PR, produce a brief report covering:
+Produce a brief report covering:
 
+- `# shipping_path` used (`gated-push` or `pr-fallback`).
 - Version selected and version-string updates applied.
-- PR URL, CI status, gate results.
-- Any messiness encountered during the run: rewritten tests, deferred items, infrastructure failures triaged, dist regen results, stash/restore, etc.
+- Local gate command + result; on pr-fallback also PR URL / CI status.
+- Any messiness: rewritten tests, deferred items, infrastructure failures triaged, dist regen, stash/restore, etc.
 
-Then **decide whether to proceed unattended**. Default is **yes — proceed straight into Phase C without asking**. Only stop and ask if a *serious concern* arose during Phase B that warrants user review before crossing the merge-to-master line:
+Then **decide whether to proceed unattended**. Default is **yes — proceed straight into Phase C without asking**. Only stop and ask if a *serious concern* arose:
 
 - Breaking change found post-1.0 (already halted in B.3).
 - Tests were rewritten in a way that suggests a regression rather than a deliberate change.
 - A licence-attribution gap that wasn't resolvable automatically.
 - A `manual` pre-merge or pre-release gate fired (surface its prompt now).
-- An unresolved CI failure or an infrastructure failure that overlaps the release artifacts.
+- An unresolved **local gate** failure; on pr-fallback, also unresolved PR CI that overlaps release artifacts.
 
-Routine items are **not** serious concerns: a clean changelog display, a successful dist regen, a normal version bump, expected two-PR flow, etc. Don't ask just to confirm something the user already implicitly authorised by running `/release`.
+Routine items are **not** serious concerns. Don't ask just to confirm something the user already authorised by running `/release`.
 
-**Defer-the-tag is its own routine outcome, not a concern.** If during Phase B the user says they want to land more PRs (more tests, doc fixes, additional fixtures) before tagging, that's not "abort the release" — it's "merge the prep PR onto master and stop". Land step 1 of Phase C (the squash-merge), report the merged-untagged state, and stop. Subsequent follow-up PRs go through the normal PR workflow against master, not through a fresh `/release` invocation. When the user later authorises the tag, re-enter Phase C at step 5 against current HEAD.
+**Defer-the-tag** is routine: if the user wants more work before tagging, on gated-push push prep commits (or leave them local if they asked not to push yet), report held-untagged, and stop; on pr-fallback merge the prep PR then stop. Later authorisation re-enters Phase C at the tag step against current HEAD.
 
 If the report shows no serious concerns: print the report, say *"proceeding to Phase C"*, and continue.
 
-If a serious concern fires: print the report with the concern called out at the top and ask one focused question (*"merge anyway, or stop here?"*).
+If a serious concern fires: print the report with the concern called out at the top and ask one focused question (*"push/tag anyway, or stop here?"* on gated-push; *"merge anyway, or stop here?"* on pr-fallback).
 
 ### Phase C: Complete the release
 
-Squash-merge the prepared PR(s), tag, and create the GitHub release. Run unattended unless something fails along the way.
+Push (or merge), tag, and create the GitHub release. Run unattended unless something fails along the way.
 
-**Re-entrancy and the held-release state.** Phase C is one continuous flow under a normal `/release` invocation — the original `/release` invocation authorises the merge *and* the tag *and* the brew install. Run it straight through.
+**Re-entrancy and the held-release state.** Phase C is one continuous flow under a normal `/release` invocation — push/merge *and* tag *and* brew install. The split-in-time case only arises when the user interrupted Phase B to defer the tag:
 
-The split-in-time case only arises when the user has interrupted Phase B and asked to defer the tag (e.g. "hold the tag, I want more tests first", "merge then I'll come back"). In that case:
+- Land prep on default (gated-push push, or pr-fallback merge) and stop. Master is held-untagged.
+- Further commits can land on master before the tag; when authorised, re-enter at the tag step against current HEAD.
 
-- Run step 1 (squash-merge) and then stop. Master is now in a *held-release* state: the prep content is on master, but no tag has been cut.
-- Master can accumulate any number of further PRs in this state — additional tests, doc fixes, new fixtures, anything — landed via the standard PR workflow against master, not via a fresh `/release` invocation. Each one becomes part of whatever-version-we-eventually-tag.
-- When the user later authorises the tag, re-enter Phase C at step 5 against the current HEAD (which may be many PRs past the original merge). The v0.N.0-prep PR's title is descriptive, not contractual — it doesn't obligate the tag.
+1. **Land on the default branch:**
+   - **gated-push:** Ensure HEAD is the default branch with release-prep commits. `git push origin <default>` (hooks must run — never `--no-verify`). If push is refused by the hook, fix and retry; do not bypass.
+   - **pr-fallback only:** Squash-merge via `~/.claude/skills/push/merge.sh <pr-number> master <feature-branch>`. Bypassed-check / post-merge CI reporting from the old PR flow applies only here — and only as post-hoc signal, not as the owner gate.
 
-1. **Squash-merge the release PR** via `~/.claude/skills/push/merge.sh <pr-number> master <feature-branch>`. In the straight-through case, proceed immediately to step 2. In the held-release case (user interrupted Phase B to defer the tag), stop after the merge and report the merged-untagged state plainly; pick up at step 5 when authorisation arrives.
-
-   **Bypassed-check policy + post-merge CI report.** Some projects opt to *not* block a release on a disproportionately slow CI job (e.g. a Windows CGO build that takes 10–30× the Linux job). When the project owner has signalled that preference, it is acceptable to force-merge (admin) once the fast, authoritative jobs (e.g. ubuntu) are green rather than waiting the slow job out — `gh pr merge <pr> --squash --admin --delete-branch` (note: `merge.sh` does not pass `--admin`, so a ruleset that requires checks needs the direct `gh` form, followed by the same local-sync `merge.sh` would have done: `git checkout master && git fetch && git merge --ff-only origin/master`). **But bypassing a check is not the same as ignoring it.** The squash-merge fires a fresh master-push CI run; **read that run's per-job conclusions and report any failure** so a real regression on the bypassed (or any) platform never slips by silently:
-
-   ```bash
-   rid=$(gh run list --repo <owner>/<repo> --workflow=ci.yml --event push --branch master --limit 1 --json databaseId -q '.[0].databaseId')
-   gh run view "$rid" --repo <owner>/<repo> --json conclusion,jobs \
-     -q '"\(.conclusion)  " + ([.jobs[] | "\(.name): \(.conclusion)"] | join("  "))'
-   ```
-
-   Surface the result in the Phase C report. If a bypassed job *failed*, say so prominently (it's a post-hoc fix item, not necessarily a release blocker) — and check whether the same job also failed on the *PR* run vs only intermittently, since a job that flips pass/fail across runs of the same code is a **flaky test**, not a real regression. A flaky job that keeps forcing bypasses is itself a defect to file a target for, not a permanent override.
+   In the held-release case, stop after this step and report plainly; pick up at step 5 when authorisation arrives.
 
 2. **Validate version strings**: Before tagging, verify that any in-source version strings match the release version. For C/C++ projects with version macros, check that the `#define` values match the tag (strip leading `v`). Fail early if they don't — the version commit from B.4 should have already handled this, but double-check.
 
-3. **Push**: Ensure all commits (version bump, etc.) are on `master` before tagging. After the squash-merge in step 1, `merge.sh` already left the local `master` aligned with `origin/master`; double-check.
+3. **Push check**: Ensure all commits (version bump, etc.) are on `origin/<default>` before tagging. After step 1, local default should already match origin; double-check with `git status -sb`.
 
 4. **Regenerate distribution files**: If B.1 identified a dist generation target (e.g., `make dist`), run it now. If it produces any changes, commit them on `master` (e.g., "Regenerate dist for \<version\>") and push before tagging. This ensures the release tag includes up-to-date distribution artifacts.
 
@@ -617,7 +582,7 @@ The split-in-time case only arises when the user has interrupted Phase B and ask
    ```bash
    gh release create <version> --title "<version>" --notes-file <notes-file>
    ```
-   This triggers the `release.yml` workflow, which builds binaries, uploads them, and (if configured) runs homebrew-releaser to update the tap formula automatically.
+   This triggers the `release.yml` workflow (if any), which builds binaries and uploads them, and — only when `homebrew_publisher` is `homebrew-releaser` — updates the tap formula. Projects without a workflow build and upload their assets locally in step 4 (e.g. `cv release-dist` / `make dist` then `gh release create <tag> … dist/*.tar.gz`).
 
 6. **Sync local tags with the remote**: `gh release create` creates the
    tag on the remote but does **not** update the local `.git/refs/tags/`.
@@ -650,20 +615,22 @@ The split-in-time case only arises when the user has interrupted Phase B and ask
 
    **Run this in parallel with step 8.** The submodule tag push and `gh run watch` touch disjoint state. Kick step 7 off as a foreground action and start step 8 immediately after — or run step 8 in the background and do step 7 while it watches.
 
-8. **Monitor CI**: Wait for the release workflow to complete in full. The workflow's `homebrew` job has `needs: build`, so a successful `gh run watch` guarantees both that artefacts are uploaded **and** that homebrew-releaser has pushed the formula to the tap.
+8. **Monitor release CI only**: Wait for **`release.yml`** (artifact build, and the homebrew-releaser job when that is the publisher) — not test.yml / specs.yml. Those leftover test workflows must not gate the cut. Skip this step entirely when there is no `release.yml` (assets were uploaded locally in step 5).
    ```bash
    gh run list --workflow=release.yml --limit=1
    gh run watch <run-id>
    ```
-   If it fails, help diagnose — do not delete the release or tag without asking. **If only the `homebrew` job failed with a `401 Unauthorized` or *"must provide all necessary environment variables"*** (stale/empty `HOMEBREW_TAP_TOKEN`; see B.6 known issues), the binaries already uploaded — this is the failure-driven refresh path: use the **guarded** `op read` → `gh secret set` form from B.1 step 5 (never the bare pipe, which clobbers the secret with empty output when `op` is locked), then `gh run rerun <run-id> --failed`, then re-watch. Do **not** start the brew install in step 9 until this returns success — running `brew update` against a tap that hasn't received the formula yet will install the previous version.
+   **8a. tapper publish (when `homebrew_publisher` is `tapper`)**: once the release carries its tarballs (CI green, or uploaded locally), publish the formula from the dev Mac: run the project's target if it has one (`make release-tap`, `cv release-tap`, `scripts/release-tap.sh <tag>`), else `tapper push --version <tag>` in the repo root. A `missing token` error means `tapper token import-gh`; a 403 on the tap means the token lacks push on `homebrew_tap_repo`. Do not start step 9 until this succeeds.
+
+   If CI fails, help diagnose — do not delete the release or tag without asking. **If only the `homebrew` job failed with a `401 Unauthorized` or *"must provide all necessary environment variables"*** (stale/empty `HOMEBREW_TAP_TOKEN`; see B.6 known issues), the binaries already uploaded — this is the failure-driven refresh path: use the **guarded** `op read` → `gh secret set` form from B.1 step 5 (never the bare pipe, which clobbers the secret with empty output when `op` is locked), then `gh run rerun <run-id> --failed`, then re-watch. Do **not** start the brew install in step 9 until this returns success — running `brew update` against a tap that hasn't received the formula yet will install the previous version.
 
 9. **Install locally**: Only after step 8 returns success. This step is **mandatory** for projects with a Homebrew tap — do not skip it and do not ask for permission.
 
    ```bash
    brew update
    log=$(mktemp -t brew-upgrade-<project>.XXXXXX) && trap 'rm -f "$log"' EXIT
-   brew upgrade marcelocantos/tap/<project> 2>&1 | tee "$log" || \
-     brew install marcelocantos/tap/<project> 2>&1 | tee "$log"
+   brew upgrade <tap-owner>/tap/<project> 2>&1 | tee "$log" || \
+     brew install <tap-owner>/tap/<project> 2>&1 | tee "$log"
    ```
 
    `brew update` is required to pull the fresh formula from the tap. Use `upgrade || install` so the command works whether or not the formula is already installed. **Always tee the full output to a temp file** — when something goes wrong, a `tail -5` of the truncated output never shows the actual failure mode, and you'll be guessing instead of diagnosing. Keep the `mktemp` path so you can inspect it if the verify step below fails.
@@ -675,19 +642,19 @@ The split-in-time case only arises when the user has interrupted Phase B and ask
 
    **Verify the install**: Run `<project> --version` (or the equivalent) and confirm the output matches the released version. If it doesn't match, **inspect `"$log"` first** — the full upgrade output is there, including any "Failed to fix install linkage" warnings, missing-symlink hints, or Cellar-vs-bin-symlink mismatches. Then **fail loud**: print the expected version, the observed version, `which <project>`, and the relevant lines from `"$log"`. Common causes:
 
-   - **Cellar populated but `bin/<project>` missing**: a formula-name collision with a published Homebrew cask shadows the symlink-creation step. `brew link --overwrite marcelocantos/tap/<project>` resolves it; report the formula's name as a candidate for renaming if this recurs.
+   - **Cellar populated but `bin/<project>` missing**: a formula-name collision with a published Homebrew cask shadows the symlink-creation step. `brew link --overwrite <tap-owner>/tap/<project>` resolves it; report the formula's name as a candidate for renaming if this recurs.
    - **PATH shadow**: a different `<project>` binary earlier in `$PATH`. `which -a <project>` shows all candidates.
    - **`brew upgrade` ran but skipped link**: the symptom is "Cellar has new version, `which` returns command-not-found, no obvious error in the truncated tail." This is exactly why `tee`-ing the full log matters; grep the log for `link` / `symlink` / `Error:` to find the actual cause.
 
    Do not enter a diagnostic loop of repeated `brew update` / `brew reinstall` attempts — the timing race that used to motivate that loop has been eliminated by the step-8 wait.
 
-   **Never hand-edit the brew-managed tap working tree** at `/opt/homebrew/Library/Taps/marcelocantos/homebrew-tap`. It is Homebrew's working copy of the tap, not a scratch space. Uncommitted edits there get autostashed and re-applied around the next `brew update`, which will trip a stash-pop conflict against the homebrew-releaser-regenerated formula and abort the next `brew upgrade` mid-release with a Ruby parse error full of `>>>>>>> Stashed changes` markers. Treat that state as a bug, not a workflow.
+   **Never hand-edit the brew-managed tap working tree** at `/opt/homebrew/Library/Taps/<tap-owner>/homebrew-tap`. It is Homebrew's working copy of the tap, not a scratch space. Uncommitted edits there get autostashed and re-applied around the next `brew update`, which will trip a stash-pop conflict against the homebrew-releaser-regenerated formula and abort the next `brew upgrade` mid-release with a Ruby parse error full of `>>>>>>> Stashed changes` markers. Treat that state as a bug, not a workflow.
 
    **Non-Homebrew projects**: If the project has no Homebrew tap (e.g., a library, or a binary distributed another way), skip this step and note it in the Phase B report.
 
 10. **Report**: Print:
     - Release URL
-    - Homebrew install command (if tap was set up): `brew install marcelocantos/tap/<project>`
+    - Homebrew install command (if tap was set up): `brew install <tap-owner>/tap/<project>`
     - Confirmation that the new version is installed locally (include the `--version` output)
 
 11. **Clean the tree**: If `bullseye.yaml` is dirty, run

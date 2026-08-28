@@ -112,6 +112,50 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 1a2. Shipping path — gated-push (default) vs pr-fallback (exclude set)
+# ---------------------------------------------------------------------------
+# Owner-solo repos ship by local gate + push to default. PR is the
+# exception: shared orgs, forks, and the Homebrew tap (action-written).
+# Override: AGENTS.md / CLAUDE.md `release_shipping: pr` forces pr-fallback;
+# `release_shipping: gated-push` forces gated-push.
+echo "# shipping_path"
+_ship_override=""
+for _f in AGENTS.md CLAUDE.md; do
+    if [[ -f "$_f" ]]; then
+        _ship_override=$(sed -nE 's/^[[:space:]]*release_shipping:[[:space:]]*"?([a-z-]+)"?.*/\1/p' "$_f" | head -1)
+        [[ -n "$_ship_override" ]] && break
+    fi
+done
+if [[ "$_ship_override" == "pr" || "$_ship_override" == "pr-fallback" ]]; then
+    echo "pr-fallback"
+elif [[ "$_ship_override" == "gated-push" ]]; then
+    echo "gated-push"
+else
+    _repo=$(repo_name)
+    _owner="${_repo%%/*}"
+    case "$_owner" in
+        Health-Management-Systems|minicadesmobile|arr-ai)
+            echo "pr-fallback"
+            ;;
+        *)
+            if [[ "$_repo" == */homebrew-tap ]]; then
+                echo "pr-fallback"
+            elif has_cmd gh && [[ "$_repo" == */* ]]; then
+                _fork=$(gh api "repos/$_repo" --jq '.fork' 2>/dev/null || echo false)
+                if [[ "$_fork" == "true" ]]; then
+                    echo "pr-fallback"
+                else
+                    echo "gated-push"
+                fi
+            else
+                echo "gated-push"
+            fi
+            ;;
+    esac
+fi
+unset _ship_override _repo _owner _fork _f
+
+# ---------------------------------------------------------------------------
 # 1b. Release ref — the branch the release is cut FROM
 # ---------------------------------------------------------------------------
 # A release always ships the repo's DEFAULT branch, which may not be the
@@ -422,11 +466,38 @@ if [[ -f CLAUDE.md ]] && grep -qE '^[[:space:]]*homebrew_tap:[[:space:]]*disable
     homebrew_tap_disabled=true
 fi
 
+# Which tap, and who publishes to it. tapper.yaml (github.com/marcelocantos/tapper)
+# names the tap per project; without it the personal tap is assumed. The
+# publisher is `tapper` when tapper.yaml exists (formula pushed locally
+# after the release), `homebrew-releaser` when a workflow runs the action
+# in CI, else `none`.
+homebrew_tap_repo="marcelocantos/homebrew-tap"
+homebrew_publisher="none"
+if [[ -f tapper.yaml ]]; then
+    _tap_owner=$(awk '/^tap:/{f=1;next} f&&/^[^ ]/{f=0} f&&/^[[:space:]]+owner:/{sub(/.*owner:[[:space:]]*/,"");gsub(/["'"'"']/,"");print;exit}' tapper.yaml)
+    _tap_name=$(awk '/^tap:/{f=1;next} f&&/^[^ ]/{f=0} f&&/^[[:space:]]+name:/{sub(/.*name:[[:space:]]*/,"");gsub(/["'"'"']/,"");print;exit}' tapper.yaml)
+    if [[ -n "$_tap_owner" && -n "$_tap_name" ]]; then
+        homebrew_tap_repo="$_tap_owner/$_tap_name"
+    fi
+    homebrew_publisher="tapper"
+elif grep -qsl 'homebrew-releaser' .github/workflows/*.yml .github/workflows/*.yaml 2>/dev/null; then
+    homebrew_publisher="homebrew-releaser"
+    _wf_owner=$(grep -hE '^[[:space:]]+homebrew_owner:' .github/workflows/*.yml .github/workflows/*.yaml 2>/dev/null | head -1 | sed -E 's/.*homebrew_owner:[[:space:]]*//')
+    _wf_tap=$(grep -hE '^[[:space:]]+homebrew_tap:' .github/workflows/*.yml .github/workflows/*.yaml 2>/dev/null | head -1 | sed -E 's/.*homebrew_tap:[[:space:]]*//')
+    if [[ -n "$_wf_owner" && -n "$_wf_tap" ]]; then
+        homebrew_tap_repo="$_wf_owner/$_wf_tap"
+    fi
+fi
+echo "# homebrew_tap_repo"
+if [[ "$homebrew_tap_disabled" == true ]]; then echo "(disabled)"; else echo "$homebrew_tap_repo"; fi
+echo "# homebrew_publisher"
+if [[ "$homebrew_tap_disabled" == true ]]; then echo "(disabled)"; else echo "$homebrew_publisher"; fi
+
 echo "# homebrew_tap"
 if [[ "$homebrew_tap_disabled" == true ]]; then
     echo "(disabled — project declares homebrew_tap: disabled)"
 elif has_cmd gh; then
-    gh api repos/marcelocantos/homebrew-tap/contents/Formula --jq '.[].name' 2>/dev/null || echo "(no tap or no Formula/ directory)"
+    gh api "repos/$homebrew_tap_repo/contents/Formula" --jq '.[].name' 2>/dev/null || echo "(no tap or no Formula/ directory)"
 else
     echo "(gh not installed)"
 fi
@@ -435,7 +506,7 @@ fi
 # 9b. Homebrew tap token secret (needed by homebrew-releaser)
 # ---------------------------------------------------------------------------
 # homebrew-releaser reads HOMEBREW_TAP_TOKEN from the repo's action
-# secrets to authenticate its push to marcelocantos/homebrew-tap. A
+# secrets to authenticate its push to the tap (homebrew_tap_repo). A
 # new repo won't have it set, and the error when it's missing is
 # opaque ("You must provide all necessary environment variables").
 # Catching it in Phase 1 saves a failed release-workflow run after
@@ -447,6 +518,8 @@ fi
 echo "# homebrew_tap_token_secret"
 if [[ "$homebrew_tap_disabled" == true ]]; then
     echo "(n/a — tap disabled)"
+elif [[ "$homebrew_publisher" == "tapper" ]]; then
+    echo "(n/a — tapper publishes from the dev Mac; token lives in the keychain, see tapper token verify)"
 elif has_cmd gh; then
     if gh secret list 2>/dev/null | awk '{print $1}' | grep -qx 'HOMEBREW_TAP_TOKEN'; then
         echo "set"
@@ -702,12 +775,9 @@ git status --short --branch 2>/dev/null || echo "(not a git repo)"
 # 18. Unpushed commits
 # ---------------------------------------------------------------------------
 # Emit both the count and the one-line log so the skill can reason about
-# whether the unpushed commits represent meaningful atomic history (which
-# would be destroyed by a squash-merge of the release PR) vs. WIP scratch
-# (which should be committed or discarded before proceeding). The skill's
-# Phase 1 handling compares the count against a threshold and, if
-# exceeded, presents the master-fast-forward vs. PR-squash choice
-# explicitly.
+# unpushed commits on the default branch. On shipping_path=gated-push they
+# land as-is via push (history preserved). On pr-fallback they may be
+# bundled into the release-prep PR.
 echo "# unpushed"
 tracking=$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null) || true
 if [[ -n "$tracking" ]]; then
@@ -727,12 +797,8 @@ fi
 # ---------------------------------------------------------------------------
 # 18a. Merge strategy
 # ---------------------------------------------------------------------------
-# Drives the Phase 1 Ahead-N handling. When the repo is squash-only the
-# only way to land unpushed commits without losing per-commit atomic
-# history on master would be a direct push (violates pr-workflow), so
-# the correct path is bundling everything into one squash PR. When the
-# repo allows merge commits, fast-forward push of the unpushed commits
-# preserves atomic history naturally.
+# Informational for pr-fallback Ahead-N handling only. On gated-push the
+# merge strategy does not matter — unpushed commits push to default as-is.
 echo "# merge_strategy"
 repo=$(repo_name)
 if has_cmd gh && [[ "$repo" == */* ]]; then

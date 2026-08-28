@@ -86,6 +86,22 @@ deterministic sections (`## Invariants`, `## Unreleased fixes`,
 `## Frontier`, `## Blocked targets`, `## Stale targets`,
 `## Next action`) are what the user expects to see.
 
+## Dirty working tree (warning, not Blocked)
+
+If `## Invariants` contains `DIRTY WORKING TREE`, that is advisory.
+The file list is already in the output — do **not** re-run
+`git status`. Glance at the list before auto-execute:
+
+- Leftover from a different objective → park it before starting the
+  recommended target. Tell the user what is sitting there and offer a
+  commit; do not auto-commit unless they ask. Do not silently start
+  unrelated work on top of someone else's WIP.
+- This session's WIP on the recommended target, or a just-mutated
+  `bullseye.yaml` → proceed.
+
+This is **not** `**Blocked**`. A dirty tree must not stop `/cv`.
+Clean-tree remains a ship/release gate, not a standing invariant.
+
 ## Auto-execute
 
 After relaying the output, read the `## Next action` section and
@@ -191,12 +207,13 @@ project memory.
 **Fix 3: write a missing standing-invariants hook.** If `## Invariants`
 shows `⚠ **Standing-invariants hook not configured**`, write a
 `Makefile` at the project root with a `bullseye:` rule wired to the
-project's actual lint/test/clean-tree checks. The skeleton in the
-convergence output is a starting point; tailor it to the language
-(cargo / go / npm / pytest / etc.). Do **not** auto-commit the new
-Makefile — a fresh untracked file will fail the `clean-tree`
-invariant on the next run, which is exactly what surfaces the file
-to the user for review.
+project's actual lint/test checks. Dirty-tree is a **warning** (loud
+banner + file list, exit 0), not a failing invariant — copy that
+shape from the skeleton, do not `exit 1` on a dirty tree. The
+skeleton in the convergence output is a starting point; tailor it
+to the language (cargo / go / npm / pytest / etc.). Do **not**
+auto-commit the new Makefile; the next `/cv` will warn about it,
+which is how it surfaces for review.
 
 **Fix 4: re-run convergence after any fix.** After applying any of
 the above, call `bullseye_convergence` again and follow the new
