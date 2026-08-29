@@ -25,7 +25,7 @@ notifications.
 Execute `~/.claude/skills/waw/gather.sh` directly (it is already
 `chmod +x` — do **not** wrap it in `bash`, just invoke the path as the
 command). This single script collects repo name, branch, working tree
-state, recent commits, stash list, diff stats, project CLAUDE.md,
+state, recent commits, stash list, diff stats, project AGENTS.md / CLAUDE.md,
 auto-memory files, and GSD/planning state — all in one call with
 markdown heading delimiters (`# section`).
 
@@ -78,11 +78,6 @@ If the last build or test run had failures, surface them prominently —
 they're likely the most urgent thing to deal with. If everything was
 green, say so briefly.
 
-## Open TODOs
-
-Invoke the `/todo` skill to surface open TODO items for the project.
-Include its output as this section.
-
 ## Target status
 
 Call `bullseye_summary(cwd)` (where `cwd` is the project's working
@@ -95,8 +90,9 @@ If the bullseye MCP server is not registered (tool not found), **stop
 and report**:
 
 > **Error: bullseye MCP server is not registered.**
-> Add it via `claude mcp add` or check `~/.claude.json`. /waw needs
-> bullseye for the target status section.
+> Add it with `grok mcp add` (or `claude mcp add`) / check
+> `~/.grok/config.toml` or `~/.claude.json`. /waw needs bullseye for
+> the target status section.
 
 If bullseye returns no targets (empty project), skip this section.
 

@@ -45,7 +45,7 @@ Read the transcript output end-to-end. Identify:
 ### 3. Compose the synopsis
 
 The output format (structure, TL;DR line, slug rules, and the machine
-contract `build-index.sh` parses) is defined in one place — read it and
+contract `ytt build-index` parses) is defined in one place — read it and
 follow it verbatim:
 
 ```
@@ -55,8 +55,8 @@ follow it verbatim:
 This is the same contract the scheduled `ingest` path feeds to its
 synopsis agent, so the interactive and automated paths stay identical.
 In chat-only mode, skip the `# <title>` and `Source:` lines and present
-the Synopsis and Key Takeaways inline; otherwise honour the contract as
-written.
+the Synopsis, Critique (when warranted), and Key Takeaways inline;
+otherwise honour the contract as written.
 
 ### 4. Ingest (default)
 
@@ -79,13 +79,22 @@ Skip this step if the user qualified the command to suppress ingest.
    short kebab-case description of the video's topic (e.g.
    `bash-is-not-enough.md`, `agent-memory-retrieval-shapes.md`), not
    the video title. One synopsis file per directory.
-4. **Regenerate the index:**
+4. **Register the ID** in the scheduler's dedup record:
    ```bash
-   bash ~/work/github.com/marcelocantos/ytt/scripts/playlist-ingest/build-index.sh
+   echo '<id>' >> ~/think/knowledge/youtube/.processed
+   ```
+   Not optional: `.processed` is the authoritative record of successful
+   ingest. The scheduled nightly run wipes any video directory whose ID
+   is missing from it (orphan healing for crashed runs) — an
+   unregistered manual ingest gets deleted and re-ingested with a
+   machine synopsis. Stage `.processed` with the ingest commit.
+5. **Regenerate the index:**
+   ```bash
+   ytt build-index
    ```
    This rewrites `~/think/knowledge/youtube/youtube-knowledge-base.md`
    from all `meta.json` + synopsis pairs, sorted newest-first.
-5. **Commit** from `~/think/`:
+6. **Commit** from `~/think/`:
    - First commit: `Ingest <channel>'s "<short-title>" video on <topic>`
      — stage `knowledge/youtube/<id>/`.
    - Second commit: `Regenerate youtube knowledge-base index` — stage
@@ -111,5 +120,5 @@ response.
   The `.md` filename is a topic slug, not the title.
 - Output structure, the TL;DR line format, and slug rules live in
   `synopsis-contract.md` (see step 3) — the single source of truth
-  shared with the scheduled `ingest` path and the `build-index.sh`
+  shared with the scheduled `ingest` path and the `ytt build-index`
   parser. Don't restate them here.

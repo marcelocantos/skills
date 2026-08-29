@@ -36,6 +36,47 @@ if ! git rev-parse --git-dir &>/dev/null; then
     exit 1
 fi
 
+repo_top=$(git rev-parse --show-toplevel)
+
+# In-repo bullseye.yaml relative to repo_top, or empty. Walk up from cwd
+# (bullseye discover), then tracked files. External/shadow ledgers live
+# outside the work tree and are ignored — they are not git's problem.
+ledger_rel=""
+dir=$PWD
+n=0
+while [[ $n -lt 20 ]]; do
+    n=$((n + 1))
+    if [[ -f "$dir/bullseye.yaml" ]]; then
+        if [[ "$dir" == "$repo_top" ]]; then
+            ledger_rel=bullseye.yaml
+        elif [[ "$dir" == "$repo_top"/* ]]; then
+            ledger_rel="${dir#"$repo_top"/}/bullseye.yaml"
+        fi
+        break
+    fi
+    if [[ "$dir" == "$repo_top" || "$dir" == "/" ]]; then
+        break
+    fi
+    parent=$(dirname "$dir")
+    if [[ "$parent" == "$dir" ]]; then
+        break
+    fi
+    dir=$parent
+done
+if [[ -z "$ledger_rel" ]]; then
+    ledger_rel=$(git -C "$repo_top" ls-files --full-name \
+        | grep -E '(^|/)bullseye\.yaml$' | head -n 1 || true)
+fi
+
+ledger_state="(none)"
+if [[ -n "$ledger_rel" ]]; then
+    if [[ -n "$(git -C "$repo_top" status --porcelain -- "$ledger_rel" 2>/dev/null)" ]]; then
+        ledger_state=dirty
+    else
+        ledger_state=clean
+    fi
+fi
+
 # ---------------------------------------------------------------------------
 # 0. Scope
 # ---------------------------------------------------------------------------
@@ -44,6 +85,33 @@ if [[ ${#paths[@]} -eq 0 ]]; then
     echo "full-tree"
 else
     printf '%s\n' "${paths[@]}"
+fi
+
+# ---------------------------------------------------------------------------
+# 0b. Ledger — a dirty in-repo bullseye.yaml always travels with the work.
+#     Scope arguments do not exclude it. (Replacement rail for T22
+#     yaml-only auto-commits.)
+# ---------------------------------------------------------------------------
+section "ledger"
+if [[ -z "$ledger_rel" ]]; then
+    echo "(none)"
+else
+    printf '%s %s\n' "$ledger_rel" "$ledger_state"
+fi
+
+if [[ "$ledger_state" == "dirty" && ${#paths[@]} -gt 0 ]]; then
+    already=false
+    for p in "${paths[@]}"; do
+        case "$p" in
+            "$ledger_rel"|"$repo_top/$ledger_rel"|bullseye.yaml|*/bullseye.yaml)
+                already=true
+                break
+                ;;
+        esac
+    done
+    if [[ "$already" == false ]]; then
+        paths+=("$repo_top/$ledger_rel")
+    fi
 fi
 
 # ---------------------------------------------------------------------------

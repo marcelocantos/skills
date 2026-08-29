@@ -4,10 +4,23 @@ End-to-end logic for generating a weekly progress report for Marcelo Cantos. Sca
 
 ## Context
 
-- **Report repo**: `~/work/github.com/marcelocantos/progress-reports`
+- **Public report repo**: `~/work/github.com/marcelocantos/progress-reports`
+- **Private commercial companion**: `~/work/github.com/marcelocantos/progress-reports-private`
 - **Repos root**: `~/work/github.com/`
-- **Organisations**: `squz`, `marcelocantos`, `arr-ai`, `anz-bank`
-- **Guide**: `docs/guide.md` in the report repo — read it in full before starting
+- **Organisations**: `squz`, `marcelocantos`, `arr-ai`, `anz-bank`, plus client orgs (`Health-Management-Systems`, `minicadesmobile`) as they appear in gather
+- **Guide**: `docs/guide.md` in the public report repo — read it in full before starting (includes **Dual-home series**)
+
+### Dual-home rule (mandatory)
+
+Commercial descriptive detail must not land in the public repo.
+
+| Classifier | Destination |
+|------------|-------------|
+| `Health-Management-Systems/*`, `minicadesmobile/*`, `squz/*` **except** `squz/ge` | **Private** full narrative |
+| `squz/ge` and all other public open-source work | **Public** full narrative |
+| Metrics tables (all repos) | **Public** (names + numbers) |
+
+When a week has commercial narrative: write the public report with **stubs + private links**, and write a companion `progress-reports-private/reports/weekly-report-<end>.md` with the commercial extracts. Commercial per-repo pages and commercial achievement rows update only under the private repo. Phase 3 publishes public as today; also push the private companion (direct to private `master`).
 
 ## Progress reporting
 
@@ -102,11 +115,52 @@ This script scans all repos under `~/work/` for commits in the half-open window
 `[start, end)`, collecting per-repo commit logs and diff stats. Parse its output
 to identify active repos and key metrics.
 
+**Line stats** exclude global `**/vendor/**` and `**/node_modules/**`, plus
+per-repo globs from the progress-reports fleet file
+`data/line-excludes.yaml` (see `exclude-schema.md`). Headline ☲ uses the
+`landed:` line only. Footnote `landed-excluded: +N/-M` and `exclude-config:` —
+never fold them into Metrics ☲. Commits that only touch excluded paths still
+count toward ℂ.
+
+### Maintain `data/line-excludes.yaml` (mandatory check)
+
+While scanning repos and reading diffs, **actively maintain** the fleet exclude
+file:
+
+`~/work/github.com/marcelocantos/progress-reports/data/line-excludes.yaml`
+
+Do this **before** freezing headline ☲ for the draft (re-run `gather.sh` for
+the week if you change the file mid-pass).
+
+**When to add or extend entries**
+
+| Situation | Action |
+|-----------|--------|
+| **New repo** appears in gather output | Inspect tree for goldens, fixtures, verdicts, amalgamations, generated corpora, lifted third-party trees outside `vendor/`. Add an `org/repo:` block if any would materially inflate ☲. |
+| **New bulk content** in an existing repo | Same inspection for paths first seen this week (new `golden/`, `verdicts/`, `testdata/`, `fixtures/`, large amalgamation, Unity-regenerated dumps, etc.). Append globs under that `org/repo:` key. |
+| **Existing exclude still wrong** | Tighten or broaden globs if `landed-excluded` is huge but product source is still polluted, or if over-exclusion is dropping real authored code. |
+
+**What to list:** non-authored or oracle/fixture bulk that must stay committed
+but should not score as hand-authored source. Prefer directory globs
+(`verdicts/**`, `golden/**`) over one-off files.
+
+**What not to list:** ordinary product source and tests; paths already covered
+by `**/vendor/**` or `**/node_modules/**` (optional to document, not required).
+
+**How to verify:** after editing, re-run `gather.sh` for the same window and
+confirm the repo’s `landed:` kloc is plausible and `landed-excluded` / 
+`exclude-config:` reflect the new globs. Stage the updated
+`data/line-excludes.yaml` with the weekly report (Phase 3).
+
+**Draft disclosure:** if you added or changed excludes this run, say so briefly
+in the metrics honesty note (which `org/repo` globs, why).
+
 Then follow guide sections 1.1–1.5 and section 4 (authorship). Use `~/work/github.com/` as the scan root.
 
-For each active repo, read commit diffs to understand the substance of the changes. Use parallel subagents where possible (e.g. one per organisation or per repo) for the deeper analysis.
+For each active repo, read commit diffs to understand the substance of the changes. Use parallel subagents where possible (e.g. one per organisation or per repo) for the deeper analysis. **While doing so, apply the line-excludes maintenance check above** — new repos and new bulk paths are the primary triggers.
 
-Present a summary of active repos, commit counts, and key themes before proceeding.
+Present a summary of active repos, commit counts, key themes, and any
+`line-excludes.yaml` updates before proceeding.
 
 ## Phase 2: Write the report
 
@@ -198,5 +252,26 @@ where the achievement is biggest.
 
 Include the updated `docs/achievements.md` in the draft output so the
 user can review changes alongside the report.
+
+### Per-repo pages
+
+Follow guide section 7 end to end:
+
+1. **Backfill sweep first** (guide 7.4): enumerate qualifying repos across
+   the whole series, fold aliases, diff against `docs/repos/*.md`, and
+   create any missing pages from the full series of reports. Use parallel
+   subagents when more than a couple of pages are missing. This is the
+   normal path for populating `docs/repos/` — never treat backfill as a
+   separate job.
+2. **Weekly maintenance** (guide 7.3): update the page of every repo with
+   a dedicated section in this week's report(s); create pages for repos
+   that crossed the inclusion threshold.
+3. **Index** (guide 7.5): keep `docs/repos/README.md` in sync — new pages
+   get category entries, below-threshold repos get "Minor appearances"
+   lines.
+
+In the draft output, list the page files created and updated (paths plus a
+one-phrase reason each) — do not inline full page text; the user reviews
+the files in the working tree.
 
 Return the full draft report text as your result.

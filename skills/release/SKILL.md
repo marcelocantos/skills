@@ -23,7 +23,7 @@ End-to-end skill for cutting a release of an existing project. Covers discovery,
 
 The skill has substantial parallelizable structure. Default to running independent work in parallel — the wall-clock and token wins are large, and the global directive's "default to parallel" bias applies with full force here. The skill historically read as a serial pipeline; it is not one.
 
-**Fan out Phase B.1's audits (items 7–11).** CLI flag audit, agent-guide check (incl. gotcha staleness), README freshness, vendor licence attribution, and language-binding test coverage are independent read-only investigations with bounded outputs. Spawn each as a Sonnet subagent (`subagent_type: Explore` or `general-purpose` with `model: sonnet`) and assemble the digests in the parent. These subagents must **not** commit, push, or open PRs — they investigate and report. Any fixes the audits surface are made in the parent context as part of the release-prep PR.
+**Fan out Phase B.1's audits (items 7–11).** CLI flag audit, agent-guide check (incl. gotcha staleness), README freshness, vendor licence attribution, and language-binding test coverage are independent read-only investigations with bounded outputs. Spawn each as an explore or general-purpose subagent and assemble the digests in the parent. These subagents must **not** commit, push, or open PRs — they investigate and report. Any fixes the audits surface are made in the parent context as part of the release-prep PR.
 
 **Run B.5, B.6, and B.7 concurrently.** Once `discover.sh` output is parsed and the version number is decided in B.4 step 2, these substeps have no cross-dependencies:
 
@@ -47,7 +47,7 @@ The user runs `/release`. No arguments needed — the skill discovers everything
 
 `/release` runs in **three phases**. The ideal scenario is fully unattended from start to finish — only stop and ask the user when there is a genuine reason to.
 
-1. **Phase A — Up-front clarification.** Starts with a **release-freeze kill switch**: if the project's CLAUDE.md declares `release_freeze: "<reason>"`, halt immediately with that reason and do not proceed. Otherwise, a very quick analysis to identify any information likely to be needed from the user *given the specific context of the work being released*. If nothing is genuinely uncertain, ask nothing and move straight to Phase B. Do not invent questions; do not ask out of habit. The default is zero questions.
+1. **Phase A — Up-front clarification.** Starts with a **release-freeze kill switch**: if the project declares `release_freeze: "<reason>"` in AGENTS.md / CLAUDE.md, halt immediately with that reason and do not proceed. Otherwise, a very quick analysis to identify any information likely to be needed from the user *given the specific context of the work being released*. If nothing is genuinely uncertain, ask nothing and move straight to Phase B. Do not invent questions; do not ask out of habit. The default is zero questions.
 
 2. **Phase B — Unattended execution to a mergeable PR.** Run the entire prep workflow without per-phase approval gates: discovery, breaking-change audit, version bump, release notes, CI setup, push, PR open, CI wait, gate check. End by reporting current state, anything messy that happened during the run, and any concerns. Then **only stop for confirmation if a serious concern arose** about whether it's appropriate to complete the release (failing tests rewritten without justification, a breaking change found, an unresolved CI failure, a missing licence attribution, etc.). If everything is clean, proceed to Phase C without asking.
 
@@ -64,11 +64,11 @@ The detailed substeps below are sequenced under these three phases. Where the pr
 **Before any other Phase A work**, run `~/.claude/skills/release/discover.sh` and read the `# release_freeze` field. If it is anything other than `(none)`:
 
 - **Halt immediately.** Do not proceed with any further discovery, version bump, release-notes drafting, branch creation, or PR work.
-- Print the freeze reason verbatim to the user, with a one-line summary: *"This repo declares a release freeze in CLAUDE.md. /release is blocked until the directive is lifted."*
-- Tell the user explicitly that lifting the freeze requires editing the project's `CLAUDE.md`: remove the `release_freeze:` directive AND switch any port-freeze gate profile back to `base`.
+- Print the freeze reason verbatim to the user, with a one-line summary: *"This repo declares a release freeze in AGENTS.md / CLAUDE.md. /release is blocked until the directive is lifted."*
+- Tell the user explicitly that lifting the freeze requires editing the project's AGENTS.md / CLAUDE.md: remove the `release_freeze:` directive AND switch any port-freeze gate profile back to `base`.
 - Do not offer to lift the freeze on the user's behalf, do not suggest workarounds, do not propose bypassing the gate profile. The freeze exists because the product is in a state where shipping is wrong; that judgement is the user's to revoke.
 
-The `release_freeze:` directive in CLAUDE.md is a single line of the form `release_freeze: "<reason>"` (mirrors the existing `homebrew_tap: disabled` pattern). Projects in port/rewrite/migration phases use it to make the freeze explicit and machine-checkable.
+The `release_freeze:` directive is a single line of the form `release_freeze: "<reason>"` in AGENTS.md or CLAUDE.md (mirrors `homebrew_tap: disabled`). Projects in port/rewrite/migration phases use it to make the freeze explicit and machine-checkable.
 
 If `# release_freeze` is `(none)`, proceed to the rest of Phase A below.
 
@@ -79,6 +79,11 @@ Do a fast scan of the repo (latest tag, commits since, working-tree state, versi
 - The desired version bump differs from the default minor (only ask if there's a concrete signal — e.g., user said "patch release" earlier, or commits clearly indicate breaking changes that warrant a fork rather than a bump).
 - The release scope is unclear (e.g., uncommitted WIP unrelated to the release, or a pile of unpushed commits that may or may not be part of this release).
 - **Open PRs carry post-tag work** (`open_prs_with_release_work` reports a count > 0 from `discover.sh`). Each listed PR has commits not in the latest tag, so the release scope is genuinely ambiguous: the user may want to (a) wait for the PR to merge and release the resulting master, (b) bundle release-prep into the existing PR rather than open a sibling release-prep PR (honouring "one PR per session"), or (c) release current master independently and let the PR merge into a later release. Ask which — naming each open PR by number, ahead-count, and title from the discover.sh output. Skip the question only if the listed PRs are clearly orthogonal to the release (e.g., long-running dependabot bumps, draft RFCs); the default is to ask.
+
+  **Check an open PR for duplication before bundling it.** An open PR whose feature is *already on master* — a parallel reimplementation from another worker/session — is a real and easily-missed case: bundling it (cherry-pick or merge) lands the feature on top of its own successor and blows up in conflicts across the same files. Before deciding to fold an open PR into the release, verify its work isn't already present:
+  - Pull the target ID(s) from the PR title/commits and grep master's log for the same `🎯T<n>` / feature (`git log --oneline <latest-tag>..master | grep -iE '<target-id>|<feature keyword>'`).
+  - If the PR is a single commit, `git merge-base --is-ancestor <pr-tip> master` — a "NO" plus same-file overlap is the duplication signal.
+  When the feature is already on master, **do not cherry-pick/merge the PR** — close it as superseded (cite the master commit that shipped it, confirm the surface matches so no work is lost) and release master as-is. A cherry-pick that conflicts across the exact files the feature touches is the tell; treat it as "already shipped", not "needs manual conflict resolution".
 - A pre-1.0 → 1.0 transition is plausible and the user hasn't signalled intent. Note: a 1.0 cut is a **major** bump that the agent never initiates on its own — only the user can request it. If they do, B.3a's shakeout gate fires.
 - An MCP-server or service definition gap is suspected and the user's preference (ship anyway / block) is unclear.
 
@@ -120,11 +125,15 @@ This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (lat
    - `skipped` / `neutral` — read the job names; usually fine, but worth a glance.
    - `(no completed CI runs on <branch>)` — first-release-of-a-new-repo case. Proceed normally; CI will be exercised by the release-prep PR.
 
-5. **Homebrew tap**: Check if `marcelocantos/homebrew-tap` exists and whether it already has a formula for this project. Also check that the **`HOMEBREW_TAP_TOKEN` action secret is set on this repo** — `discover.sh` reports this as `homebrew_tap_token_secret` (`set` / `missing`). homebrew-releaser reads this secret to push the generated formula into the tap; when it's missing, the job fails with the unhelpful error *"You must provide all necessary environment variables."* on the first release. First-release-of-a-new-repo is the common case — resolve it now from 1Password (see Phase 4 step 2 for the `op read` + `gh secret set` commands) rather than discovering it post-tag and having to re-run the failed homebrew-releaser job by hand.
+5. **Homebrew tap**: Check if `marcelocantos/homebrew-tap` exists and whether it already has a formula for this project. Also check that the **`HOMEBREW_TAP_TOKEN` action secret is set on this repo** — `discover.sh` reports this as `homebrew_tap_token_secret` (`set` / `missing`). homebrew-releaser reads this secret to push the generated formula into the tap; when it's missing, the job fails with the unhelpful error *"You must provide all necessary environment variables."* on the first release.
 
-   **A `set` secret is not a *valid* secret, and `homebrew_tap_token_op: valid` doesn't prove the *repo* secret matches.** Action secrets are write-only, so `homebrew_tap_token_secret: set` only proves the secret *exists* — not that its value still authenticates. `homebrew_tap_token_op` probes the 1Password *source* token, which can be `valid` while the repo's stored copy is a stale snapshot from an earlier PAT rotation. Either way the homebrew-releaser job 401s after the tag is cut. **Refresh the repo secret here, unconditionally, before tagging** — every release, not just first-time setup:
+   **Existence only on the happy path — no proactive `op read`.** Action secrets are write-only: `set` means a value was stored, not that it still authenticates. That is fine. The token lives in CI so releases do not require local 1Password every time. Do **not** refresh `HOMEBREW_TAP_TOKEN` on every release, and do **not** probe the 1Password source PAT during discovery (that was removed from `discover.sh` for the same reason — Touch ID spam).
 
-   **Guard the read — never pipe `op` straight into `gh secret set`.** If the 1Password CLI session is locked (`op` prints `account is not signed in` / `authorization timeout` to *stderr* and writes nothing to stdout), a bare `op read … | gh secret set …` pipes an **empty value** and silently overwrites a previously-valid token with nothing. The next homebrew-releaser job then fails with *"You must provide all necessary environment variables"* — i.e. the refresh meant to protect the release is what breaks it. Always read to a temp file, verify it's non-empty, and only then set the secret; on failure, surface `op`'s error and leave the existing secret untouched:
+   **When `homebrew_tap_token_secret` is `missing`** (first release of a new repo, or never set): set it once from 1Password before tagging, using the **guarded** form below. When it is already `set`, leave it alone and proceed.
+
+   **When the homebrew job fails** after the tag (opaque `401 Unauthorized`, or *"You must provide all necessary environment variables"*): then — and only then — refresh from 1Password with the same guarded form and `gh run rerun <run-id> --failed`. If refresh still 401s, the PAT itself has lapsed: mint a new fine-grained PAT with access to `marcelocantos/homebrew-tap`, update the 1Password item, refresh again, re-run. See Phase C step 8 and B.6 known issues.
+
+   **Guard the read — never pipe `op` straight into `gh secret set`.** If the 1Password CLI session is locked (`op` prints `account is not signed in` / `authorization timeout` to *stderr* and writes nothing to stdout), a bare `op read … | gh secret set …` pipes an **empty value** and silently overwrites a previously-valid token with nothing. Always read to a temp file, verify it's non-empty, and only then set the secret; on failure, surface `op`'s error and leave the existing secret untouched:
 
    ```bash
    tok=$(mktemp); trap 'rm -f "$tok"' EXIT
@@ -139,9 +148,7 @@ This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (lat
    fi
    ```
 
-   If `homebrew_tap_token_op` is `expired`, the PAT itself has lapsed — the user must mint a new fine-grained PAT with access to `marcelocantos/homebrew-tap` and update the 1Password item before this refresh will help. (`gh secret set` reads the piped value from stdin, so the token is never echoed.) This must happen in B.1 — not B.6 step 2 — because B.6 is skipped on every release after the first (existing release workflow → no setup work). Burying the refresh in B.6 means it only ever runs once per repo, which is exactly the historical failure mode that produced this paragraph.
-
-   **Tap opt-out.** Some projects deliberately skip Homebrew distribution — e.g., a package manager that replaces Homebrew can't coherently ship via a tap. Opt out by adding a `homebrew_tap: disabled` directive to the project's `CLAUDE.md` (mirrors existing directives like `delivery:` and `profile:`). `discover.sh` honours the directive and reports `# homebrew_tap` as `(disabled — CLAUDE.md declares homebrew_tap: disabled)` and `# homebrew_tap_token_secret` as `(n/a — tap disabled)`. When you see either sentinel, skip the tap checks entirely, skip Phase 4 step 2 (homebrew-releaser job), and skip Phase 5 step 9 (local `brew install` verification). Note the opt-out in the Phase B report instead.
+   **Tap opt-out.** Some projects deliberately skip Homebrew distribution — e.g., a package manager that replaces Homebrew can't coherently ship via a tap. Opt out by adding a `homebrew_tap: disabled` directive to the project's AGENTS.md / CLAUDE.md (mirrors existing directives like `delivery:` and `profile:`). `discover.sh` honours the directive and reports `# homebrew_tap` as `(disabled — project declares homebrew_tap: disabled)` and `# homebrew_tap_token_secret` as `(n/a — tap disabled)`. When you see either sentinel, skip the tap checks entirely, skip Phase 4 step 2 (homebrew-releaser job), and skip Phase 5 step 9 (local `brew install` verification). Note the opt-out in the Phase B report instead.
 
 6. **Repo description**: Check that the GitHub repo has a description set (`gh repo view --json description`). homebrew-releaser crashes on null descriptions. If missing, set one with `gh repo edit --description "..."`. Also verify the description is **accurate and up to date** — stale descriptions (e.g., referencing renamed concepts) should be updated.
 
@@ -170,7 +177,8 @@ This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (lat
 
    - Binary install command (e.g., `brew install marcelocantos/tap/<project>`)
    - **Service start command** (e.g., `brew services start <project>`) — if the server runs as a persistent daemon, a Homebrew service definition is required (see Phase 4 step 3). Flag if the project listens on a port but has no service definition.
-   - Claude Code one-liner: `claude mcp add --scope user --transport http <name> http://localhost:<port>/mcp` (global install to `~/.claude.json`)
+   - Grok Build: `grok mcp add --transport http <name> http://localhost:<port>/mcp` (writes `~/.grok/config.toml`)
+   - Claude Code: `claude mcp add --scope user --transport http <name> http://localhost:<port>/mcp` (global install to `~/.claude.json`)
    - Generic MCP client JSON config block for other tools
    - Explicit note that the agent session must be restarted after registration
    - **Verification steps** — how to confirm the server is running:
@@ -181,7 +189,7 @@ This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (lat
 
 9. **README**: Check that a `README.md` (or `README`) exists in the repo root and covers the essentials: what the project is, how to install or build it, how to use it, and a licence mention. A missing README is a blocker — every public release needs one. Flag if missing or if key sections (install/build, usage) are absent.
 
-   **Content freshness**: Compare the README's feature/syntax documentation against the current codebase (CLAUDE.md syntax section, agent guide, or equivalent authoritative source). Flag any features present in the agent guide or CLAUDE.md that are missing from the README. New features being released should be documented in the README before tagging.
+   **Content freshness**: Compare the README's feature/syntax documentation against the current codebase (AGENTS.md / CLAUDE.md syntax section, agent guide, or equivalent authoritative source). Flag any features present in the agent guide or agent docs that are missing from the README. New features being released should be documented in the README before tagging.
 
    **Quick start for agent-installed tools**: If the project is an MCP server or agent tool, the README should include a "Quick start" section with a copy-pasteable prompt that users can give their agent (e.g., *"Install X from &lt;repo URL&gt; — brew install, start the service, register it as an MCP server, and restart the session. Follow the agents-guide.md in the repo."*). This is distinct from the agents-guide (which the agent reads) — it's for the human who wants to say "install this" without spelling out every step. A fenced code block is ideal since GitHub renders a copy button on them. Flag if missing.
 
@@ -205,7 +213,7 @@ This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (lat
     **Ahead-N handling** — when `discover.sh` reports `unpushed` ≥ 1 on the default branch (not a feature branch), the choice between "fast-forward push then PR for release-prep" vs "single bundled PR" depends on the repo's merge strategy. Read `# merge_strategy` from the discover.sh output:
 
     - **`merge-commit-allowed`** — fast-forward push the unpushed commits to origin first, then open the release PR containing only the release-prep commit(s). The unpushed commits' atomic history survives on master verbatim. Do this automatically; don't ask the user.
-    - **`squash-only`** (the common case for owned repos under the global `~/.claude/CLAUDE.md` policy) — bundle the unpushed commits AND the release-prep commits into a single feature branch, open one PR, squash-merge to master. The squash collapses the per-commit history on master, but the per-commit detail is preserved on GitHub forever via the PR's commit list. Do not push to master directly; the global "always PR-flow" directive applies. Do this automatically; don't ask the user. Note the squash collapse in the Phase B report.
+    - **`squash-only`** (the common case for owned repos under the global AGENTS.md / CLAUDE.md policy) — bundle the unpushed commits AND the release-prep commits into a single feature branch, open one PR, squash-merge to master. The squash collapses the per-commit history on master, but the per-commit detail is preserved on GitHub forever via the PR's commit list. Do not push to master directly; the global "always PR-flow" directive applies. Do this automatically; don't ask the user. Note the squash collapse in the Phase B report.
     - **`rebase-allowed`** (without merge-commit) — same as `squash-only`. Rebase-merge would preserve atomic history on master, but for the release skill's purposes the bundled PR is cleaner.
     - **`(gh api failed)` or `(gh not available...)`** — assume `squash-only` and proceed with the bundled PR. This is the safer default.
 
@@ -215,24 +223,60 @@ This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (lat
 
     Resolve this before committing any release-prep changes so Phases 4–5 have a clean working tree to operate on.
 
-13. **macOS CI shell-script compatibility (bash 3.2)**: GitHub's macOS
-    runners ship **bash 3.2** (Apple froze it at the last GPLv2 release), so
-    any shell script a macOS CI job invokes — or that a macOS end-user runs
-    with stock `/bin/bash` — must avoid bash 4+ features. Grep the scripts
-    `release.yml` (and `ci.yml`) run on macOS, plus any user-facing
-    build/install script the release distributes, for:
+13. **macOS shell-script compatibility (bash 3.2)**: macOS ships **bash 3.2**
+    (Apple froze it at the last GPLv2 release), so this applies to *every*
+    shell script the release distributes for anyone to run on a Mac — not just
+    the ones CI invokes, and not just build/install scripts. A product whose
+    runtime *is* a shell script (an ingest pipeline, a wrapper, a daemon
+    launcher) is the highest-risk case and the easiest to overlook, because
+    nothing in CI or on the dev Mac executes it under 3.2.
+
+    Constructs to grep for:
     - `declare -A` (associative arrays), `mapfile` / `readarray` — bash 4+,
-      hard failures (`declare: -A: invalid option`).
+      hard failures (`mapfile: command not found`, which `set -e` turns into an
+      aborted run).
     - `"${arr[@]}"` on a possibly-empty array under `set -u` — bash <4.4
       errors with "unbound variable"; needs the `${arr[@]+"${arr[@]}"}` guard.
-    `bash -n` does **not** catch these (they fail at runtime, not parse), so
-    grep for the tokens and, on this machine, verify by actually running the
-    script under `/bin/bash` — it is 3.2.57, the same version the runner has.
-    Any hit is a release-PR fix, not a post-tag surprise. This is a
-    parent-context grep, **not** part of the items 7–11 fan-out. The trap is
-    that the bug is invisible locally when Homebrew's bash 5.x shadows
-    `/bin/bash` on the dev Mac — it surfaces only on the runner, and if
-    `release.yml` builds it, only *after* the tag is cut.
+    - **Multi-line process substitution** — `< <(` whose body spans lines dies
+      at *runtime* with ``bad substitution: no closing `)' in <(``. Restructure
+      through a temp file.
+
+    `bash -n` catches **none** of these — including the process-substitution
+    case, which parses cleanly and then fails when reached. Grepping is a
+    starting point, not the check.
+
+    **The check is a CI job, not a grep.** A grep is a one-time audit that
+    decays the moment someone writes `mapfile` again; per the *Verification
+    honesty* directive, an oracle is a loop, not an artifact. If the project
+    distributes shell scripts for macOS, it needs a macOS CI job that:
+    - **asserts `/bin/bash` really is 3.x** — without this the job can pass
+      while testing nothing, which is worse than not having it;
+    - syntax-checks every distributed script under `/bin/bash`;
+    - runs the script test suite with bash 3.2 shimmed first on `PATH`
+      (`ln -sf /bin/bash "$RUNNER_TEMP/bash32/bash"`), so `#!/usr/bin/env bash`
+      in the scripts *and their test mocks* resolves to 3.2.
+
+    Verify locally the same way — `/bin/bash` on this machine is 3.2.57, the
+    same version the runner has. The trap is that the bug is invisible locally
+    when Homebrew's bash 5.x shadows `/bin/bash`, and invisible in CI when the
+    script suite runs on Ubuntu: neither oracle covers the combination that
+    actually fails.
+
+    **Sibling trap — missing GNU tools degrade silently.** The same class bites
+    without any bash-version involvement: macOS has no GNU `timeout`, `sed -i`
+    semantics differ, `stat` flags differ. A script that probes for a tool and
+    carries on without it (`TIMEOUT_BIN="$(command -v timeout || true)"`) turns
+    a missing dependency into a *silently disabled feature* — in one real case,
+    every per-call timeout and the run watchdog became no-ops, removing the
+    protection that stops a stalled call wedging all future scheduled runs.
+    Check that any such tool is a **declared formula dependency** (e.g.
+    `coreutils`), and that the CI job installs it so the guarded path is
+    genuinely exercised rather than skipped.
+
+    This is a parent-context check, **not** part of the items 7–11 fan-out.
+    Any hit is a release-PR fix, not a post-tag surprise — and if
+    `release.yml` builds the affected script, the surprise lands only *after*
+    the tag is cut.
 
 Proceed straight to B.3 — no approval prompt.
 
@@ -321,25 +365,23 @@ Determine the next version number. **Do not ask for confirmation** — just use 
 
    **No version macros found**: If a C/C++ library has no version macros at all, note this as a gap in the Phase B report. Don't block the release.
 
-#### B.4a: Retire diff-satisfied targets (bullseye projects only)
+#### B.4a: Sweep leftover open targets (bullseye projects only)
 
 **Skip this substep** if the project does not use bullseye.
 
-The global `~/.claude/CLAUDE.md` directive *"target lifecycle changes ride the PR that triggers them"* means any active bullseye target whose acceptance is satisfied entirely by the changes in this release must be retired **inside the release-prep PR**, not as a follow-up commit/PR after the tag. The release skill is responsible for finding these targets and retiring them before the branch is pushed.
+Coded is done. A target whose fix is in this release should already
+have been achieved in the landing PR. This step is a sweep for
+leftovers, not a second lifecycle.
 
-**Procedure:**
+1. **Gather candidates.** Pull `🎯T*` references out of every commit message in `# commits_since_last_tag`. Add any still-active target whose name/acceptance describes work the release notes claim.
 
-1. **Gather candidates.** Pull `🎯T*` references out of every commit message in `# commits_since_last_tag`. Add to the candidate list any frontier target whose name/acceptance describes work the release notes are now claiming as shipped.
+2. **Retire if the code landed.** If the fix is in the diff, retire it — even if acceptance still talks about a tag, Homebrew, or "the released binary". Do not keep a sibling whose only remaining work is `/release`.
 
-2. **Check acceptance.** For each candidate, fetch its acceptance with `bullseye_get` and decide whether the diff in this release satisfies every criterion. Be honest: if even one criterion is unmet (e.g., "documented in agents-guide.md" and the guide wasn't updated), the target is not yet achievable and stays open.
+3. **Leave it open only if the code itself is unfinished** (a criterion the diff does not satisfy, e.g. "documented in agents-guide.md" and the guide was not updated).
 
-3. **Retire each fully-satisfied target.** Call `bullseye_retire(cwd, id)`. The 🎯T22 auto-commit machinery folds the `bullseye.yaml` change into a commit on the release-prep branch automatically.
+4. **List the retirements in the Phase B report.**
 
-4. **List the retirements in the Phase B report** so the user sees which targets the release closes.
-
-**What this substep does NOT cover:** *release-readiness meta-targets* — targets like *"v0.N.0 is shipped"* whose acceptance literally requires the release to exist. Those legitimately cannot retire here because the release doesn't exist yet. They are Phase C step 11's job.
-
-The distinction is simple: if the target's acceptance is met by the **diff** in this PR, retire here (B.4a); if it's met by the **release event itself** (tag exists, formula in tap, brew install works), retire in Phase C step 11. A feature target like "add subdivide tool" is the first kind; a target like "v0.29.0 is published to the Homebrew tap" is the second.
+Do not create "v0.N.0 is shipped" / "released binary has the fix" targets. Shipping is `/cv`'s unreleased-fixes → `/release` path, not a target status. A recurrence after ship is a new report.
 
 #### B.5–B.7: Concurrent bracket
 
@@ -347,9 +389,11 @@ B.5 (release notes), B.6 (release.yml creation), and B.7 (gate check incl. tests
 
 1. As soon as B.4 step 2 has decided the version, kick off B.7's test run in the background:
    ```
-   Bash(command: "<project-test-command>", run_in_background: true)
+   Bash(command: "<ci-test-command>", run_in_background: true)
    ```
    The harness will notify when the test run finishes — do not poll, do not sleep.
+
+   **`<ci-test-command>` is CI's exact test invocation, not the project's default.** Read the test step out of the CI workflow (`grep -A2 'go test\|cargo test\|pytest\|npm test' .github/workflows/*.yml`) and run *that* command verbatim — flags included. Divergence here ships green-locally/red-on-CI failures: sawmill v0.17.0's release-prep tests passed locally with the documented `go test ./... -count=1` while CI ran `-count=1 -race` and failed the PR (the `-race`-adjacent slowdown exposed a real timing bug that fast local runs masked). If the project's `make test` / documented command differs from CI's, that divergence is itself a release-PR fix: align the Makefile (or docs) with CI, and prefer adding a `scripts/hooks/pre-push` hook running the CI-identical suite so the gap stays closed. When no CI workflow exists, fall back to the project's documented test command.
 2. In the foreground, draft release notes (B.5) and write the workflow file (B.6, if needed). These are file edits and `git add` / `git commit` operations on the parent's working tree; they don't conflict with the background test run.
 3. When the test-run notification arrives, fold its result into the gate check (B.7).
 4. Only after all three substeps are settled do you commit the bundled release-prep changes and push the PR.
@@ -423,7 +467,7 @@ Draft release notes from git history.
    ```
 
    Key setup requirements:
-   - **`HOMEBREW_TAP_TOKEN` secret**: A shared PAT for all repos is stored in 1Password (refreshing it fixes every repo's release at once). On a new repo, set it now using the same `op read | gh secret set` command shown in B.1 step 5. The per-release refresh is handled in B.1 step 5 itself, not here — this substep (B.6) only fires on first-time CI setup, so anything wired in here would never run on subsequent releases.
+   - **`HOMEBREW_TAP_TOKEN` secret**: A shared PAT for all repos is stored in 1Password as the source of truth; each repo holds a write-only Actions copy. On a **new** repo (`homebrew_tap_token_secret: missing`), set it once with the guarded `op read` → `gh secret set` form in B.1 step 5. Do **not** re-set it on every subsequent release — that is CI's job. Refresh only after a homebrew job failure (see known issues below and Phase C step 8).
    - The `homebrew-tap` repo must exist at `marcelocantos/homebrew-tap` with a `Formula/` directory.
    - Binary tarballs must follow the naming convention `<project>-<version>-<os>-<arch>.tar.gz` where `<version>` has **no `v` prefix** (e.g., `myapp-1.2.0-darwin-arm64.tar.gz`). homebrew-releaser strips the `v` from the tag when searching for assets.
    - The `install` and `test` fields must match the project's actual binary name and CLI interface.
@@ -434,7 +478,7 @@ Draft release notes from git history.
    - **The GitHub repo must have a description set.** homebrew-releaser crashes (`TypeError: 'NoneType' object is not subscriptable`) if the repo description is null. Set it with `gh repo edit --description "..."` before the first release.
    - **Formula description truncation.** homebrew-releaser truncates the repo description to fit Homebrew's field limit (~80 chars). Keep repo descriptions concise to avoid mid-word cutoffs.
    - **Version detection from arch-specific URLs.** Without an explicit `version` input, homebrew-releaser auto-detects the version from download URLs. Platform-specific URLs like `foo-1.0.0-darwin-arm64.tar.gz` can confuse the parser — it may extract "64" from "arm64" instead of "1.0.0". Always set `version: ${{ github.event.release.tag_name }}` to override auto-detection.
-   - **Stale `HOMEBREW_TAP_TOKEN` → opaque `401 Unauthorized`.** homebrew-releaser's first GitHub API call (`GET /repos/<owner>/<repo>`) fails with `requests.exceptions.HTTPError: 401` when the stored repo secret's PAT no longer matches the live one — even though the secret exists *and* `homebrew_tap_token_op` reports `valid` (that field probes the 1Password source, not the repo's stored copy). The binaries upload before this job, so the release is intact; only the tap formula is unpushed. Recovery: refresh the secret from 1Password (same `op read | gh secret set` command as B.1 step 5) and re-run just the failed job — `gh run rerun <run-id> --failed` — then re-watch. The unconditional refresh in B.1 step 5 is supposed to prevent this — if you're seeing it post-tag, B.1 was skipped or its refresh didn't fire.
+   - **Stale `HOMEBREW_TAP_TOKEN` → opaque `401 Unauthorized`.** homebrew-releaser's first GitHub API call (`GET /repos/<owner>/<repo>`) fails with `requests.exceptions.HTTPError: 401` when the stored repo secret's PAT no longer matches the live one — even though `homebrew_tap_token_secret: set`. The binaries upload before this job, so the release is intact; only the tap formula is unpushed. This is the **intended** time to touch 1Password: refresh with the guarded `op read` → `gh secret set` form from B.1 step 5, then `gh run rerun <run-id> --failed`, then re-watch. Do not try to prevent this with pre-tag refreshes.
 
 3. **Homebrew service definition** (conditional — persistent servers only): If the project is a long-running server (detected by: listening on a port, `--addr` flag, `serve` subcommand, MCP server), the Homebrew formula needs a service definition so `brew services start <project>` works. There are two approaches:
 
@@ -458,8 +502,8 @@ Draft release notes from git history.
 
 Enforce the project's delivery gates before releasing.
 
-1. Read the project's `## Gates` section from CLAUDE.md to determine the
-   profile (default: `base`).
+1. Read the project's `## Gates` section from `AGENTS.md` or `CLAUDE.md`
+   to determine the profile (default: `base`).
 2. Read `~/.claude/gates/base.yaml` and the profile YAML (if not base).
    Merge them: profile gates add to base; `override: [gate: skip]`
    removes specific base gates.
@@ -567,7 +611,7 @@ The split-in-time case only arises when the user has interrupted Phase B and ask
    rid=$(gh run list --workflow=release.yml --event workflow_dispatch --limit 1 --json databaseId -q '.[0].databaseId')
    gh run watch "$rid" --exit-status
    ```
-   Rationale: macOS runners use bash 3.2 (see B.1 item 13) and differ from the dev Mac (Homebrew bash 5.x shadows `/bin/bash`), so a script that builds locally can still fail only on the runner. Because the real build fires on `release: published` — i.e. *after* the tag exists — a script bug there forces a **re-cut** (delete + recreate the release and move the tag). The `workflow_dispatch` dry-run builds and link-tests without uploading, so it catches the failure while the tag can still move freely. This is the dynamic complement to B.1 item 13's static grep; run it whenever the release workflow's macOS path executes project shell scripts. Skip it otherwise.
+   Rationale: macOS runners use bash 3.2 (see B.1 item 13) and differ from the dev Mac (Homebrew bash 5.x shadows `/bin/bash`), so a script that builds locally can still fail only on the runner. Because the real build fires on `release: published` — i.e. *after* the tag exists — a script bug there forces a **re-cut** (delete + recreate the release and move the tag). The `workflow_dispatch` dry-run builds and link-tests without uploading, so it catches the failure while the tag can still move freely. This is the dynamic complement to B.1 item 13 (which owns the standing CI job); run it whenever the release workflow's macOS path executes project shell scripts. Skip it otherwise.
 
 5. **Create the release**: Use `gh release create` which both tags and creates the release:
    ```bash
@@ -611,7 +655,7 @@ The split-in-time case only arises when the user has interrupted Phase B and ask
    gh run list --workflow=release.yml --limit=1
    gh run watch <run-id>
    ```
-   If it fails, help diagnose — do not delete the release or tag without asking. **If only the `homebrew` job failed with a `401 Unauthorized`** (stale `HOMEBREW_TAP_TOKEN`; see the Known-issues list in Phase 4 step 2), the binaries already uploaded — refresh the secret from 1Password (the **guarded** `op read` → `gh secret set` form from B.1 step 5 — never the bare pipe, which clobbers the secret with empty output when `op` is locked) and re-run just that job with `gh run rerun <run-id> --failed`, then re-watch. Also covers the "must provide all necessary environment variables" failure, which is the *empty-secret* symptom of the same root cause. Do **not** start the brew install in step 9 until this returns success — running `brew update` against a tap that hasn't received the formula yet will install the previous version.
+   If it fails, help diagnose — do not delete the release or tag without asking. **If only the `homebrew` job failed with a `401 Unauthorized` or *"must provide all necessary environment variables"*** (stale/empty `HOMEBREW_TAP_TOKEN`; see B.6 known issues), the binaries already uploaded — this is the failure-driven refresh path: use the **guarded** `op read` → `gh secret set` form from B.1 step 5 (never the bare pipe, which clobbers the secret with empty output when `op` is locked), then `gh run rerun <run-id> --failed`, then re-watch. Do **not** start the brew install in step 9 until this returns success — running `brew update` against a tap that hasn't received the formula yet will install the previous version.
 
 9. **Install locally**: Only after step 8 returns success. This step is **mandatory** for projects with a Homebrew tap — do not skip it and do not ask for permission.
 
@@ -646,29 +690,12 @@ The split-in-time case only arises when the user has interrupted Phase B and ask
     - Homebrew install command (if tap was set up): `brew install marcelocantos/tap/<project>`
     - Confirmation that the new version is installed locally (include the `--version` output)
 
-11. **Retire release-readiness meta-targets and clean the tree**: This
-    step is narrow on purpose. Targets whose acceptance is satisfied
-    by the **PR diff** were already retired in Phase B.4a (per the
-    global *"lifecycle changes ride the PR that triggers them"*
-    directive). What's left for this step are *release-readiness
-    meta-targets* — targets whose acceptance literally requires the
-    release to exist (tag created, formula in tap, brew install
-    works, etc.). If such a target exists and its acceptance is now
-    met, retire it via `bullseye_retire`. Then run
-    `~/.claude/skills/release/finalize.sh <version> [target-id]` to
-    commit any resulting `bullseye.yaml` diff locally (no push). This
-    enforces the invariant *"after /release returns, `bullseye.yaml`
-    is clean"* — `/cv` and other gates rely on it.
-
-    **Do not retire diff-satisfied feature targets here.** That
-    produces a follow-up `Update bullseye.yaml` commit hanging off
-    local master with no PR — exactly the situation the global
-    directive forbids. If you find yourself reaching for
-    `bullseye_retire` on a feature target at this step, the
-    retirement belongs back in Phase B.4a; the release PR has
-    already merged, so the next-best recovery is a small chore PR
-    naming the slip (the release skill update of 2026-05-20
-    documents this failure mode).
+11. **Clean the tree**: If `bullseye.yaml` is dirty, run
+    `~/.claude/skills/release/finalize.sh <version>` to commit it
+    locally (no push). Do **not** retire targets here. Achievement
+    happened when the code landed (B.4a is the leftover sweep).
+    Hunting for "the tag exists now" targets is how retirements
+    lag the fix and then get shoved into the next push.
 
 ## Error handling
 

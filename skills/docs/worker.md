@@ -34,7 +34,7 @@ Understand the project before assessing its docs.
 ### 1a. Codebase survey
 
 Explore the project structure — languages, build system, directory layout,
-key entry points, public APIs, tests. Read CLAUDE.md, README, Makefile,
+key entry points, public APIs, tests. Read AGENTS.md / CLAUDE.md, README, Makefile,
 and any existing docs.
 
 ### 1b. Audience identification
@@ -75,7 +75,7 @@ For each category, determine: **exists?** / **accurate?** / **complete?** / **st
    - License notice
    - Links to further docs
 
-2. **Architecture documentation** (docs/, CLAUDE.md, or inline)
+2. **Architecture documentation** (docs/, AGENTS.md / CLAUDE.md, or inline)
    - System design: major components and how they interact
    - Data flow: how data moves through the system
    - Key design decisions and their rationale
@@ -117,7 +117,7 @@ For each category, determine: **exists?** / **accurate?** / **complete?** / **st
    - How to add new tests
    - How to update golden files / snapshots if applicable
 
-9. **CLAUDE.md** (Claude Code integration)
+9. **AGENTS.md / CLAUDE.md** (agent integration)
    - Does it accurately describe the project for AI-assisted development?
    - Are build commands, architecture, key files, and conventions covered?
    - Is it current with the actual codebase?
@@ -191,7 +191,7 @@ documentation suite substantially larger than the codebase itself.
 
 ### Agentic coding guide
 
-- **agents-guide.md** — A highly condensed reference tailored for agentic coding tools (Claude Code, Cursor, Copilot, etc.). Distils the essential information from all other docs into a single file that an agent can ingest quickly. Should be concise enough to fit comfortably in a context window.
+- **agents-guide.md** — A highly condensed reference tailored for agentic coding tools (Grok, Claude Code, Cursor, Copilot, etc.). Distils the essential information from all other docs into a single file that an agent can ingest quickly. Should be concise enough to fit comfortably in a context window.
 
   **For libraries**: What it does, how to include it, key API surface, common patterns, and gotchas.
 
@@ -204,7 +204,7 @@ documentation suite substantially larger than the codebase itself.
 ### Project-level documents
 
 - **README.md** — Project overview, quickstart, license
-- **CLAUDE.md** — Claude Code integration: build commands, architecture, conventions, key files
+- **AGENTS.md / CLAUDE.md** — agent integration: build commands, architecture, conventions, key files (prefer AGENTS.md as shared source; CLAUDE.md may be a thin adapter)
 
 ### In-code documentation
 
@@ -226,4 +226,4 @@ Do **not** recommend or create:
 - Prefer updating existing docs over creating new files. Don't fragment information.
 - Respect existing doc structure. If the project already has a `docs/` convention, follow it.
 - Inline comments should explain *why*, not *what*. Don't recommend adding comments that restate the code.
-- If a CLAUDE.md exists, treat it as the canonical architecture reference. Recommend improvements to it rather than creating a separate architecture doc that would drift.
+- If AGENTS.md or CLAUDE.md exists, treat it as the canonical architecture reference (prefer AGENTS.md when both exist). Recommend improvements to it rather than creating a separate architecture doc that would drift.

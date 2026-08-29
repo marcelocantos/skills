@@ -9,6 +9,12 @@ user-invocable: true
 Push the current branch through CI via a pull request. Creates a feature
 branch and PR if they don't already exist.
 
+**Invocation gate:** run this skill only when the user explicitly asked
+to push/PR/ship (e.g. typed `/push`, “open a PR”, “ship this”). Do **not**
+invoke it because a task finished, a target was achieved, or “it’s ready
+for review.” Outer default is local commits only (global AGENTS.md
+Delivery + hard rule #7).
+
 ## Steps
 
 ### 0. Sweep merged branches
@@ -33,8 +39,12 @@ Run `~/.claude/skills/push/preflight.sh` and parse its output. It is
 already `chmod +x` — do **not** wrap it in `bash`, just invoke the path
 as the command.
 
+- Check `# ledger`: if the line ends with ` dirty`, **stop** and
+  tell the user to `/commit` first — pushing now would leave origin's
+  intent ledger stale. Do not auto-commit the yaml here.
 - Check `# working-tree`: if `dirty`, **stop** and tell the user to
-  commit first.
+  commit first. (A dirty ledger already stopped above; this catches
+  every other uncommitted file.)
 - Use `# branch`, `# default-branch`, and `# on-default-branch` to
   understand where HEAD is and route the next step.
 - Use `# upstream` to determine whether the branch already tracks a
@@ -42,7 +52,7 @@ as the command.
 
 ### 1a. Check for `pr-workflow: skip`
 
-Read the project's `## Gates` section from `CLAUDE.md` (per the merge
+Read the project's `## Gates` section from `AGENTS.md` or `CLAUDE.md` (per the merge
 rules in step 7). If the resolved gates contain
 `pr-workflow: skip` (typically declared as
 `override: [pr-workflow: skip]`), the project has opted out of the PR
@@ -97,12 +107,21 @@ Skip steps 2–9 in the direct-push case.
 
 ### 5. Wait for CI
 
-- Find the latest check suite for the PR's head SHA and monitor it:
+- Prefer **required** checks when the repo has any (ruleset / branch
+  protection). Non-required jobs (e.g. advisory cloud Windows while the
+  project gates on a local VM — mnemo/csp `windows-vm-validated`) must
+  not block the wait:
   ```
-  gh pr checks <number> --watch
+  if gh pr checks <number> --required 2>/dev/null | grep -q .; then
+    gh pr checks <number> --required --watch
+  else
+    gh pr checks <number> --watch
+  fi
   ```
-- If all checks pass, report success.
-- If any check fails:
+- If all watched checks pass, report success. Mention any still-running
+  or failed *non-required* checks as informational (do not treat them as
+  merge blockers).
+- If a watched check fails:
   1. Print the failed check names and their URLs.
   2. For each failure, fetch the log and diagnose the root cause:
      ```
@@ -126,8 +145,8 @@ Repeat until CI is green or the user decides to stop.
 
 Once CI is green, enforce the project's delivery gates before merging.
 
-1. Read the project's `## Gates` section from CLAUDE.md to determine the
-   profile (default: `base`).
+1. Read the project's `## Gates` section from `AGENTS.md` or `CLAUDE.md`
+   to determine the profile (default: `base`).
 2. Read `~/.claude/gates/base.yaml` and the profile YAML (if not base).
    Merge them: profile gates add to base; `override: [gate: skip]`
    removes specific base gates.
@@ -151,14 +170,12 @@ Once CI is green, enforce the project's delivery gates before merging.
 
 Once all gates pass:
 
-1. **This is the single approval point in the push lifecycle.** All
-   earlier steps (push to feature branch, PR creation, fix-and-repush
-   for CI failures) run autonomously without prompting — that is
-   pre-authorised by the global "Pull requests" directive in
-   `~/.claude/CLAUDE.md`. The squash-merge to the default branch is
-   the one irreversible action, so confirm with the user before
-   running it. (If a manual `pre-merge` gate has already collected
-   approval, don't double-prompt.)
+1. **Squash-merge is the approval point inside `/push`.** Entering this
+   skill is already an explicit user request to run the PR path; earlier
+   steps (push feature branch, create PR, fix-and-repush for CI) may run
+   without re-asking. The squash-merge to the default branch still
+   needs user confirmation before it runs. (If a manual `pre-merge` gate
+   already collected approval, don't double-prompt.)
 2. Run the merge script:
    ```
    ~/.claude/skills/push/merge.sh <pr-number> <default-branch> <feature-branch>

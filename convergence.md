@@ -17,13 +17,19 @@ between current state and desired state. The convergence model replaces
 task-list thinking ("do X, then Y, then Z") with state-gap thinking
 ("the project should satisfy P; what's the shortest path from here?").
 
-This means delivery is not a final step bolted onto completed code —
-it's intrinsic to the target. "Merged to master" is a waypoint, not a
-destination. The destination is the user experiencing the change.
-Targets are not achieved until their impact is delivered. The same PR
-that delivers the impact should also mark the target achieved in
-`bullseye.yaml` — the merge is the achievement event. Don't split
-implementation and retirement across separate PRs.
+A target is achieved when the code that makes the assertion true has
+landed — the same commit or PR as the fix. Do not hold it open for a
+tag, a Homebrew formula, or an installed-binary check. Do not file a
+sibling whose only remaining work is `/release`. Shipping existing
+fixes is `/cv`'s unreleased-fixes path, not target bookkeeping.
+
+If the symptom is still there after ship, that is a new report: reopen
+or file a new target. Don't keep a shadow target around "just in case
+we forget to cut the release" — we almost never re-evaluate those, and
+they get shoved into the next push anyway.
+
+Don't split implementation and retirement across separate PRs. The
+merge that lands the code is the lifecycle event.
 
 ## Decomposition
 

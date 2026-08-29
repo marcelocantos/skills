@@ -16,6 +16,38 @@ if ! git rev-parse --git-dir &>/dev/null; then
     exit 1
 fi
 
+repo_top=$(git rev-parse --show-toplevel)
+
+# In-repo bullseye.yaml relative to repo_top, or empty. Walk up from cwd
+# (bullseye discover), then tracked files. External/shadow ledgers live
+# outside the work tree and are ignored.
+ledger_rel=""
+dir=$PWD
+n=0
+while [[ $n -lt 20 ]]; do
+    n=$((n + 1))
+    if [[ -f "$dir/bullseye.yaml" ]]; then
+        if [[ "$dir" == "$repo_top" ]]; then
+            ledger_rel=bullseye.yaml
+        elif [[ "$dir" == "$repo_top"/* ]]; then
+            ledger_rel="${dir#"$repo_top"/}/bullseye.yaml"
+        fi
+        break
+    fi
+    if [[ "$dir" == "$repo_top" || "$dir" == "/" ]]; then
+        break
+    fi
+    parent=$(dirname "$dir")
+    if [[ "$parent" == "$dir" ]]; then
+        break
+    fi
+    dir=$parent
+done
+if [[ -z "$ledger_rel" ]]; then
+    ledger_rel=$(git -C "$repo_top" ls-files --full-name \
+        | grep -E '(^|/)bullseye\.yaml$' | head -n 1 || true)
+fi
+
 # ---------------------------------------------------------------------------
 # working-tree
 # ---------------------------------------------------------------------------
@@ -24,6 +56,18 @@ if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
     echo "dirty"
 else
     echo "clean"
+fi
+
+# ---------------------------------------------------------------------------
+# ledger — dirty means origin's intent would go stale if we pushed now.
+# ---------------------------------------------------------------------------
+echo "# ledger"
+if [[ -z "$ledger_rel" ]]; then
+    echo "(none)"
+elif [[ -n "$(git -C "$repo_top" status --porcelain -- "$ledger_rel" 2>/dev/null)" ]]; then
+    printf '%s dirty\n' "$ledger_rel"
+else
+    printf '%s clean\n' "$ledger_rel"
 fi
 
 # ---------------------------------------------------------------------------

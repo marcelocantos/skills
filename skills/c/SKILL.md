@@ -12,20 +12,30 @@ fresh session that is continuing earlier work) to pick up with the
 targets, decisions, files, and open threads from prior spans.
 
 Backed by the mnemo compactor: a background summariser writes a
-compaction per active span; `mnemo_restore` walks the `/clear`-
+compaction per active span; `mnemo_ops` (op=restore) walks the `/clear`-
 bounded chain and returns every compaction oldest-first.
 
 ## Steps
 
-1. **Identify this session.** Invoke `mcp__mnemo__mnemo_self` with
-   a short random nonce (e.g. 8 hex chars). Include the literal
-   string `mnemo:self:<nonce>` in the same message's text so the
-   server can correlate. The tool returns this session's ID.
+1. **Identify the session to restore.** Call `mnemo_sessions` with the
+   current repo and `session_type: "interactive"`, and take the most
+   recent session other than this one — that is the span `/clear` just
+   ended.
 
-2. **Fetch the chain compactions.** Invoke `mcp__mnemo__mnemo_restore`
-   with `session_id=<id from step 1>`. It returns a pre-formatted
-   multi-span summary (targets, files, decisions, open threads per
-   span), oldest-first.
+   This replaced `mnemo_self`, removed 2026-08-07. That tool used a
+   nonce round-trip: emit `mnemo:self:<nonce>`, wait for the transcript
+   to be ingested, then ask which session contained it. It depended on
+   ingest having caught up mid-turn and recorded **2 nonces in four
+   months** against 11 calls. The recency heuristic here is less precise
+   in principle and works more often in practice; when it picks wrong,
+   the restored summary is visibly about other work, so pass an explicit
+   `session_id` from `mnemo_sessions` instead.
+
+2. **Fetch the chain compactions.** Call `mnemo_ops(op: "restore")` with
+   `session_id=<id from step 1>`. It returns a pre-formatted multi-span
+   summary (targets, files, decisions, open threads per span),
+   oldest-first — and it walks the `/clear`-bounded chain from that id,
+   so landing anywhere in the chain restores the whole chain.
 
 3. **Present verbatim.** Relay the tool output to the user with at
    most a one-line framing. Do **not** re-summarise — the output is
@@ -35,7 +45,7 @@ bounded chain and returns every compaction oldest-first.
 
 ## If there is no compaction yet
 
-If `mnemo_restore` says "No compactions available yet for this
+If `mnemo_ops` (op=restore) says "No compactions available yet for this
 session chain", that means either this is a brand-new session with
 nothing upstream, or the prior span was too short/idle for the
 background compactor (runs every 5 minutes) to have fired. Say so

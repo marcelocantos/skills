@@ -1,10 +1,28 @@
 ---
 name: remind
-description: Schedule a reminder that fires as a Slack DM at a future time. Uses claude.ai routines so the reminder survives session restarts, machine reboots, and weeks-to-months horizons. Also lists and cancels existing reminders.
+description: >
+  Schedule a reminder that fires as a Slack DM at a future time.
+  Claude-only: requires claude.ai RemoteTrigger. Under Grok, refuse and
+  suggest Calendar or running /remind in Claude. Also lists and cancels
+  existing reminders.
 user-invocable: true
 ---
 
 # remind
+
+## Grok / non-Claude harness
+
+**This skill does not work in Grok Build.** It depends on Claude.ai
+`RemoteTrigger` routines and Slack MCP auth in the Claude routine
+context. If invoked under Grok (or any harness without `RemoteTrigger`):
+
+1. **Stop.** Do not invent a local cron substitute that pretends to be this skill.
+2. Tell the user options: run `/remind` in **Claude Code**, or schedule a
+   **Google Calendar** event (managed connector), or use a short-horizon
+   in-session scheduler if the harness has one.
+3. Offer to create a Calendar event if they want a durable ping from here.
+
+## Claude Code
 
 Set a future reminder (or recurring reminder) that fires as a Slack
 direct message to Marcelo. Built on the `RemoteTrigger` MCP tool — the

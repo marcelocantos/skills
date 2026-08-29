@@ -1,0 +1,4 @@
+interface:
+  display_name: "Entropy Audit"
+  short_description: "Audit architecture, redundancy, and SDLC drift"
+  default_prompt: "Use $entropy-audit to run a full repository entropy and hygiene audit."

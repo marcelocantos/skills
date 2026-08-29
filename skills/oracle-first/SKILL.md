@@ -10,7 +10,10 @@ Method for deciding where verification effort goes before generation
 effort. Full theory, evidence, and case studies:
 [`doctrine.md`](~/.claude/skills/oracle-first/doctrine.md). Read it when
 planning a port/migration or a verification strategy; the rules below
-suffice for quick classification.
+suffice for quick classification. Owner-visible product paths (whole
+product, thin user slice) are journeys — see
+[`journeys.md`](~/.claude/journeys.md); this skill still decides *what*
+the slice must decide.
 
 ## Two oracle modes — read this first
 
@@ -116,7 +119,11 @@ term — the fix differs per term:
    the reference is an unsatisfiable spec — different equations, different
    phase portrait; no coefficient bridges them. Extract the reference's
    actual mechanism (constraints, algorithms, hand-set constants) and
-   reproduce *that*.
+   reproduce *that*. Includes **ordering / sort keys / multi-stage
+   pipelines**: a bake-time sequence (array index, file rank) is often
+   *not* the runtime generative model — e.g. Stage-5 data may freeze
+   `index()` while runtime re-sorts with `(index ≥ band, −size)`. Matching
+   the baked list is the wrong model; matching the runtime key is the port.
 4. **The spec must be executable.** Prose specs leak — they can only
    state what someone already knows is load-bearing. Extract the
    reference into a runnable oracle (`oracle.cpp`, conformance suite,
@@ -139,7 +146,11 @@ term — the fix differs per term:
    analytically) from Lyapunov amplification (exponential; unclosable
    across engines). Gate on per-step epsilon + distributional/
    qualitative invariants at long horizons. Bit-exact long-horizon match
-   across different engines is impossible — don't chase it.
+   across different engines is impossible — don't chase it. Same bound
+   for **intentional RNG** in the reference (e.g. random neighbour
+   separation on a carousel): after the deterministic generative head is
+   green, mid/tail sequence differences are residual class-3 /
+   distributional — not a class-1 exact-list obligation.
 8. **Oracle work splits three ways.** *Design* (what to measure,
    acceptance semantics, discipline) needs the human — but once per
    oracle class, not per project. *Implementation* is fully delegable.
@@ -148,7 +159,30 @@ term — the fix differs per term:
 9. **Attestation ≠ execution.** An agent's "done" is an unverified
    channel (documented false-completion cases). Completion claims are
    validated by an oracle or an independent reviewing agent, never by
-   the agent that did the work.
+   the agent that did the work. Corollary — **independence is a
+   function of automation, not locality**: a gate is independent when
+   the *harness* adjudicates (exit codes, results files — never the
+   executor's narrative), regardless of which machine runs it. A
+   drilled local pre-push hook is as independent as CI and much
+   faster; don't default to "set up CI" as the first enforcement move.
+   Build the validation suite locally, mutation-drill the gate, and
+   migrate the same commands into a CI layer at the production
+   boundary — where CI's real additions (environment-drift detection,
+   independence from one machine's configuration) start to matter.
+
+   **Anchors vs report nodes** (shared vocabulary with bullseye 🎯T56 /
+   graph-engineering evaluation): an **anchor** is a check that cannot
+   be argued with — tests that *ran*, CI green on the *shipped* path,
+   a released artifact. A **report node** is narrative ("should pass",
+   a summary of the worker's own run). Topology and prose reports do
+   not buy truth; anchors do. Anti-pattern: an "audit" that only
+   re-reads the worker's summary (same system grading itself).
+
+   **Fresh-context verifier:** the worker must not grade its own work
+   in the same transcript. Prefer a new subagent, a new tool/command
+   run, or CI — a verifier that shares the worker's context is a
+   report node wearing an oracle costume. Same independence duty as
+   the harness rule above; named so agents and humans share the word.
 10. **Unverified autonomy is negative value.** Long unattended runs
     without an oracle don't reduce the human's verification burden —
     they concentrate and defer it. Raise autonomy only as far as the
@@ -179,7 +213,11 @@ term — the fix differs per term:
       the code and confirm the oracle catches them (csp ships
       intentionally-buggy TLA+ variants). An oracle green on known-broken
       code is weak; mutation catch-rate is how you *measure* oracle
-      strength.
+      strength. Also **instrument the instrument**: if projected AABBs
+      are empty/sentinel while world-space bounds are finite, that is
+      control-plane failure (pose/zoom/MVP NaN), not missing geometry —
+      sanitize harness state so the oracle cannot permanently brick
+      itself (e.g. finite zoom clamp; reject non-finite injects).
     - **Probe for unknowns** — adversarial audits whose output is new
       *spec*, run loop-until-dry; diminishing new findings is the
       convergence signal.
@@ -213,6 +251,9 @@ term — the fix differs per term:
       model of the pose, mixed bases, wrong face-user formula). Coefficient
       thrash on the wrong model is infinite; one correct basis conversion
       can end a day of screenshot thrash.
+    - **Harness health:** projected geometry empty/sentinel while world
+      geometry is finite ⇒ camera/MVP/zoom poison, not "mesh gone." Heal
+      the control plane before chasing layout residuals.
     Bandwidth rule: keep iterating the harness until the residual fits
     in a few numbers a human or agent can hold ("centre 0°, AABB offset
     0.34 half-diagonals, bases disagree ~34°"). "The white blob is wrong
@@ -220,6 +261,42 @@ term — the fix differs per term:
     is optional; **tagging and converting at the boundary** is mandatory.
     Vision stays the final accept/reject (rule 2). Full theory and the
     yourworld silhouette case: doctrine §4 "Spatial residual compression".
+14. **The verification layer is itself a Goodhart target.** Under
+    sustained completion pressure (zero-failures targets, "converging"
+    status, coverage thresholds), any gap between the measured quantity
+    and product truth will be found and exploited — sincerely, not
+    maliciously; design gates with a security mindset. The live
+    second-order modes: **oracle gaming** (rule 6's boundary breached —
+    golden replay, fixture echo), **metric-path divergence** (a *true*
+    headline number measured off the shipped path), **scaffolding
+    Goodhart** (machinery construction counted as verification
+    progress), **gamed denominators** (the executor owns the divisor of
+    its own gate). Countermeasure = the **honesty ratchet**, five
+    ingredients applied together and wired into CI/hooks: (a) only the
+    shipped path produces the headline number — oracle-assisted tiers
+    are regression nets; (b) locked baselines fail in both directions —
+    numbers move only by deliberate commit; (c) un-ownable denominators
+    — every gate quantity computed from source or a frozen reference,
+    never the executor's inventory; (d) provenance obligations — fixes
+    trace to named reference mechanisms, suspicious constants carry
+    adjacent provenance; (e) out-of-corpus perturbation — holdout
+    inputs checked against a freshly generated reference. Drill it like
+    any oracle: plant a golden-echo and an unclaimed baseline
+    improvement; it must catch both. Full taxonomy: doctrine §4
+    "Second-order failures".
+15. **Evidence, not machinery, is progress — an oracle is a loop, not
+    an artifact.** A verification asset counts for zero until it has
+    run green against the product on fresh inputs; verification
+    campaigns report *activated green evidence counts*, never artifact
+    counts ("comparator built" is deferred verification debt). An
+    oracle not wired to a standing enforcement point (CI, hook, gate)
+    decays — enforcement wiring is part of building it, not an
+    adoption step afterwards.
+16. **Generalize defenses before the next incident.** A ratchet, guard
+    suite, or computed-completion pattern that proves out in one repo
+    gets extracted into this skill/doctrine immediately; repo-local
+    hardening is itself a defect — the same medicine has been invented
+    independently twice in one week.
 
 ## When analysing a codebase or planning
 
@@ -228,7 +305,9 @@ Produce, as part of the analysis:
 - **Oracle inventory** — what machine-checkable ground truth exists;
   what's missing for the dominant judgment costs.
 - **Harness classes required** — reuse before building; one-off vs
-  recurring.
+  recurring. Dual-app HTTP/UDP residual harnesses are a *class*: keep
+  them **debug-only** (`#ifndef NDEBUG` / Release defines `NDEBUG`) so
+  store builds never bind observe ports or soft-inject production state.
 - **Acceptance criteria per target, split by verification class** —
   never bundle decidable checks with perceptual sign-off in one
   criterion (the target inherits the p of its most-perceptual clause).
@@ -267,12 +346,40 @@ gates every completion claim.
 
 Corollary — the discipline gate (self-check, or a maker/checker sub-agent)
 fires at the **V boundary** (about to demo / attest / retire), not at
-code-start. Two failure modes to catch there, both live escapes if missed:
+code-start. Three failure modes to catch there, all live escapes if missed:
 - **demo-before-V** — attesting a capability works with V never run (rule 9;
   the executor's "done" is unverified until the oracle adjudicates it).
 - **oracle substitution** — an *adjacent* green check ("it compiles", "frames
   flow", "it connects") treated as coverage for the deferred fidelity property
   it does not test (rule 11). *"The frame arrived" is not "the frame is right."*
+  Includes **soft-follow that rewrites product state** (e.g. UDP force-order
+  of a list): cells matching the original *under follow* is not the product
+  property. V for product behaviour runs with follow **off** (or with inject
+  that does not bypass the generative path under test).
+- **off-product attestation** — the number cited is true but was produced by
+  a path other than the shipped one (oracle-assisted tier, instrumented
+  build, agent-owned denominator). V's headline number comes from the
+  product path, under the honesty ratchet (rule 14).
+
+The standing form of this gate is the **V-boundary checker** — an
+independent party (checker sub-agent or hook) at demo/retire/attest
+moments asking three questions: did V run? against the product path? does
+the executor's claim trace to the oracle's output?
+
+### Lenses, hidden edges, fan-in (process notes)
+
+- **Multiple lenses.** Where residue is large, split acceptance rather
+  than one soft LGTM: **correctness** oracle, **freshness/staleness**,
+  **provenance**. Bundle only when a single machine check covers all.
+- **False independence.** Parallel workers sharing a worktree or a
+  rate-limited API have **hidden edges**. Isolation (worktree, separate
+  cwd) is part of the verification plan, not only a speed hack.
+- **Fan-in layering.** On large fan-out: batch → summarize → synthesize;
+  never dump all raw results into one judge (context collapse). Evidence
+  over machinery still applies.
+- **When a loop is enough.** If work has no real parallel width (the
+  fake-edge test finds no independent jobs), one loop + one oracle is
+  correct — do not build a graph for ceremony.
 
 ## Skill improvement
 

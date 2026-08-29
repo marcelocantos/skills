@@ -424,7 +424,7 @@ fi
 
 echo "# homebrew_tap"
 if [[ "$homebrew_tap_disabled" == true ]]; then
-    echo "(disabled — CLAUDE.md declares homebrew_tap: disabled)"
+    echo "(disabled — project declares homebrew_tap: disabled)"
 elif has_cmd gh; then
     gh api repos/marcelocantos/homebrew-tap/contents/Formula --jq '.[].name' 2>/dev/null || echo "(no tap or no Formula/ directory)"
 else
@@ -457,32 +457,12 @@ else
     echo "(gh not installed)"
 fi
 
-# The repo action-secret value is write-only — we can't read it back to
-# verify it still authenticates. A stale/expired PAT passes the existence
-# check above but yields an opaque 401 in the homebrew-releaser job *after*
-# the tag is cut. Probe the 1Password source token instead (the value the
-# skill (re)sets the secret from): if it authenticates, the fix for a 401
-# is a secret refresh; if it doesn't, the PAT itself has expired.
-echo "# homebrew_tap_token_op"
-if [[ "$homebrew_tap_disabled" == true ]]; then
-    echo "(n/a — tap disabled)"
-elif has_cmd op && has_cmd curl; then
-    optok=$(op read "op://Personal/GitHub Homebrew Tap PAT/token" 2>/dev/null)
-    if [[ -z "$optok" ]]; then
-        echo "(op read failed — sign in to the 1Password CLI)"
-    else
-        op_http=$(curl -s -o /dev/null -w '%{http_code}' \
-            -H "Authorization: token $optok" \
-            "https://api.github.com/repos/marcelocantos/homebrew-tap")
-        if [[ "$op_http" == "200" ]]; then
-            echo "valid"
-        else
-            echo "expired (HTTP $op_http — mint a new fine-grained PAT)"
-        fi
-    fi
-else
-    echo "(op or curl not available)"
-fi
+# Do NOT probe the 1Password source PAT here. Action secrets are write-only,
+# so existence (`set` / `missing`) is all we can know without Touch ID, and a
+# proactive `op read` on every discover/release defeats the point of storing
+# the token as a CI secret. Stale-secret recovery is failure-driven: only
+# after the homebrew job 401s (or reports a missing env var) does the skill
+# refresh from 1Password and re-run the failed job.
 
 # ---------------------------------------------------------------------------
 # 10. Version macros

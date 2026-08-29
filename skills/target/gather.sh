@@ -7,12 +7,20 @@ set -e
 
 section() { echo "# $1"; }
 
-# --- Delivery definition from CLAUDE.md ---
+# --- Delivery definition from AGENTS.md / CLAUDE.md ---
 section "delivery"
-if [ -f CLAUDE.md ]; then
-    grep -i -E '^-?\s*delivery:' CLAUDE.md 2>/dev/null || echo "(no delivery definition — default: merged to default branch)"
-else
-    echo "(no CLAUDE.md — default: merged to default branch)"
+found_delivery=""
+for f in AGENTS.md CLAUDE.md Claude.md; do
+    if [ -f "$f" ]; then
+        found_delivery=$(grep -i -E '^-?\s*delivery:' "$f" 2>/dev/null || true)
+        if [ -n "$found_delivery" ]; then
+            echo "$found_delivery"
+            break
+        fi
+    fi
+done
+if [ -z "$found_delivery" ]; then
+    echo "(no delivery definition — default: merged to default branch)"
 fi
 
 # --- Git state for implied target evaluation ---
