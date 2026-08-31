@@ -444,9 +444,26 @@ fi
 # ---------------------------------------------------------------------------
 # 8. Workflows
 # ---------------------------------------------------------------------------
+# Collect the workflow files ONCE, with nullglob so an unmatched pattern
+# disappears instead of being passed through literally. A literal
+# ".github/workflows/*.yaml" reaching grep as a filename makes grep exit 2;
+# pipefail promotes that to the pipeline's status and set -e kills the script
+# mid-run. That silently truncated everything from "# homebrew_tap_repo"
+# onwards on any repo that has *.yml workflows but no *.yaml — i.e. most of
+# them — and only when the homebrew-releaser branch below was taken, which is
+# why it went unnoticed on tapper projects.
+#
+# Expansion is written as ${arr[@]+"${arr[@]}"} throughout: bash 3.2 (what
+# macOS ships, and what #!/usr/bin/env bash resolves to when Homebrew's bash
+# is not first on PATH) treats "${arr[@]}" on an empty array as an unbound
+# variable under set -u.
+shopt -s nullglob
+_workflow_files=(.github/workflows/*.yml .github/workflows/*.yaml)
+shopt -u nullglob
+
 echo "# workflows"
-if compgen -G ".github/workflows/*.yml" >/dev/null 2>&1 || compgen -G ".github/workflows/*.yaml" >/dev/null 2>&1; then
-    ls .github/workflows/*.yml .github/workflows/*.yaml 2>/dev/null || true
+if [[ ${#_workflow_files[@]} -gt 0 ]]; then
+    printf '%s\n' "${_workflow_files[@]}"
 else
     echo "(none)"
 fi
@@ -480,10 +497,12 @@ if [[ -f tapper.yaml ]]; then
         homebrew_tap_repo="$_tap_owner/$_tap_name"
     fi
     homebrew_publisher="tapper"
-elif grep -qsl 'homebrew-releaser' .github/workflows/*.yml .github/workflows/*.yaml 2>/dev/null; then
+elif [[ ${#_workflow_files[@]} -gt 0 ]] && grep -qsl 'homebrew-releaser' ${_workflow_files[@]+"${_workflow_files[@]}"} 2>/dev/null; then
     homebrew_publisher="homebrew-releaser"
-    _wf_owner=$(grep -hE '^[[:space:]]+homebrew_owner:' .github/workflows/*.yml .github/workflows/*.yaml 2>/dev/null | head -1 | sed -E 's/.*homebrew_owner:[[:space:]]*//')
-    _wf_tap=$(grep -hE '^[[:space:]]+homebrew_tap:' .github/workflows/*.yml .github/workflows/*.yaml 2>/dev/null | head -1 | sed -E 's/.*homebrew_tap:[[:space:]]*//')
+    # `|| true` on each pipeline: grep exits 1 when the key is simply absent,
+    # which is a normal outcome here, not an error.
+    _wf_owner=$(grep -hE '^[[:space:]]+homebrew_owner:' ${_workflow_files[@]+"${_workflow_files[@]}"} 2>/dev/null | head -1 | sed -E 's/.*homebrew_owner:[[:space:]]*//' || true)
+    _wf_tap=$(grep -hE '^[[:space:]]+homebrew_tap:' ${_workflow_files[@]+"${_workflow_files[@]}"} 2>/dev/null | head -1 | sed -E 's/.*homebrew_tap:[[:space:]]*//' || true)
     if [[ -n "$_wf_owner" && -n "$_wf_tap" ]]; then
         homebrew_tap_repo="$_wf_owner/$_wf_tap"
     fi
