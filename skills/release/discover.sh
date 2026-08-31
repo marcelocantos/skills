@@ -468,6 +468,20 @@ else
     echo "(none)"
 fi
 
+# How tarballs are produced. `local` (scripts/release-package.sh, make
+# release-dist, or cv !release-dist) is the tapper-era path and must win
+# over a leftover release.yml so /release does not recreate .github.
+echo "# artifact_builder"
+if [[ -f scripts/release-package.sh ]] ||
+    { [[ -f Makefile ]] && grep -qE '^release-dist:' Makefile; } ||
+    { [[ -f cvfile ]] && grep -qE '^!release-dist:' cvfile; }; then
+    echo "local"
+elif [[ -f .github/workflows/release.yml || -f .github/workflows/release.yaml ]]; then
+    echo "gha"
+else
+    echo "none"
+fi
+
 # ---------------------------------------------------------------------------
 # 9. Homebrew tap (requires gh)
 # ---------------------------------------------------------------------------

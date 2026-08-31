@@ -13,7 +13,7 @@ End-to-end skill for cutting a release of an existing project. Covers discovery,
 - **GitHub account**: `marcelocantos` (personal)
 - **Default branch**: `master`
 - **Release platforms**: macOS arm64 + Linux x86_64 + Linux arm64
-- **Binaries**: Always build via CI — never build release binaries locally
+- **Binaries**: Prefer **local package** when the project already has a tapper-era builder (`# artifact_builder` = `local` from `discover.sh`: `scripts/release-package.sh`, `make release-dist`, or `cv release-dist`). Attach `dist/*.tar.gz` to `gh release create`. **Do not create `.github/workflows/release.yml`** on that path — vellum, tapper, and spyder ship this way. Only build via GitHub Actions when `# artifact_builder` is `gha` (a working `release.yml` already exists) or `none` on a **new** project that has no local package script yet. Never hand-build ad-hoc outside those two scripts.
 - **Homebrew tap**: per project, reported by `discover.sh` as `homebrew_tap_repo` (from `tapper.yaml`; default `marcelocantos/homebrew-tap`; Canticode products use `canticode/homebrew-tap`). Publisher is `homebrew_publisher`: **`tapper`** (preferred — `tapper push` from the dev Mac after the release exists, token in the macOS keychain) or **`homebrew-releaser`** (legacy — the GitHub Action in `release.yml` with a `HOMEBREW_TAP_TOKEN` secret)
 - **Versioning (HARD HALT — global Hard rule #6)**: Semantic versioning (`vMAJOR.MINOR.PATCH`). All releases bump MINOR (reset PATCH to 0). **Never select a MAJOR or PATCH version yourself, under any circumstances** — bugfixes, hotfixes, and tiny tweaks all ship as minor. The only exception is a version the user named *verbatim in this conversation*; inferring "this is small, so patch" is the exact rationalisation this rule forbids. If the version about to be written has PATCH ≠ 0 or bumps MAJOR and the user did not name that exact version this conversation → **STOP, do not proceed** — it is an error, not a judgement call.
 - **Pre-1.0 → 1.0 shakeout**: A 1.0 release locks in a backwards-compatibility contract — after 1.0, breaking changes require forking the project (e.g., `foo` → `foo2`, see Phase B.3) rather than a major bump. Before cutting 1.0, the public API must have accumulated **at least 1 month** with no backwards-incompatible changes since the last breaking release. Historical SemVer practice was to scale shakeout by surface size (3+ months for >50 items); in the LLM-coding era, real-world API exercise compresses sharply, so a flat 1-month minimum suffices regardless of surface size. If a breaking change is judged necessary mid-shakeout, the clock **resets** from the new breaking release's tag date. See B.3a for the gate.
@@ -422,9 +422,16 @@ Draft release notes from git history.
 
 #### B.6: CI setup (conditional)
 
-**Skip this substep** if the project is a library without standalone binaries, or if a release CI workflow already exists and is working.
+**Skip creating `release.yml`** if any of these hold:
 
-1. **Create release workflow**: Create `.github/workflows/release.yml` that triggers on `release` events (`types: [published]`). The workflow must **only build and upload artifacts** — it must **never create tags, releases, or draft releases** (the release already exists, created by `gh release create` in Phase 5). The workflow should:
+- The project is a library without standalone binaries.
+- A release CI workflow already exists and is working (`# artifact_builder` = `gha`).
+- `# artifact_builder` is `local` (tapper-era: `scripts/release-package.sh` / `make release-dist` / `cv release-dist`). **Do not recreate `.github`.**
+- `tapper.yaml` exists and there is no `.github/workflows/release.yml`. Local package + `tapper push` is the whole path (vellum, tapper, spyder).
+
+If skipped because the builder is local: still confirm `tapper.yaml` is present when Homebrew is in play (B.1 step 5). Do **not** add a homebrew-releaser Actions job.
+
+1. **Create release workflow** (only when `# artifact_builder` is `none` and the project is a binary with no local package script): Create `.github/workflows/release.yml` that triggers on `release` events (`types: [published]`). The workflow must **only build and upload artifacts** — it must **never create tags, releases, or draft releases** (the release already exists, created by `gh release create` in Phase 5). The workflow should:
    - Run tests
    - Build for macOS arm64, Linux x86_64, Linux arm64 using a matrix strategy
    - Package each binary as `<project>-<version>-<os>-<arch>.tar.gz`
@@ -568,7 +575,12 @@ Push (or merge), tag, and create the GitHub release. Run unattended unless somet
 
 3. **Push check**: Ensure all commits (version bump, etc.) are on `origin/<default>` before tagging. After step 1, local default should already match origin; double-check with `git status -sb`.
 
-4. **Regenerate distribution files**: If B.1 identified a dist generation target (e.g., `make dist`), run it now. If it produces any changes, commit them on `master` (e.g., "Regenerate dist for \<version\>") and push before tagging. This ensures the release tag includes up-to-date distribution artifacts.
+4. **Regenerate distribution files / local package**: If `# artifact_builder` is `local`, build the tarballs **now**, before tagging:
+   - `VERSION=<ver-without-v> make release-dist` if that target exists,
+   - else `cv release-dist`,
+   - else `scripts/release-package.sh <ver-without-v>`.
+   Confirm `dist/<project>-<ver>-*.tar.gz` exist. These are the assets for step 5.
+   If B.1 identified a committed dist generation target (e.g., amalgamated headers via `make dist`) that dirties the tree, commit those on `master` and push before tagging. `dist/*.tar.gz` from `release-package.sh` is gitignored — do not commit it.
 
 4a. **Pre-tag dry-run of `release.yml` (only when it builds macOS artefacts via project scripts)**: If `release.yml` builds artefacts on macOS by running a project shell script (a `build-libs.sh`, a packaging script, or any non-trivial `run:` step — as opposed to a pure `go build` / `cargo build` matrix), dispatch its `workflow_dispatch` dry-run and confirm the **macOS** job is green **before** creating the tag:
    ```bash
@@ -578,11 +590,15 @@ Push (or merge), tag, and create the GitHub release. Run unattended unless somet
    ```
    Rationale: macOS runners use bash 3.2 (see B.1 item 13) and differ from the dev Mac (Homebrew bash 5.x shadows `/bin/bash`), so a script that builds locally can still fail only on the runner. Because the real build fires on `release: published` — i.e. *after* the tag exists — a script bug there forces a **re-cut** (delete + recreate the release and move the tag). The `workflow_dispatch` dry-run builds and link-tests without uploading, so it catches the failure while the tag can still move freely. This is the dynamic complement to B.1 item 13 (which owns the standing CI job); run it whenever the release workflow's macOS path executes project shell scripts. Skip it otherwise.
 
-5. **Create the release**: Use `gh release create` which both tags and creates the release:
+5. **Create the release**: Use `gh release create` which both tags and creates the release. When `# artifact_builder` is `local`, attach the tarballs from step 4:
+   ```bash
+   gh release create <version> --title "<version>" --notes-file <notes-file> dist/*.tar.gz
+   ```
+   When `# artifact_builder` is `gha`, create the release without assets and let `release.yml` upload them:
    ```bash
    gh release create <version> --title "<version>" --notes-file <notes-file>
    ```
-   This triggers the `release.yml` workflow (if any), which builds binaries and uploads them, and — only when `homebrew_publisher` is `homebrew-releaser` — updates the tap formula. Projects without a workflow build and upload their assets locally in step 4 (e.g. `cv release-dist` / `make dist` then `gh release create <tag> … dist/*.tar.gz`).
+   The GHA path triggers `release.yml` (artifact build, and the homebrew-releaser job only when `homebrew_publisher` is `homebrew-releaser`). The local path has no workflow to watch.
 
 6. **Sync local tags with the remote**: `gh release create` creates the
    tag on the remote but does **not** update the local `.git/refs/tags/`.
@@ -635,7 +651,7 @@ Push (or merge), tag, and create the GitHub release. Run unattended unless somet
 
    `brew update` is required to pull the fresh formula from the tap. Use `upgrade || install` so the command works whether or not the formula is already installed. **Always tee the full output to a temp file** — when something goes wrong, a `tail -5` of the truncated output never shows the actual failure mode, and you'll be guessing instead of diagnosing. Keep the `mktemp` path so you can inspect it if the verify step below fails.
 
-   **Persistent services**: If the project is a long-running server with a Homebrew service definition (detected in Phase 4 step 3), restart the service so the new binary takes effect:
+   **Persistent services**: If the project is a long-running server, restart the daemon so the new binary takes effect. Prefer the project's documented supervisor when CLAUDE.md / `supervisor/` says **not** to use `brew services` (spyder on this Mac: `supervisorctl restart spyder` after `brew services stop spyder`). Only then fall back to:
    ```bash
    brew services restart <project>
    ```
