@@ -636,7 +636,23 @@ Push (or merge), tag, and create the GitHub release. Run unattended unless somet
    gh run list --workflow=release.yml --limit=1
    gh run watch <run-id>
    ```
-   **8a. tapper publish (when `homebrew_publisher` is `tapper`)**: once the release carries its tarballs (CI green, or uploaded locally), publish the formula from the dev Mac: run the project's target if it has one (`make release-tap`, `cv release-tap`, `scripts/release-tap.sh <tag>`), else `tapper push --version <tag>` in the repo root. A `missing token` error means `tapper token import-gh`; a 403 on the tap means the token lacks push on `homebrew_tap_repo`. Do not start step 9 until this succeeds.
+   **8a. tapper publish (when `homebrew_publisher` is `tapper`)**: once the release carries its tarballs (CI green, or uploaded locally), publish the formula from the dev Mac: run the project's target if it has one (`make release-tap`, `cv release-tap`, `scripts/release-tap.sh <tag>`), else `tapper push --version <tag>` in the repo root. A `missing token` error means `tapper token import-gh`; a 403 on the tap means the token lacks push on `homebrew_tap_repo`. **tapper runs homebrew-releaser in a container, so it needs a running Docker daemon** — after a reboot that often means OrbStack/Docker Desktop has not been started, and the error names the socket path.
+
+   **Branch on the exit status, never on the output — and never through a pipe.** This is the one step in the whole skill where a missed failure is silent: by the time it runs the release and its assets are already published, so nothing downstream contradicts you. `brew update` then serves the *previous* formula, `brew upgrade` installs the *previous* version, and the run reports the new one as shipped. Piping the command into `tail`/`grep` for brevity makes `$?` the pager's status, which is 0 even when the publish failed:
+
+   ```bash
+   # WRONG — $? is tail's, and the real error may scroll past the window
+   ./scripts/release-tap.sh | tail -4
+
+   # RIGHT — status decides, output is kept for diagnosis
+   if ! ./scripts/release-tap.sh >/tmp/tap.log 2>&1; then
+     echo "tap publish FAILED — do not install; release is published but the formula is not:" >&2
+     tail -20 /tmp/tap.log >&2
+     exit 1
+   fi
+   ```
+
+   Verified: `tapper` exits 1 and `scripts/release-tap.sh` propagates it, so the signal is there to be read — it is only lost by how the command is invoked. Do not start step 9 until this returns success.
 
    If CI fails, help diagnose — do not delete the release or tag without asking. **If only the `homebrew` job failed with a `401 Unauthorized` or *"must provide all necessary environment variables"*** (stale/empty `HOMEBREW_TAP_TOKEN`; see B.6 known issues), the binaries already uploaded — this is the failure-driven refresh path: use the **guarded** `op read` → `gh secret set` form from B.1 step 5 (never the bare pipe, which clobbers the secret with empty output when `op` is locked), then `gh run rerun <run-id> --failed`, then re-watch. Do **not** start the brew install in step 9 until this returns success — running `brew update` against a tap that hasn't received the formula yet will install the previous version.
 
@@ -686,6 +702,12 @@ Push (or merge), tag, and create the GitHub release. Run unattended unless somet
 - If the working tree is dirty, ask the user to commit or stash before proceeding.
 - If CI workflow fails after tagging, help diagnose — do not delete the tag without asking.
 - Never force-push or rewrite history.
+- **Never let a pipe swallow an exit status.** `cmd | tail -n` reports the
+  pager's status, not the command's, so a failed step reads as success. Where a
+  step gates a later one — the tap publish before the brew install above,
+  the local gate before the tag — branch on the exit status and keep the full
+  output in a file for diagnosis. Truncating output for readability is fine;
+  truncating it *through a pipe whose status you then test* is not.
 - Run the entire skill unattended unless a serious concern arose during Phase B (see B.8). The ideal `/release` invocation finishes without asking the user a single question. Per-phase approval prompts are gone — do not reintroduce them.
 
 ## Commit messages under MCP-mediated executors
