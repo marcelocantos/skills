@@ -672,6 +672,22 @@ Push (or merge), tag, and create the GitHub release. Run unattended unless somet
    brew services restart <project>
    ```
 
+   **When the daemon IS the product's interface, this restart is mandatory and the verify step below cannot catch skipping it.** `brew upgrade` replaces the binary on disk; the running process keeps executing the old image until it is restarted. So for an MCP server, a scheduler, or anything else consumers reach through a socket rather than by spawning it, omitting the restart leaves every consumer on the previous version while `<project> --version` — which runs the *new* CLI binary — happily reports the new one. The release then reports success against a signal that never looked at the thing consumers actually talk to.
+
+   Restart it, then verify the **running process**, not just the binary:
+
+   ```bash
+   supervisorctl restart <project>        # or the project's documented supervisor
+   # confirm the daemon came back on the new image, not just that something is up:
+   ps -o command= -p "$(supervisorctl status <project> | awk '{print $4}' | tr -d ,)"
+   ```
+
+   Two failure shapes this catches that a version check does not: the supervisor
+   restarted but the unit still points at a stale path (a tree build, an old
+   Cellar path), and the daemon died on restart so nothing is listening at all.
+   If the project exposes a port, `lsof -iTCP:<port> -sTCP:LISTEN` is the cheapest
+   confirmation that it is genuinely serving again.
+
    **Verify the install**: Run `<project> --version` (or the equivalent) and confirm the output matches the released version. If it doesn't match, **inspect `"$log"` first** — the full upgrade output is there, including any "Failed to fix install linkage" warnings, missing-symlink hints, or Cellar-vs-bin-symlink mismatches. Then **fail loud**: print the expected version, the observed version, `which <project>`, and the relevant lines from `"$log"`. Common causes:
 
    - **Cellar populated but `bin/<project>` missing**: a formula-name collision with a published Homebrew cask shadows the symlink-creation step. `brew link --overwrite <tap-owner>/tap/<project>` resolves it; report the formula's name as a candidate for renaming if this recurs.
