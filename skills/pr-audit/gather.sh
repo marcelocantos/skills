@@ -31,8 +31,15 @@ while IFS= read -r url; do
     # url form: https://github.com/<owner>/<repo>/pull/<n>
     repo=$(echo "$url" | sed -E 's#https://github.com/([^/]+/[^/]+)/pull/.*#\1#')
     num=$(echo "$url" | sed -E 's#.*/pull/([0-9]+).*#\1#')
-    gh pr view "$num" --repo "$repo" --json url,files,mergeable,mergeStateStatus,headRefName,baseRefName,statusCheckRollup,reviewDecision,labels 2>/dev/null \
-        | jq -c '{url, files: [.files[].path], mergeable, mergeStateStatus, headRefName, baseRefName, checks: [.statusCheckRollup[]? | {name, conclusion, status}], reviewDecision, labels: [.labels[].name]}' \
+    # statusCheckRollup mixes two GraphQL shapes. A CheckRun (GitHub
+    # Actions) carries name/conclusion/status; a StatusContext (legacy
+    # commit status, e.g. deploy/netlify, Codecov, Travis) carries
+    # context/state and has no status field. Reading only the CheckRun
+    # keys emitted {name: null, conclusion: null} for every legacy
+    # status, which made a red StatusContext invisible to the merge-now
+    # and fix-ci rules in SKILL.md. Normalise both onto name/conclusion.
+    gh pr view "$num" --repo "$repo" --json url,files,mergeable,mergeStateStatus,headRefName,baseRefName,statusCheckRollup,reviewDecision,labels,commits 2>/dev/null \
+        | jq -c '{url, files: [.files[].path], mergeable, mergeStateStatus, headRefName, baseRefName, checks: [.statusCheckRollup[]? | {name: (.name // .context), conclusion: (.conclusion // .state), status: (.status // "COMPLETED"), kind: .__typename}], reviewDecision, labels: [.labels[].name], commits: [.commits[]? | {oid: .oid, message: (.messageHeadline // "")}]}' \
         || echo "{\"url\":\"$url\",\"error\":\"view-failed\"}"
 done
 
