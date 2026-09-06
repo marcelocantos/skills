@@ -114,6 +114,16 @@ mechanical rather than prose):
    floor (a capability regressed, or a gap was parked too low), the check
    fails. That is the drift detector.
 
+## Tests
+
+`make test` in the skill directory (`~/.claude/skills/hygiene`) runs the
+unit suite under `tests/`: every evidence kind against real temp repos, a
+fake `gh` on PATH for `gh_setting` (including the "one API call per repo,
+not per item" property), held tiers and the floor ratchet, drift in both
+directions, and the aggregator over a three-repo fixture fleet. Change
+evidence resolution or tier logic and run it — a drift detector that
+silently changes its verdicts is worse than none.
+
 ## Notes
 
 - The validator is repo-agnostic (`check_repo(root)`), which is how the
