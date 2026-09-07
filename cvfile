@@ -4,7 +4,8 @@ skills_src = $[shell echo ~/.claude/skills]
     @echo "Syncing skills from $skills_src..."
     mkdir -p skills
     rsync -a --exclude='.*' --delete $skills_src/ skills/
-    @echo "Copying CLAUDE.md and convergence.md..."
+    @echo "Copying AGENTS.md, CLAUDE.md and convergence.md..."
+    cp ~/.claude/AGENTS.md AGENTS.md
     cp ~/.claude/CLAUDE.md CLAUDE.md
     cp ~/.claude/convergence.md convergence.md
     @echo "Updating README.md..."
@@ -26,7 +27,8 @@ skills_src = $[shell echo ~/.claude/skills]
         '',
         'Claude Code skills for use with `~/.claude/skills/`.',
         '',
-        'Also includes my global [`CLAUDE.md`](CLAUDE.md) directives'
+        'Also includes my shared [`AGENTS.md`](AGENTS.md) directives, the'
+        ' Claude Code adapter [`CLAUDE.md`](CLAUDE.md) that imports them,'
         ' and the [`convergence.md`](convergence.md) reference.',
         '',
         '## Available Skills',
@@ -38,6 +40,10 @@ skills_src = $[shell echo ~/.claude/skills]
     with open('README.md', 'w') as f:
         f.write('\n'.join(lines))
     PYEOF
+    ./check-publish.sh
+    diff -q AGENTS.md ~/.claude/AGENTS.md
+    diff -q CLAUDE.md ~/.claude/CLAUDE.md
+    diff -q convergence.md ~/.claude/convergence.md
     git add -A
     if git diff --cached --quiet; then
         echo "No changes to publish."

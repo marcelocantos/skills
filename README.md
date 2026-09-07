@@ -2,7 +2,7 @@
 
 Claude Code skills for use with `~/.claude/skills/`.
 
-Also includes my global [`CLAUDE.md`](CLAUDE.md) directives and the [`convergence.md`](convergence.md) reference.
+Also includes my shared [`AGENTS.md`](AGENTS.md) directives, the Claude Code adapter [`CLAUDE.md`](CLAUDE.md) that imports them, and the [`convergence.md`](convergence.md) reference.
 
 ## Available Skills
 
