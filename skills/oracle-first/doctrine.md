@@ -423,7 +423,11 @@ together and wired into CI or hooks — not adopted piecemeal:
 
 Ratchet strength is measured like any oracle's (convergence-loop move
 4): plant a golden-echo and an unclaimed baseline improvement in a
-sandbox; the ratchet must catch both.
+sandbox; the ratchet must catch both. Operational form — the taxonomy
+as a table, an adoption checklist, a stdlib skeleton
+(`ratchet/ratchet.py`) with tagged findings, and the reference drill —
+lives in
+[`honesty-ratchet.md`](~/.claude/skills/oracle-first/honesty-ratchet.md).
 
 **Evidence, not machinery, is progress — and an oracle is a loop, not
 an artifact.** A verification asset counts for zero until it has run

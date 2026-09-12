@@ -19,11 +19,19 @@ Usage: hygiene_portfolio.py [--json] [--root DIR]   (default root: ~/work)
 """
 
 import json
+import os
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from hygiene_check import DIM_ORDER, check_repo  # noqa: E402
+
+# Repo checks are I/O bound (gh api, git, declared commands), so oversubscribe
+# the CPU count. Capped so a large fleet cannot hand GitHub a burst big enough
+# to trip secondary rate limits.
+MAX_FLEET_WORKERS = 16
+FLEET_WORKERS = min(MAX_FLEET_WORKERS, (os.cpu_count() or 1) * 2)
 
 ABBREV = {  # 4-char column headers for the matrix
     "correctness": "corr", "security": "secu", "quality": "qual",
@@ -48,14 +56,21 @@ def main() -> int:
         root = Path(argv[argv.index("--root") + 1]).expanduser().resolve()
 
     repos = discover(root)
-    reports = []
-    for repo_root in repos:
+
+    # A repo check is almost entirely waiting: `gh api`, `git`, and declared
+    # `command:` evidence. Serially the fleet took minutes; the work is I/O
+    # bound, so run repos on a thread pool and keep discovery order.
+    def one(repo_root: Path) -> dict:
         try:
-            reports.append(check_repo(repo_root))
+            return check_repo(repo_root)
         except Exception as e:  # one bad repo must not sink the fleet view
-            reports.append({"repo": repo_root.name, "error": str(e), "dims": {},
-                            "aspires": 0, "passed": False, "results": [],
-                            "floor_violations": []})
+            return {"repo": repo_root.name, "error": str(e), "dims": {},
+                    "aspires": 0, "passed": False, "results": [],
+                    "floor_violations": []}
+
+    workers = min(FLEET_WORKERS, max(len(repos), 1))
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        reports = list(pool.map(one, repos))
 
     if as_json:
         print(json.dumps({"root": str(root), "repos": reports}, indent=2))

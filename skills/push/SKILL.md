@@ -53,22 +53,46 @@ as the command.
 ### 1a. Check for `pr-workflow: skip`
 
 Read the project's `## Gates` section from `AGENTS.md` or `CLAUDE.md` (per the merge
-rules in step 7). If the resolved gates contain
-`pr-workflow: skip` (typically declared as
-`override: [pr-workflow: skip]`), the project has opted out of the PR
-ceremony entirely. In that case:
+rules in step 7). **That block is the only declaration site** — there is no
+separate config file for shipping posture, and `/release` reads the same key.
+If the resolved gates contain `pr-workflow: skip` (declared as
+`override: [pr-workflow: skip]`), the project ships owner work to the default
+branch behind a **local gate** instead of a PR.
 
-- If on the default branch with commits ahead of the remote, run
-  `git push --recurse-submodules=on-demand` and stop. No feature
-  branch, no PR, no merge step.
-- If on the default branch with **no** commits ahead, stop — nothing to
-  push.
-- If on a non-default branch, fall through to the normal flow (the
-  override is about *not requiring* a PR for default-branch work; it
-  doesn't preclude PRs when the user has explicitly created a feature
-  branch).
+**Owner work only.** Inbound work from an external contributor keeps the full
+PR path in every repo, declaration or not. If the commits being pushed are not
+the owner's, or the user is handling someone else's branch or PR, fall through
+to step 2.
 
-Skip steps 2–9 in the direct-push case.
+In the direct-push case:
+
+1. **Run the repo's local gate.** Preference order: `make gate`, `cv gate`,
+   else the exact suite the repo's pre-push hook runs, else the test command
+   the repo's `AGENTS.md` names. Require exit 0 and report the gate's headline
+   line as the evidence. If it is red, **stop** — do not push, do not
+   `--no-verify`.
+
+   The pre-push hook (`core.hooksPath=scripts/hooks`) runs the same target
+   again. That duplication is deliberate belt-and-braces, not a reason to skip
+   this run: a fresh clone may not have run `make hooks`, and a red gate caught
+   here costs one command instead of a refused push mid-flow.
+2. **Get the owner's go-ahead.** A direct push to the default branch is a
+   Ship-plane action and the merge-equivalent moment of this skill — it is what
+   step 8 would have confirmed. Present the branch, the commits about to land,
+   and the gate result, then **wait for explicit approval**
+   (`~/.claude/gates.md`, manual gates). Entering `/push` is not that approval.
+3. If on the default branch with commits ahead of the remote, run
+   `git push --recurse-submodules=on-demand` and stop. No feature
+   branch, no PR, no merge step.
+4. If on the default branch with **no** commits ahead, stop — nothing to
+   push.
+5. If on a non-default branch, fall through to the normal flow (the
+   override is about *not requiring* a PR for default-branch work; it
+   doesn't preclude PRs when the user has explicitly created a feature
+   branch).
+
+Skip steps 2–9 in the direct-push case. Pending docs (step 9) need no separate
+cycle here — commit them on the default branch and they land in the same push.
 
 ### 2. Ensure a feature branch
 
@@ -210,8 +234,11 @@ main feature PR or requiring a separate manual cycle.
 
 - Never force-push unless the user explicitly requests it.
 - Never push directly to the default branch unless the project's gates
-  declare `pr-workflow: skip` (see step 1a). Repos with no CI and
-  narrative-only / docs-only content typically opt out this way.
+  declare `pr-workflow: skip` (see step 1a). Two kinds of repo opt out
+  this way: repos with no CI and narrative-only / docs-only content, and
+  owner-solo repos whose correctness oracle is a local `make gate` run by
+  a pre-push hook (claudia — `docs/gate.md`). Even then the push is gated
+  and confirmed, never unconditional.
 - All repos use squash-only merges. The PR title becomes the sole commit message
   on the default branch.
 - If `gh` is not installed or not authenticated, tell the user and stop.

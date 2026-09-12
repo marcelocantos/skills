@@ -282,8 +282,10 @@ term — the fix differs per term:
     adjacent provenance; (e) out-of-corpus perturbation — holdout
     inputs checked against a freshly generated reference. Drill it like
     any oracle: plant a golden-echo and an unclaimed baseline
-    improvement; it must catch both. Full taxonomy: doctrine §4
-    "Second-order failures".
+    improvement; it must catch both. Operational form — taxonomy,
+    checklist, skeleton (`ratchet/ratchet.py`), drill protocol:
+    [`honesty-ratchet.md`](~/.claude/skills/oracle-first/honesty-ratchet.md).
+    Full taxonomy: doctrine §4 "Second-order failures".
 15. **Evidence, not machinery, is progress — an oracle is a loop, not
     an artifact.** A verification asset counts for zero until it has
     run green against the product on fresh inputs; verification
@@ -297,6 +299,26 @@ term — the fix differs per term:
     gets extracted into this skill/doctrine immediately; repo-local
     hardening is itself a defect — the same medicine has been invented
     independently twice in one week.
+17. **Don't blame the system under test for your own instrument.**
+    Before attributing a failure to the thing you are checking,
+    reproduce it by a second route that does not *share your
+    instrument* — a pipeline, a working directory, a build cache, a
+    serialization layer, a summarised excerpt. Re-running the same
+    command in the same shell is not a second route. This is not a
+    Goodhart mode and the ratchet does not catch it: the number is
+    fine and the *reading* is wrong. It is generated only by agents
+    who are actively verifying, which is what makes it insidious — and
+    a false red about someone else's tool is more durable than a false
+    green, because nobody re-runs a check that already "found"
+    something. Read the error text first: a message about your input
+    is not a message about its behaviour. Higher bar for a defect in
+    another agent's work than in your own, since that report becomes
+    their premise. Mirror case, same discipline: a *stale* instrument
+    (cached build, committed binary older than its source, fixture
+    locked before a schema change) is a real defect — rebuild from
+    source rather than trusting the artifact. Worked examples and the
+    route table:
+    [`instrument-error.md`](~/.claude/skills/oracle-first/instrument-error.md).
 
 ## When analysing a codebase or planning
 

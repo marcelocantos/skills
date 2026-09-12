@@ -19,6 +19,7 @@ End-to-end skill for cutting a release of an existing project. Covers discovery,
 - **Pre-1.0 → 1.0 shakeout**: A 1.0 release locks in a backwards-compatibility contract — after 1.0, breaking changes require forking the project (e.g., `foo` → `foo2`, see Phase B.3) rather than a major bump. Before cutting 1.0, the public API must have accumulated **at least 1 month** with no backwards-incompatible changes since the last breaking release. Historical SemVer practice was to scale shakeout by surface size (3+ months for >50 items); in the LLM-coding era, real-world API exercise compresses sharply, so a flat 1-month minimum suffices regardless of surface size. If a breaking change is judged necessary mid-shakeout, the clock **resets** from the new breaking release's tag date. See B.3a for the gate.
 - **Tag ownership**: The release tag is created **once** by `gh release create` locally. CI workflows must **never** create tags or releases — they only build artifacts and upload them to the existing release.
 - **Shipping path (HARD — default is gated push, not a PR)**: Read `# shipping_path` from `discover.sh`. **`gated-push` is the norm** — commit release prep on the default branch, run the local gate, `git push origin <default>`, then `gh release create`. Do **not** open a release-prep PR, do **not** wait on GHA *test* jobs, do **not** run `merge.sh`. **`pr-fallback` is the exception** — Health-Management-Systems, minicadesmobile, arr-ai, third-party forks, and any `*/homebrew-tap` repo (plus an explicit `release_shipping: pr` in AGENTS.md / CLAUDE.md). Only on `pr-fallback` does this skill use a feature branch, PR, `gh pr checks`, and `merge.sh`. Inbound contributor PRs on public include-set repos stay possible; this skill never treats an inbound PR as the owner release path.
+- **Declaring the posture (same key as `/push`)**: a repo states it ships owner work to the default branch by putting `- pr-workflow: skip` under `override:` in its `## Gates` section (`AGENTS.md`, else `CLAUDE.md`). That block is the only declaration site for shipping posture — do not invent a new file or key. `discover.sh` folds it into `# shipping_path`; precedence is `release_shipping:` (explicit, wins) → `pr-workflow: skip` → the owner/exclude-set heuristic, except that a fork or a `*/homebrew-tap` repo stays `pr-fallback` regardless (the owner does not own the upstream). For most owner repos the declaration and the heuristic agree — the declaration is what makes it *stated* rather than inferred, and it is what a shared-org repo (arr-ai, …) needs in order to ship this way at all.
 
 ## Parallelization
 
@@ -70,6 +71,37 @@ The detailed substeps below are sequenced under these three phases. Where the pr
 The `release_freeze:` directive is a single line of the form `release_freeze: "<reason>"` in AGENTS.md or CLAUDE.md (mirrors `homebrew_tap: disabled`). Projects in port/rewrite/migration phases use it to make the freeze explicit and machine-checkable.
 
 If `# release_freeze` is `(none)`, proceed to the rest of Phase A below.
+
+#### A.0a: Store products — version in flight (kill switch for the bump)
+
+**Applies when the project's `## Gates` profile is `game`, or the repo has a
+`docs/releases.yaml` store ledger.** These products ship through App Store /
+Play processes that outlast a session, and everyone tracks that work by the
+version number. Before any other Phase A work:
+
+```
+make release-inflight
+```
+
+- **Fails / prints `IN FLIGHT`** (a platform row for the current version is
+  not `live` on its production track and not `halted` / `rejected`; `live`
+  on `internal` / `testflight` is *not* done): **the release is another
+  build of that version.** Skip B.4's version selection entirely; do not run
+  `make bump-version`; do not invent a "next" number. The cut is the
+  project's hotfix path — `make release` (or the platform target) — which
+  bumps only the build number / versionCode, logs the ledger, and records the
+  TestFlight build on GitHub itself. Say in the Phase B report that the
+  version was held because it is in flight.
+- **Prints "not in flight"**: a new version is legitimate; `make bump-version`
+  is the only way to choose it (MINOR bump, Hard rule #6 still applies).
+- `ALLOW_VERSION_BUMP=1` exists for the owner to type in their own words. The
+  skill never sets it, and "the user asked for a release" is not that.
+
+Why this is a hard stop: on 2026-09-12 "let's go for a release" on
+stock-car-racing was executed as `bump-version` → 3.26 while 3.25 was still
+on TestFlight / Play internal and every Slack ticket was numbered 3.25.
+Unwinding it cost a rebuild, a stray TestFlight build that the API key could
+not expire, a deleted tag, and ledger surgery.
 
 #### A.1: Clarification
 
@@ -190,14 +222,14 @@ This script gathers all Phase 1 data **and** the inputs Phases 2 and 3 need (lat
 
    **Quick start for agent-installed tools**: If the project is an MCP server or agent tool, the README should include a "Quick start" section with a copy-pasteable prompt that users can give their agent (e.g., *"Install X from &lt;repo URL&gt; — brew install, start the service, register it as an MCP server, and restart the session. Follow the agents-guide.md in the repo."*). This is distinct from the agents-guide (which the agent reads) — it's for the human who wants to say "install this" without spelling out every step. A fenced code block is ideal since GitHub renders a copy button on them. Flag if missing.
 
-   **Own licence file (blocker)**: Verify the project ships its *own* top-level licence text — a `LICENSE`, `LICENCE`, `COPYING`, or equivalent file in the repo root. This is distinct from a mere README mention and from item 10 (third-party attribution): a declared licence with no actual licence text is a real gap, and the individual signals each look green without it (SPDX field set in `Cargo.toml`/`package.json`/`pyproject.toml`/etc., README says "Apache 2.0", a NOTICES file exists for dependencies). Specifically:
+   **Own licence file (blocker)**: Verify the project ships its *own* top-level licence text — a `LICENSE`, `LICENCE`, `COPYING`, or equivalent file in the repo root. This is distinct from a mere README mention and from item 10 (third-party attribution): a declared licence with no actual licence text is a real gap, and the individual signals each look green without it (SPDX field set in `Cargo.toml`/`package.json`/`pyproject.toml`/etc., README says "Apache 2.0", a `NOTICE` file exists for dependencies). Specifically:
    - Confirm the file exists. A declared SPDX licence with **no** root licence file is a blocker — add the canonical text before tagging.
    - Confirm the detected licence type matches the declared SPDX field (e.g. don't ship a `license = "Apache-2.0"` manifest alongside an MIT `LICENSE`).
    - Confirm any README link to the licence resolves — `[LICENSE](LICENSE)` pointing at a non-existent file is a dead link and a tell that the file was never added.
 
 10. **Third-party licence attribution & compatibility**: Scan the project for vendored or bundled third-party code — check `vendor/`, `third_party/`, `extern/`, or similar directories, and any headers/sources copied into the project. For each dependency found:
    - Identify its licence (MIT, BSD, Apache 2.0, etc.)
-   - Check whether the project includes proper attribution (a NOTICES, THIRD_PARTY, or equivalent file listing each dependency with its licence text or a reference to it)
+   - Check whether the project includes proper attribution — a root `NOTICE` file listing each dependency with its licence text or a reference to it. `NOTICE` (bare, singular, no extension) is the canonical filename: the form Apache-2.0 §4(d) names, and the fleet convention. `discover.sh` reports any other spelling (`NOTICES`, `NOTICES.md`, `THIRD_PARTY_NOTICES.md`, …) as a `drift:` line — resolve it with `git mv <old> NOTICE` plus a sweep of every reference (README, docs, `Makefile`, packaging lists, `hygiene.yaml` evidence pointers, CI path filters) before tagging.
    - Flag any missing attributions. These must be resolved before release — distributing code without required attribution is a licence violation.
    - **Licence compatibility (blocker)**: Flag any bundled component whose licence is incompatible with the project's own licence — most importantly copyleft (GPL/AGPL/LGPL) content vendored into a permissively-licensed (MIT/Apache/BSD) distribution. A single GPL file shipped in an Apache-2.0 binary taints the whole distribution. Also treat **unlicensed files copied from a copyleft-licensed upstream as copyleft by default** (a file with no licence header, taken from a GPL project, inherits that project's GPL). These must be removed or relicensed before release.
 
@@ -396,6 +428,8 @@ B.5 (release notes), B.6 (release.yml creation), and B.7 (local gate / tests) **
    4. Else the project's documented test command.
 
    On **gated-push**, this local run *is* the blocking correctness gate — do not also wait for GHA test jobs. On **pr-fallback**, still run it locally; PR CI is an additional check after push.
+
+   The repo's pre-push hook runs the same target again when Phase C pushes. That duplication is deliberate belt-and-braces — never skip this run on the grounds that the hook will repeat it. A fresh clone may not have run `make hooks`, and a red gate caught here costs one command instead of a refused push mid-release.
 2. In the foreground, draft release notes (B.5) and write the workflow file (B.6, if needed).
 3. When the gate-run notification arrives, fold its result into B.7.
 4. Only after all three substeps are settled do you commit the bundled release-prep changes.
@@ -489,6 +523,26 @@ If skipped because the builder is local: still confirm `tapper.yaml` is present 
    - **Version detection from arch-specific URLs.** Without an explicit `version` input, homebrew-releaser auto-detects the version from download URLs. Platform-specific URLs like `foo-1.0.0-darwin-arm64.tar.gz` can confuse the parser — it may extract "64" from "arm64" instead of "1.0.0". Always set `version: ${{ github.event.release.tag_name }}` to override auto-detection.
    - **Stale `HOMEBREW_TAP_TOKEN` → opaque `401 Unauthorized`.** homebrew-releaser's first GitHub API call (`GET /repos/<owner>/<repo>`) fails with `requests.exceptions.HTTPError: 401` when the stored repo secret's PAT no longer matches the live one — even though `homebrew_tap_token_secret: set`. The binaries upload before this job, so the release is intact; only the tap formula is unpushed. This is the **intended** time to touch 1Password: refresh with the guarded `op read` → `gh secret set` form from B.1 step 5, then `gh run rerun <run-id> --failed`, then re-watch. Do not try to prevent this with pre-tag refreshes.
 
+   **Lint the formula before you release it — `check-formula.py`.** The tap's formulae are generated and carry a `DO NOT EDIT` banner, so an offence discovered after the release cannot be fixed where it appears; it has to be fixed in the project fragment and carried by the *next* release. Run this first:
+
+   ```
+   python3 ~/.claude/skills/release/check-formula.py <project-dir> [--online]
+   ```
+
+   It renders the formula exactly as homebrew-releaser will — from `tapper.yaml` or the `homebrew-releaser` step in `release.yml` — then runs `ruby -c` and `brew style` on the result. `--online` additionally checks the GitHub repo's description and licence, which the generator reads and no project file contains. `--emit` prints the render. Its own oracle is `test-check-formula.sh`, which re-renders real projects and requires a byte-for-byte match against the formulae already in the tap; run that after touching either script.
+
+   **The lint is mandatory on any release whose diff touches `formula_includes`, `install`, `test`, `depends_on`, or a `service` block — and on the first release that introduces one.** That is when a defect *enters* the formula, and it is the only moment at which it can be fixed before users get it. Running the lint on later releases still helps, but by then the offence has already shipped at least once. A `service` block is the highest-risk case and the easiest to skip, because it is written once, works, and is never looked at again: mnemo carried personal directories ahead of `/usr/bin` on its daemon's PATH — and `ENV["HOME"]` baked in at formula-load time — through every release from the one that added the block until a lint run finally read it. Nothing in the release flow reads the generated formula otherwise; `brew install` succeeding says nothing about what the service is running with.
+
+   What it catches, and where the fix goes:
+
+   - **Service PATH.** Use `std_service_path_env`, Homebrew's name for `#{HOMEBREW_PREFIX}/bin:#{HOMEBREW_PREFIX}/sbin:/usr/bin:/bin:/usr/sbin:/sbin`. Never write `/opt/homebrew` (wrong on Intel and Linuxbrew) and never interpolate `ENV["HOME"]` — that is the home of whoever ran the install, resolved when the formula loads rather than when launchd starts the daemon. Personal directories such as `~/.cargo/bin` or `~/.py/bin` ahead of `/usr/bin` mean anything planted there wins for a background service; if the daemon needs a tool, declare a `depends_on`. When the daemon needs a tool Homebrew does not package — an agent CLI such as `claude`, say — a `depends_on` is not available, so put `std_service_path_env` first and append the per-user directory behind it. The hazard is precedence, not presence: fixing it by deleting the entry silently breaks whatever spawns that tool, which no formula lint and no `brew install` will notice. Drop an entry only when you can name what it was for and confirm nothing needs it.
+   - **Only one `on_macos` block.** The generator emits its own for the bottles, so a second one in `formula_includes` makes Homebrew reject the formula outright. Express a platform-only dependency as `depends_on "x" if OS.mac?`.
+   - **`depends_on` order** must be alphabetical, and **heredoc bodies** must be indented uniformly — `<<~` strips the *common* leading whitespace, so one flush-left line leaves every other line over-indented in what the user reads.
+   - **Description** comes from the GitHub repo, not from any file. Keep it under ~80 characters and phrase it the way `brew style` wants (`command-line`, not `command line`); fix it with `gh repo edit --description`.
+   - **Licence** also comes from the repo. GitHub detects it from a root `LICENSE` file, and the formula's `license` field is filled at generation time — so adding `LICENSE` today fixes the formula on the **next** release, not retroactively. A formula with no `license` line means the repo had no detected licence when it was last released.
+
+   **One class of offence is not yours to fix.** homebrew-releaser injects `formula_includes` above `desc`, so every formula that uses includes fails `FormulaAudit/ComponentsOrder: desc should be put before …`. The fix belongs upstream in Justintime50/homebrew-releaser. `check-formula.py` reports these as notes and does not fail on them; do not try to work around it in the project, and do not hand-edit the tap.
+
 3. **Homebrew service definition** (conditional — persistent servers only): If the project is a long-running server (detected by: listening on a port, `--addr` flag, `serve` subcommand, MCP server), the Homebrew formula needs a service definition so `brew services start <project>` works. There are two approaches:
 
    - **`formula_includes`** in homebrew-releaser: Add a `formula_includes` field with a Ruby `service` block that configures launchd (macOS) and systemd (Linux). Example:
@@ -566,7 +620,7 @@ Push (or merge), tag, and create the GitHub release. Run unattended unless somet
 - Further commits can land on master before the tag; when authorised, re-enter at the tag step against current HEAD.
 
 1. **Land on the default branch:**
-   - **gated-push:** Ensure HEAD is the default branch with release-prep commits. `git push origin <default>` (hooks must run — never `--no-verify`). If push is refused by the hook, fix and retry; do not bypass.
+   - **gated-push:** Ensure HEAD is the default branch with release-prep commits. `git push origin <default>` (hooks must run — never `--no-verify`). If push is refused by the hook, fix and retry; do not bypass. This push is a Ship-plane action: the owner's `/release` invocation is its authorisation (see "Push ≠ tag"), and Phase B's local gate must have been green. If the run was interrupted, amended, or resumed from a held state, re-confirm with the owner before pushing — `~/.claude/gates.md`.
    - **pr-fallback only:** Squash-merge via `~/.claude/skills/push/merge.sh <pr-number> master <feature-branch>`. Bypassed-check / post-merge CI reporting from the old PR flow applies only here — and only as post-hoc signal, not as the owner gate.
 
    In the held-release case, stop after this step and report plainly; pick up at step 5 when authorisation arrives.

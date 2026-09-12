@@ -163,6 +163,20 @@ act on it mechanically:
 - **Anything else** — unrecognised shape. Present to the user and
   ask for direction.
 
+### V boundary (applies to every Execute-now path)
+
+Finishing the work is not achieving the target. Before any
+`bullseye_commit(op=achieve)` / `bullseye_retire` for a target worked
+in this session, run `/vcheck <id> --claim "<the attestation you are
+about to write>"` and achieve only on PASS, with the checker's oracle
+line appended to the attestation. A BLOCK means the oracle has not
+adjudicated the claim: follow the verdict's "To pass" line (run the
+named oracle, or split the glance-gated clauses into a downstream
+sub-target), then re-check. Never achieve past a BLOCK without the
+user naming the gate they are skipping (`gates.md`, "User override").
+Fan-out workers do not achieve; the parent runs `/vcheck` per target
+during assembly (`fan-out.md`).
+
 ### PR boundary (applies to every Execute-now path)
 
 **One PR per objective — this is hard rule #1 in AGENTS.md / CLAUDE.md.** Working
@@ -186,9 +200,12 @@ and follow the new recommendation.
 **Fix 1: retire targets that describe themselves as already
 achieved.** Scan the active targets in the convergence output. For
 each target whose `name` ends in `✓` or whose `context` opens with
-"Achieved YYYY-MM-DD", call `bullseye_retire(cwd, id)` immediately.
-There is zero value in asking the user to confirm — the target's own
-documentation says it's done.
+"Achieved YYYY-MM-DD", run `/vcheck <id>` (the context line is the
+executor's say-so, not evidence) and call `bullseye_retire(cwd, id,
+attestation)` on PASS, carrying the checker's oracle line in the
+attestation. On BLOCK leave the target active and include the verdict
+in the report. Don't ask the user to confirm either way — the checker
+is the confirmation.
 
 **Fix 2: resolve tunnel warnings by promoting leaves to checkpoints.**
 If the convergence output reports `## ⚠ Tunnel warnings`, each named

@@ -118,12 +118,26 @@ fi
 # exception: shared orgs, forks, and the Homebrew tap (action-written).
 # Override: AGENTS.md / CLAUDE.md `release_shipping: pr` forces pr-fallback;
 # `release_shipping: gated-push` forces gated-push.
+#
+# Below that, the repo's `## Gates` block may declare the posture with the
+# same key `/push` reads in its step 1a: `- pr-workflow: skip` under
+# `override:`. It is the only declaration site for shipping posture; it
+# ranks under an explicit `release_shipping:` and over the owner/exclude-set
+# heuristic. A fork or a `*/homebrew-tap` repo stays pr-fallback regardless,
+# because the owner does not own the upstream.
 echo "# shipping_path"
 _ship_override=""
+_gates_pr_skip=""
 for _f in AGENTS.md CLAUDE.md; do
     if [[ -f "$_f" ]]; then
         _ship_override=$(sed -nE 's/^[[:space:]]*release_shipping:[[:space:]]*"?([a-z-]+)"?.*/\1/p' "$_f" | head -1)
         [[ -n "$_ship_override" ]] && break
+    fi
+done
+for _f in AGENTS.md CLAUDE.md; do
+    if [[ -f "$_f" ]] && grep -qE '^[[:space:]]*-?[[:space:]]*pr-workflow:[[:space:]]*"?skip"?[[:space:]]*$' "$_f"; then
+        _gates_pr_skip=yes
+        break
     fi
 done
 if [[ "$_ship_override" == "pr" || "$_ship_override" == "pr-fallback" ]]; then
@@ -135,7 +149,12 @@ else
     _owner="${_repo%%/*}"
     case "$_owner" in
         Health-Management-Systems|minicadesmobile|arr-ai)
-            echo "pr-fallback"
+            # Shared org: PR by default, unless the repo declares otherwise.
+            if [[ -n "$_gates_pr_skip" ]]; then
+                echo "gated-push"
+            else
+                echo "pr-fallback"
+            fi
             ;;
         *)
             if [[ "$_repo" == */homebrew-tap ]]; then
@@ -153,7 +172,7 @@ else
             ;;
     esac
 fi
-unset _ship_override _repo _owner _fork _f
+unset _ship_override _gates_pr_skip _repo _owner _fork _f
 
 # ---------------------------------------------------------------------------
 # 1b. Release ref — the branch the release is cut FROM
@@ -679,18 +698,45 @@ fi
 # ---------------------------------------------------------------------------
 # 13. Notices file
 # ---------------------------------------------------------------------------
+# The canonical name is a bare singular NOTICE at the repo root — the form
+# Apache-2.0 section 4(d) names, and the fleet convention (~/think 🎯T2).
+# Every other spelling is drift and is reported as a named finding rather
+# than silently accepted, so the convention cannot rot back.
 echo "# notices_file"
-found_notices=false
-for f in NOTICES NOTICES.md NOTICE NOTICE.md THIRD_PARTY THIRD_PARTY.md THIRD-PARTY-NOTICES THIRD-PARTY-NOTICES.md ATTRIBUTION ATTRIBUTION.md; do
-    if [[ -f "$f" ]]; then
-        echo "exists: $f"
-        found_notices=true
-        break
-    fi
-done
-if [[ "$found_notices" == false ]]; then
+if [[ -f NOTICE ]]; then
+    echo "exists: NOTICE"
+else
     echo "missing"
 fi
+# A fixed list of spellings only catches the variants someone thought of;
+# NOTICE.rst and THIRD-PARTY-LICENSES.md slipped through the old one. Scan
+# every root file instead and flag anything attribution-shaped that is not
+# the bare canonical name. Matching is case-insensitive (nocasematch is
+# saved and restored so the rest of the script is unaffected), and the
+# comparison against the canonical name is case-SENSITIVE, so `notice` on a
+# case-insensitive macOS volume is still reported as drift.
+# `shopt -p` exits non-zero when the option is unset, so capture it with a
+# guard: under `set -e` a bare assignment from it would abort the script.
+_nocase_was_set=$(shopt -p nocasematch || true)
+shopt -s nocasematch
+for f in *; do
+    if [[ ! -f "$f" ]]; then
+        continue
+    fi
+    # `[` `=` is a literal comparison, so nocasematch does not relax it.
+    # Written as a full `if` because `test && continue` yields a non-zero
+    # status on the common path, which `set -e` would treat as a failure.
+    if [ "$f" = "NOTICE" ]; then
+        continue
+    fi
+    case "$f" in
+        *NOTICE*|*ATTRIBUTION*|*THIRD?PARTY*|*THIRDPARTY*)
+            echo "drift: $f is a non-canonical attribution filename; rename to NOTICE (git mv) and update every reference"
+            ;;
+    esac
+done
+eval "$_nocase_was_set"
+unset _nocase_was_set f
 
 # ---------------------------------------------------------------------------
 # 13b. Project's own root licence file + declared SPDX (for the own-licence gate)

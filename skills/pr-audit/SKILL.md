@@ -21,8 +21,18 @@ sections:
   `url`.
 - `# pr-details` — one JSON object per PR (newline-delimited): `url`,
   `files` (file list — used to detect target-only PRs), `mergeable`,
-  `mergeStateStatus`, `headRefName`, `baseRefName`, `statusCheckRollup`,
+  `mergeStateStatus`, `headRefName`, `baseRefName`, `checks`,
   `reviewDecision`, `labels`, `commits`.
+
+  `checks` is a normalised array, **not** the raw `statusCheckRollup`
+  field — read `.checks`, not `.statusCheckRollup`, or you will get
+  `null` for every PR. Each entry is `{name, conclusion, status, kind}`,
+  with `kind` being `CheckRun` (GitHub Actions) or `StatusContext`
+  (legacy commit status such as `deploy/netlify`). Both shapes are
+  normalised onto `name`/`conclusion`, so classify on those two and
+  ignore `kind` unless you need the provenance. An empty array means
+  the PR has no checks configured, which is different from a check
+  that failed.
 - `# recently-merged` — JSON array: PRs merged in the last 30 days.
   Used to detect superseded target-only PRs.
 

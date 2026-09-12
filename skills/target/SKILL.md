@@ -71,9 +71,12 @@ Call `bullseye_get(cwd, id)` to get the target. Then:
 
 ### `/target retire <name>` — Mark achieved
 
-Find the target by name or ID. Call `bullseye_retire(cwd, id)`.
-Ask the user how the cost estimate compared to reality and pass
-`actual_cost` for calibration.
+Find the target by name or ID. Draft the attestation (SHA, the oracle
+command and its outcome, residue), then run `/vcheck <id> --claim
+"<attestation>"`. On PASS call `bullseye_retire(cwd, id, attestation)`
+with the checker's oracle line appended. On BLOCK do not retire; relay
+the verdict and its "To pass" line. Ask the user how the cost estimate
+compared to reality and pass `actual_cost` for calibration.
 
 ## Target numbering
 

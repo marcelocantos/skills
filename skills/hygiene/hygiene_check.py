@@ -33,7 +33,8 @@ import json
 import re
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import Path
 
 import yaml
@@ -53,6 +54,60 @@ class Ctx:
     root: Path
     workflows: dict      # filename -> parsed workflow yaml
     owner_repo: str | None  # "owner/name" for gh api, or None
+    # Serialised workflows, for `scanner:` "is the tool invoked anywhere in CI?".
+    # Dumping is not free and every scanner item asks the same question, so the
+    # whole workflow set is flattened to one string once per repo.
+    workflow_text: str = field(default="", repr=False)
+
+    def __post_init__(self):
+        if not self.workflow_text:
+            self.workflow_text = "\n".join(
+                yaml.safe_dump(wf) for wf in self.workflows.values())
+
+
+# One `gh api repos/OWNER/NAME` per repo, not one per gh_setting item. Repos
+# routinely declare half a dozen settings items; each used to pay a fresh
+# ~0.6 s round trip for a key of the same JSON object. Cached across the
+# process, which is what makes the fleet aggregator viable.
+@lru_cache(maxsize=None)
+def gh_repo_json(owner_repo: str) -> tuple[dict | None, str]:
+    """Return (repo object, error). Exactly one of the two is meaningful."""
+    try:
+        r = subprocess.run(["gh", "api", f"repos/{owner_repo}"],
+                           capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.SubprocessError) as e:
+        return None, f"gh api failed: {e}"
+    if r.returncode != 0:
+        return None, f"gh api error: {r.stderr.strip()[:80]}"
+    try:
+        return json.loads(r.stdout), ""
+    except json.JSONDecodeError as e:
+        return None, f"gh api returned non-JSON: {e}"
+
+
+def gh_jq_value(obj: dict, dotted_key: str) -> str:
+    """Reproduce `gh api … --jq .<dotted_key>` output for a repo object.
+
+    gh prints an absent/null result as the empty string, booleans as
+    true/false, and strings bare. Indexing through a null yields null, as jq
+    does — `security_and_analysis.secret_scanning.status` on a repo with no
+    advanced-security block must read empty, not raise.
+    """
+    cur = obj
+    for part in dotted_key.split("."):
+        if not isinstance(cur, dict):
+            cur = None
+            break
+        cur = cur.get(part)
+    if cur is None:
+        return ""
+    if isinstance(cur, bool):
+        return "true" if cur else "false"
+    if isinstance(cur, (int, float)):
+        return str(cur)
+    if isinstance(cur, str):
+        return cur
+    return json.dumps(cur)
 
 
 def load_workflows(root: Path) -> dict:
@@ -146,23 +201,17 @@ def resolve(ctx: Ctx, ev: dict) -> tuple[bool, str]:
     if kind == "gh_setting":
         if ctx.owner_repo is None:
             return False, "could not derive owner/repo from git remote"
-        try:
-            r = subprocess.run(
-                ["gh", "api", f"repos/{ctx.owner_repo}", "--jq", f".{val['key']}"],
-                capture_output=True, text=True, timeout=20,
-            )
-        except (OSError, subprocess.SubprocessError) as e:
-            return False, f"gh api failed: {e}"
-        if r.returncode != 0:
-            return False, f"gh api error: {r.stderr.strip()[:80]}"
-        got = r.stdout.strip()
+        obj, err = gh_repo_json(ctx.owner_repo)
+        if obj is None:
+            return False, err
+        got = gh_jq_value(obj, str(val["key"])).strip()
         want = json.dumps(val["equals"]) if isinstance(val["equals"], bool) else str(val["equals"])
         return (got == want), f"{val['key']}={got} (want {want})"
 
     if kind == "scanner":
         tool = val["tool"]
         cfg_ok = (ctx.root / val["config"]).exists() if "config" in val else True
-        invoked = any(tool in yaml.safe_dump(wf) for wf in ctx.workflows.values())
+        invoked = tool in ctx.workflow_text
         return (cfg_ok and invoked), \
             f"{tool}: config={'ok' if cfg_ok else 'missing'} invoked={'yes' if invoked else 'no'}"
 
