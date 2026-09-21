@@ -51,7 +51,7 @@ The user runs `/release`. No arguments needed — the skill discovers everything
 
 2. **Phase B — Unattended prep to a gated-ready default branch (or, on pr-fallback only, a mergeable PR).** Discovery, breaking-change audit, version bump, release notes, CI setup (binaries/tap only), local gate, commits. End by reporting current state, anything messy, and any concerns. Then **only stop for confirmation if a serious concern arose**. If everything is clean, proceed to Phase C without asking.
 
-3. **Phase C — Complete the release.** On **gated-push**: push default (hook runs the gate), `gh release create`, watch `release.yml` only, install locally, report. On **pr-fallback**: squash-merge via `merge.sh`, then the same tag / `release.yml` / brew steps.
+3. **Phase C — Complete the release.** On **gated-push**: push default (hook runs the gate), `gh release create`, watch `release.yml` only, **upgrade and restart the local install (including any supervised daemon), verify the running service**, report. On **pr-fallback**: squash-merge via `merge.sh`, then the same tag / `release.yml` / brew steps. **Never end `/release` by telling the owner to restart a service or upgrade manually** — that work is part of the skill, not a footnote.
 
 The detailed substeps below are sequenced under these three phases. Where the previous workflow asked *"Proceed to Phase N+1?"* between substeps, that question is gone — substeps run back-to-back unless something in Phase B's concerns list fires.
 
@@ -742,6 +742,28 @@ Push (or merge), tag, and create the GitHub release. Run unattended unless somet
    If the project exposes a port, `lsof -iTCP:<port> -sTCP:LISTEN` is the cheapest
    confirmation that it is genuinely serving again.
 
+   **Exercise the release's actual change, not just `--version`.** A
+   version check cannot fail no matter how broken the feature is. When
+   the headline change is something the owner can see or do — a new
+   command, a new flag, a changed output — run *that* on the installed
+   binary before reporting success, and where an independent path to the
+   same answer exists (the HTTP endpoint a CLI wraps, the library a tool
+   wraps, the file a generator writes), get the answer both ways and
+   compare. The comparison is the oracle; the version string is not.
+
+   mnemo v0.99.0 shipped CLI counterparts for every MCP tool. It passed
+   `--version`, passed a full test suite, and every command taking a
+   positional argument silently returned the wrong answer: Go's `flag`
+   package stops parsing at the first non-flag argument, so `mnemo
+   search compaction --limit 1` searched for the literal string
+   "compaction --limit 1" and reported "No results found". Nothing
+   errored. It was caught only by running the same call through `curl`
+   against the endpoint the CLI wraps and getting a hit the CLI did not.
+
+   A corollary for the smoke test itself: **exercise flags and
+   positionals together**. A check that uses one or the other misses the
+   most common real invocation, which is both.
+
    **Verify the install**: Run `<project> --version` (or the equivalent) and confirm the output matches the released version. If it doesn't match, **inspect `"$log"` first** — the full upgrade output is there, including any "Failed to fix install linkage" warnings, missing-symlink hints, or Cellar-vs-bin-symlink mismatches. Then **fail loud**: print the expected version, the observed version, `which <project>`, and the relevant lines from `"$log"`. Common causes:
 
    - **Cellar populated but `bin/<project>` missing**: a formula-name collision with a published Homebrew cask shadows the symlink-creation step. `brew link --overwrite <tap-owner>/tap/<project>` resolves it; report the formula's name as a candidate for renaming if this recurs.
@@ -757,7 +779,9 @@ Push (or merge), tag, and create the GitHub release. Run unattended unless somet
 10. **Report**: Print:
     - Release URL
     - Homebrew install command (if tap was set up): `brew install <tap-owner>/tap/<project>`
-    - Confirmation that the new version is installed locally (include the `--version` output)
+    - Confirmation that the new version is installed locally: **CLI** `--version` output **and**, for MCP servers / supervised daemons, the **listening process** (supervisor status, port, pid, binary path). Do not suggest the owner restart supervisord or `brew services` — you already did that in step 9.
+
+    **Local publish scripts** (e.g. bullseye `scripts/release-publish.sh`) should embed the supervised restart and port/process check so `make release` cannot report success on a stale daemon.
 
 11. **Clean the tree**: If `bullseye.yaml` is dirty, run
     `~/.claude/skills/release/finalize.sh <version>` to commit it
@@ -773,7 +797,15 @@ Push (or merge), tag, and create the GitHub release. Run unattended unless somet
 - If CI workflow fails after tagging, help diagnose — do not delete the tag without asking.
 - Never force-push or rewrite history.
 - **Never let a pipe swallow an exit status.** `cmd | tail -n` reports the
-  pager's status, not the command's, so a failed step reads as success. Where a
+  pager's status, not the command's, so a failed step reads as success.
+  `PIPESTATUS` is not a reliable rescue: in a compound command, and
+  especially one sent to the background, the array can be clobbered
+  before you read it, leaving `GATE_EXIT=` empty while the wrapper exits
+  0 — a gate that looks green and was never checked. Redirect to a file
+  (`cmd > /tmp/gate.log 2>&1; echo "exit=$?"`) and branch on that status;
+  read the file for detail. And never infer a pass from the *absence* of
+  FAIL lines in filtered output: the filter that hides the noise hides
+  the failure too. Where a
   step gates a later one — the tap publish before the brew install above,
   the local gate before the tag — branch on the exit status and keep the full
   output in a file for diagnosis. Truncating output for readability is fine;
