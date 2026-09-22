@@ -429,7 +429,7 @@ B.5 (release notes), B.6 (release.yml creation), and B.7 (local gate / tests) **
 
    On **gated-push**, this local run *is* the blocking correctness gate — do not also wait for GHA test jobs. On **pr-fallback**, still run it locally; PR CI is an additional check after push.
 
-   The repo's pre-push hook runs the same target again when Phase C pushes. That duplication is deliberate belt-and-braces — never skip this run on the grounds that the hook will repeat it. A fresh clone may not have run `make hooks`, and a red gate caught here costs one command instead of a refused push mid-release.
+   On **gated-push**, the repo's pre-push hook does not re-run this gate; it checks the attestation the gate wrote (`.git/gate-attestation` — see `~/.claude/gates.md`, "Pre-push hooks"). So the gate must run **in the clone that will push**, not only under `bin/gate -clean` in a temp checkout, or the hook has nothing to verify. If a gated-push repo's hook still runs the full suite, fix it as release prep: git opens SSH before the hook, and GitHub closes an idle connection long before a 25-minute gate ends (claudia, 2026-09-22 — two green gates, nothing pushed). This does not apply on **pr-fallback**: there the PR's GitHub Actions run is the oracle and takes as long as it takes.
 2. In the foreground, draft release notes (B.5) and write the workflow file (B.6, if needed).
 3. When the gate-run notification arrives, fold its result into B.7.
 4. Only after all three substeps are settled do you commit the bundled release-prep changes.

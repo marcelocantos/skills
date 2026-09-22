@@ -72,10 +72,12 @@ In the direct-push case:
    line as the evidence. If it is red, **stop** — do not push, do not
    `--no-verify`.
 
-   The pre-push hook (`core.hooksPath=scripts/hooks`) runs the same target
-   again. That duplication is deliberate belt-and-braces, not a reason to skip
-   this run: a fresh clone may not have run `make hooks`, and a red gate caught
-   here costs one command instead of a refused push mid-flow.
+   On a gated-push repo, this run is also what the pre-push hook will check: a slow gate attests
+   the tree it measured (`.git/gate-attestation`), and the hook only verifies
+   that attestation covers the tip commit going out (`~/.claude/gates.md`,
+   "Pre-push hooks"). If a repo's hook still re-runs the whole suite, fix the
+   hook as part of the push — a 25-minute hook outlives GitHub's idle SSH
+   window and the push dies after a green gate.
 2. **Get the owner's go-ahead.** A direct push to the default branch is a
    Ship-plane action and the merge-equivalent moment of this skill — it is what
    step 8 would have confirmed. Present the branch, the commits about to land,
