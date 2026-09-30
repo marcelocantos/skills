@@ -24,12 +24,13 @@ Follow guide section 6 for the README updates, then publish:
 1. Replace the `## The Journey So Far` section with the rewritten
    narrative from the approved draft.
 2. Add a collapsible entry under `## Reports` (newest first).
-3. Add a row to the `## Metrics` table (newest first).
+3. Add a row to the `## Metrics` table (newest first). The ☲ ±kloc readings
+   must use green/red HTML spans (`#1a7f37` / `#cf222e`) per guide §6.
 4. Refresh the `## At a Glance` bullets at the top of the README to match
    the updated Totals row (span, commits/repos/languages, human hours,
-   generalist-years + multiplier, net-lines activity signal) — see guide
-   section 6. It is a scannable mirror of the Totals, not a new source of
-   figures.
+   generalist-years + multiplier, net-lines activity signal — colour the
+   net-lines figure the same way) — see guide section 6. It is a scannable
+   mirror of the Totals, not a new source of figures.
 5. Stage the new report, updated README, achievements, charts, cache,
    per-repo pages (`docs/repos/` — created and updated, plus the index;
    see guide section 7) and any `data/line-excludes.yaml` updates from

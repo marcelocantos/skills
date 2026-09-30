@@ -122,6 +122,15 @@ per-repo globs from the progress-reports fleet file
 never fold them into Metrics ☲. Commits that only touch excluded paths still
 count toward ℂ.
 
+**LOC colouring (required on every plus/minus line-count reading).** Emit HTML
+spans so the published site shows green additions and red removals (guide
+§3.4 / §3.5 / §6). Use `#1a7f37` for `+…` and `#cf222e` for `−…`/`-…`, with
+the sign inside the span; keep footnote markers outside.
+
+- README Metrics ☲: `☲<span style="color:#1a7f37">+55</span><span style="color:#cf222e">-6</span>`
+- Aggregate / per-repo line cells: same colours on `+N` / `−N` / net
+- At a Glance net-lines bullet: colour the net figure the same way
+
 ### Maintain `data/line-excludes.yaml` (mandatory check)
 
 While scanning repos and reading diffs, **actively maintain** the fleet exclude
