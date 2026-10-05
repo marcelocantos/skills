@@ -24,6 +24,7 @@ Also includes my global [`CLAUDE.md`](CLAUDE.md) directives and the [`convergenc
 - **[`/remind`](skills/remind/SKILL.md)** — >
 - **[`/republish-skills`](skills/republish-skills/SKILL.md)** — Sync ~/.claude/skills/ to the marcelocantos/skills GitHub repo.
 - **[`/retro`](skills/retro/SKILL.md)** — Mine the last week of session transcripts for concrete improvements to the system itself — skills, tools, MCP servers, scripts, CLAUDE.md/AGENTS.md, permissions, hooks. Produces an evidence-backed, ranked proposal list, applies the approved ones, and files targets for the rest.
+- **[`/stability`](skills/stability/SKILL.md)** — >
 - **[`/sync-globals`](skills/sync-globals/SKILL.md)** — sync-globals
 - **[`/vera`](skills/vera/SKILL.md)** — Semantic code search, regex pattern search, and symbol lookup across a local repository. Returns ranked markdown codeblocks with file path, line range, content, and optional symbol info. Use `vera search` for conceptual/behavioral queries (how a feature works, where logic lives, exploring unfamiliar code). Use `vera grep` for exact strings, regex patterns, imports, and TODOs. Use `vera references` to trace callers/callees. Use rg only for bulk find-and-replace or files outside the index.
 - **[`/waw`](skills/waw/SKILL.md)** — "Where Are We?" — Context restoration after being AFK. Default is a quick recap; `/waw all` runs the full deep briefing.
