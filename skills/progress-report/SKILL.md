@@ -10,7 +10,17 @@ model: opus) with the prompt `"Read and execute
 text."`. Relay the agent's result to the user.
 
 The worker handles period determination, data gathering, and report
-drafting. After the user approves the draft, the root session handles
+drafting.
+
+**Publication rule.** Published reports (public and private repos) never
+mention Colossus or name the host/machine the work ran on, and never include
+honesty notes or methodology caveats. The worker returns those under
+`## Hand-off notes (not for publication)`; send them to Marcelo in the
+hand-off message only and **never commit them**. Before staging in Phase 3,
+`rg -i "colossus|honesty note|$(hostname -s)"` over the staged files and
+remove any hit (see `worker.md` "Publication rule" and guide §8).
+
+After the user approves the draft, the root session handles
 Phase 3 (Update README and publish):
 
 ## Phase 3: Update README and publish

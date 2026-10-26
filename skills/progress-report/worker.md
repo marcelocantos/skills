@@ -22,6 +22,28 @@ Commercial descriptive detail must not land in the public repo.
 
 When a week has commercial narrative: write the public report with **stubs + private links**, and write a companion `progress-reports-private/reports/weekly-report-<end>.md` with the commercial extracts. Commercial per-repo pages and commercial achievement rows update only under the private repo. Phase 3 publishes public as today; also push the private companion (direct to private `master`).
 
+### Publication rule (mandatory)
+
+Everything committed to either repo (reports, README, per-repo pages,
+achievements, charts, guide) is published. In published content:
+
+- **Never mention the host or machine** the work ran on or the report was
+  drafted on — no machine names (e.g. Colossus), no "drafted in the X shell",
+  no references to the box/VM the run used.
+- **Never include honesty notes or methodology caveats** — no "Honesty
+  note(s)" blockquote, no "see the honesty note" cross-references, no notes
+  about broker/tooling failures, excluded worktree clones, patched chart
+  scripts, diverged or unpushed local branches, union-of-local-and-origin
+  counting, or how a figure was reconciled. Just state the figures.
+
+Collect all such notes in a separate **`## Hand-off notes (not for
+publication)`** section at the end of your returned draft. The root session
+delivers them **only to Marcelo** in the hand-off message and never commits
+them. Ordinary metric footnotes from guide §3.4–§3.5 (vendor /
+`data/line-excludes.yaml` omissions) are still allowed. Before returning,
+grep the drafted files for `colossus`, `honesty note`, and the host name
+(`hostname -s`) and remove any hits.
+
 ## Progress reporting
 
 Before starting each phase, emit a progress heading **on its own line
@@ -161,8 +183,10 @@ confirm the repo’s `landed:` kloc is plausible and `landed-excluded` /
 `exclude-config:` reflect the new globs. Stage the updated
 `data/line-excludes.yaml` with the weekly report (Phase 3).
 
-**Draft disclosure:** if you added or changed excludes this run, say so briefly
-in the metrics honesty note (which `org/repo` globs, why).
+**Draft disclosure:** if you added or changed excludes this run, record it
+(which `org/repo` globs, why) in the **hand-off notes** (see "Publication
+rule" above) — not in the report. A terse Metrics-row footnote naming the new
+glob is fine.
 
 Then follow guide sections 1.1–1.5 and section 4 (authorship). Use `~/work/github.com/` as the scan root.
 
