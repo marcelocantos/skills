@@ -28,7 +28,7 @@ Everything committed to either repo (reports, README, per-repo pages,
 achievements, charts, guide) is published. In published content:
 
 - **Never mention the host or machine** the work ran on or the report was
-  drafted on — no machine names (e.g. Colossus), no "drafted in the X shell",
+  drafted on — no machine names (`hostname -s`, `scutil --get ComputerName`), no "drafted in the X shell",
   no references to the box/VM the run used.
 - **Never include honesty notes or methodology caveats** — no "Honesty
   note(s)" blockquote, no "see the honesty note" cross-references, no notes
@@ -41,7 +41,7 @@ publication)`** section at the end of your returned draft. The root session
 delivers them **only to Marcelo** in the hand-off message and never commits
 them. Ordinary metric footnotes from guide §3.4–§3.5 (vendor /
 `data/line-excludes.yaml` omissions) are still allowed. Before returning,
-grep the drafted files for `colossus`, `honesty note`, and the host name
+grep the drafted files for `honesty note` and the host name
 (`hostname -s`) and remove any hits.
 
 ## Progress reporting
