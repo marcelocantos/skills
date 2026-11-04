@@ -1,25 +1,26 @@
 ---
 name: stability
 description: >
-  Update one repo's STABILITY.md onto the current 1.0 approach, or, once
-  it is current, review that contract and tell the owner what their
-  `## 1.0 judgment` has to cover. Use for /stability, a stability-catalogue
-  update, retiring a settling clock or feature-freeze, gap labels, or
-  "is this ready to judge for 1.0?". The v1.0.0 cut stays /release.
+  Update one repo's STABILITY.md onto the current 1.0 approach, write
+  the agent's `## 1.0 judgment`, or, once the file is current, review
+  that contract. Use for /stability, a stability-catalogue update,
+  retiring a settling clock or feature-freeze, gap labels, or "is this
+  ready to judge for 1.0?". The v1.0.0 cut stays /release.
 user-invocable: true
 ---
 
 # stability
 
-Maintains one repo's public-contract notes, then tells the owner what
-those notes ask them to weigh and what their `## 1.0 judgment` has to
-cover. The cut is a different skill. The agent does not compose the
-judgment.
+Maintains one repo's public-contract notes, writes the agent's
+`## 1.0 judgment`, then reports that evaluation. The cut is a
+different skill.
 
-The policy is the **Pre-1.0 → 1.0 gate** locked-in decision in
-`/release`. B.3a is the check, and it runs only when the owner asks for
-`v1.0.0`. Do not copy either, and do not write the quiet-period duration
-into this skill's output or into `STABILITY.md`.
+The policy for what the judgment covers is the **Pre-1.0 → 1.0 gate**
+locked-in decision in `/release`. B.3a is the check, and it runs only
+when the owner asks for `v1.0.0`. Do not copy either, and do not write
+the quiet-period duration into this skill's output or into
+`STABILITY.md`. This skill writes the judgment. The owner does not
+supply the prose.
 
 ## Scope
 
@@ -45,8 +46,9 @@ Read `STABILITY.md`. It is current when all of these hold:
 - Where a key defines **Stable**, it is the fork promise (breaking it
   after 1.0 means forking the product), not "this has not moved" and
   not "this will not change before 1.0".
-- `## 1.0 judgment` is present, current as `/release` B.3a defines
-  freshness, and still matches the rows it names.
+- `## 1.0 judgment` is present, names the last breaking tag this file
+  records, addresses expandability and closure, and still matches the
+  rows it names.
 
 If any of those fail, update, then review in the same turn. If all
 hold, review only. An explicit "read only, change nothing" skips the
@@ -76,7 +78,7 @@ fill the four labels out.
 - **Refused** — the owner has declined it. It is not a gap.
 
 Replace a "must be resolved / must land before 1.0" intro with one
-line: these are inputs to the owner's `## 1.0 judgment`, and they do
+line: these are inputs to the agent's `## 1.0 judgment`, and they do
 not authorize the cut.
 
 **Eligibility.** Strike a numeric clock, a feature-freeze, a
@@ -88,9 +90,21 @@ release is `<tag>` (or "not recorded here"). One further sentence may
 name the rule just retired. Do not go diff tags to discover a break
 this skill did not already find in the file.
 
-Write or update `## 1.0 judgment` in this run, by the procedure in the
-`/release` locked-in decision. A heading that only defers the
-evaluation to the owner is a failed update.
+**Judgment.** Write or replace `## 1.0 judgment` in this run. A heading
+that only defers the evaluation to the owner is a failed update. The
+section is the evaluation of the catalogue as it stands:
+
+- **Expandability.** For each seam the review would name, state either
+  that it can grow by addition or that the limit is permanent.
+- **Closure.** Name any kind of situation the locked contract could not
+  absorb. An unfinished feature that can land by addition is not one.
+  When the catalogue names none, say so.
+- Name the last breaking tag this file records.
+
+Do not mention the quiet period. Do not propose `v1.0.0`. An owner who
+wants to skip the quiet period is not amending this section. That wish
+is an instruction for the cut. Do not record it here, and do not edit
+`/release`.
 
 **Bullseye.** When a target's acceptance *is* the old clock, patch that
 target with `bullseye_apply`. Do not hand-edit `bullseye.yaml`. Take
@@ -112,19 +126,10 @@ State, in prose:
 
 - Whether this run updated the file, and the last breaking tag as the
   file records it. Whether the quiet period has elapsed is B.3a's
-  check, and only when the owner asks for the cut. An owner who wants
-  to skip that period is not amending the judgment or this file. Say
-  that the wish is an instruction for the cut. Do not record it in
-  `STABILITY.md`, and do not edit `/release`.
-- Whether `## 1.0 judgment` is present. If it is, say whether it
-  addresses both qualities and whether B.3a's freshness check would
-  pass. Do not grade the prose. If it is absent, the cut is
-  unauthorized until the owner writes it. Tell them what they write,
-  and do not write it for them: their own words under that heading, a
-  conclusion on expandability and a conclusion on closure, using the
-  weigh-list in this review, and the heading names the last breaking
-  tag this file records. When they dictate it, file those words
-  verbatim.
+  check, and only when the owner asks for the cut.
+- What `## 1.0 judgment` concluded on expandability and on closure, and
+  whether it names the last breaking tag this file records. Do not
+  grade the prose past that.
 - Any stricter local rule still written in the file. It still binds
   until an update removes it.
 
@@ -136,8 +141,6 @@ allowed and costs the quiet period; leaving it means the lock includes
 today's promise.
 
 A catalogue where no row asks for a seam, and no gap names an unmapped
-situation, is a fact about the file. It is not a judgment, and it does
-not authorize a cut.
+situation, is a fact the judgment records. It does not authorize a cut.
 
-Stop there. Do not propose `v1.0.0`, and do not draft the judgment
-the owner has not dictated.
+Stop there. Do not propose `v1.0.0`.

@@ -70,15 +70,6 @@ If `# ledger` is `dirty`, that path is required staging — even when
 the user scoped other files, and even when everything else is already
 cached. Do not omit `bullseye.yaml` as unrelated.
 
-**V boundary on the ledger diff.** If the ledger diff flips a target
-to `status: achieved` and its new `attestation:` carries no
-`vcheck PASS` line, the achieve has not been checked. Run
-`/vcheck <id>` before committing. On PASS, re-attest through bullseye
-so the ledger carries the oracle line (never hand-edit the yaml), then
-commit. On BLOCK, commit the code without the ledger flip — revert the
-target with `bullseye_revert` / `bullseye_commit(op=reopen)` and relay
-the verdict — or stop and let the user decide.
-
 ### 4. Draft message
 
 If the user provided a message argument, use it directly.

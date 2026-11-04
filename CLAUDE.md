@@ -114,6 +114,10 @@ Shared rail: [Delivery: two planes](AGENTS.md) in `AGENTS.md` + hard rule #7.
   is not Ship permission.
 - **When Ship is open:** `/push` (not ad-hoc `gh`); one PR per objective;
   CI green before merge; squash-merge and releases need user confirmation.
+- **Stacked PRs:** if a GitHub stack is already open, merge from the **top** via
+  `PUT …/pulls/{n}/merge-async` (squash + `direct_merge`) so downstack PRs land
+  together — never the multi-PR dance. Detail in `AGENTS.md` ("Merging stacked
+  pull requests"). `/push`’s `merge.sh` uses that path when the PR is stacked.
 - Don't push to a PR branch that already has green CI without approval.
 - Fan-out → commit-and-stop; parent ships only if user asked.
 
