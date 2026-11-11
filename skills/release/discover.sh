@@ -197,8 +197,16 @@ fi
 # or non-GitHub repos fall back to whatever local refs exist.
 git fetch --quiet origin "$default_branch" --tags 2>/dev/null || true
 
-# Most authoritative available ref for the default branch.
-if git rev-parse --verify --quiet "origin/$default_branch" >/dev/null 2>&1; then
+# Most authoritative available ref for the default branch. When the local
+# default branch is strictly ahead of origin (gated-push: release commits
+# land locally and are pushed in Phase C), the local branch is what will
+# ship — diffing against origin would report no commits since the tag.
+if git rev-parse --verify --quiet "origin/$default_branch" >/dev/null 2>&1 &&
+    git rev-parse --verify --quiet "refs/heads/$default_branch" >/dev/null 2>&1 &&
+    [[ "$(git rev-parse "refs/heads/$default_branch")" != "$(git rev-parse "origin/$default_branch")" ]] &&
+    git merge-base --is-ancestor "origin/$default_branch" "refs/heads/$default_branch" 2>/dev/null; then
+    release_ref="$default_branch"
+elif git rev-parse --verify --quiet "origin/$default_branch" >/dev/null 2>&1; then
     release_ref="origin/$default_branch"
 elif git rev-parse --verify --quiet "$default_branch" >/dev/null 2>&1; then
     release_ref="$default_branch"
