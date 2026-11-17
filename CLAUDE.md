@@ -83,7 +83,7 @@ Before device onboarding, real-device deploy/smoke, fleet coverage or buy advice
 ## Background processes and waiting
 
 - Never write `sleep N && <check>` — the harness blocks long leading sleeps, and the pattern can't react to early completion. If you catch yourself writing `sleep`, pick the right primitive below.
-- Check on a long command later → Bash `run_in_background: true`; you're notified on exit.
+- Check on a long command later → Bash `run_in_background: true`; you're notified on exit. It dies with the session, so a build, test suite or device run that must survive a restart goes through `pueue` instead (see "Long-running jobs" in `AGENTS.md`), and `pueue wait <id>` in a background Bash call gives the notification.
 - Wait on a condition (log line, port open, file exists) → `Monitor` with an `until <check>; do sleep 2; done` loop.
 - Come back after a real wait (minutes+) → `ScheduleWakeup`.
 
